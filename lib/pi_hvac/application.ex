@@ -11,9 +11,10 @@ defmodule PiHvac.Application do
       # Start the Ecto repository
       PiHvac.Repo,
       # Start the endpoint when the application starts
-      PiHvacWeb.Endpoint
+      PiHvacWeb.Endpoint,
       # Starts a worker by calling: PiHvac.Worker.start_link(arg)
       # {PiHvac.Worker, arg},
+      PeriodicalMeasure
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html

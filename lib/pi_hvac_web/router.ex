@@ -20,7 +20,9 @@ defmodule PiHvacWeb.Router do
   end
 
   # Other scopes may use custom stacks.
-  # scope "/api", PiHvacWeb do
-  #   pipe_through :api
-  # end
+  scope "/api", PiHvacWeb do
+    pipe_through :api
+
+    resources "/v1/measurements", EnvMeasuredController, except: [:new, :edit, :create, :update, :delete]
+  end
 end
