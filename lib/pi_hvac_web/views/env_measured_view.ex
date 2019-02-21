@@ -13,9 +13,9 @@ defmodule PiHvacWeb.EnvMeasuredView do
   def render("env_measured.json", %{env_measured: env_measured}) do
     %{id: env_measured.id,
       measured_at: env_measured.measured_at,
-      degc: env_measured.degc,
-      hpa: env_measured.hpa,
-      rh: env_measured.rh,
+      degc: env_measured.degc |> Decimal.to_float,
+      hpa: env_measured.hpa |> Decimal.to_float,
+      rh: env_measured.rh |> Decimal.to_float,
       sensor_id: env_measured.sensor_id}
   end
 end

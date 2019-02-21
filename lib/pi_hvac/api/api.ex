@@ -17,8 +17,14 @@ defmodule PiHvac.Api do
       [%EnvMeasured{}, ...]
 
   """
-  def list_envmeasured do
-    Repo.all(EnvMeasured)
+  def list_envmeasured(params) do
+    default = %{"limits" => 3}
+    %{"limits" => lmt} = Map.merge(default, params)
+    EnvMeasured
+    |> order_by([e], desc: e.id)
+    |> limit(^lmt)
+    |> Repo.all
+    |> Enum.reverse
   end
 
   @doc """

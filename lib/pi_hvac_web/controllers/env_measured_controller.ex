@@ -6,8 +6,8 @@ defmodule PiHvacWeb.EnvMeasuredController do
 
   action_fallback PiHvacWeb.FallbackController
 
-  def index(conn, _params) do
-    envmeasured = Api.list_envmeasured()
+  def index(conn, params) do
+    envmeasured = Api.list_envmeasured(params)
     render(conn, "index.json", envmeasured: envmeasured)
   end
 
