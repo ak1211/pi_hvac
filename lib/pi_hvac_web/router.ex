@@ -43,5 +43,6 @@ defmodule PiHvacWeb.Router do
     pipe_through :api
 
     resources "/v1/measurements", EnvMeasuredController, except: [:new, :edit, :create, :update, :delete]
+    resources "/v1/i2c-devices", I2cDevicesController, except: [:new, :show, :edit, :create, :update, :delete]
   end
 end
