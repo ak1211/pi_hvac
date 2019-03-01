@@ -63,7 +63,7 @@ defmodule BME280 do
   end
 
   def read(pid) do
-    GenServer.call(pid, :read)
+    GenServer.call(__MODULE__, :read)
   end
 
   #

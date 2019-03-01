@@ -20431,8 +20431,8 @@ var eqEnvMeasValue = new Data_Eq.Eq(function (x) {
 });
 var decoder = function (dictGeneric) {
     return function (dictGenericDecode) {
-        var renderError = function ($66) {
-            return Data_String_Common.joinWith("")(Data_Array.fromFoldable(Data_List_Types.foldableNonEmptyList)(Data_Functor.map(Data_List_Types.functorNonEmptyList)(Foreign.renderForeignError)($66)));
+        var renderError = function ($69) {
+            return Data_String_Common.joinWith("")(Data_Array.fromFoldable(Data_List_Types.foldableNonEmptyList)(Data_Functor.map(Data_List_Types.functorNonEmptyList)(Foreign.renderForeignError)($69)));
         };
         var decodeJSON = Foreign_Generic.genericDecodeJSON(dictGeneric)(dictGenericDecode)({
             sumEncoding: Foreign_Generic.defaultOptions.sumEncoding,
@@ -20440,35 +20440,46 @@ var decoder = function (dictGeneric) {
             unwrapSingleArguments: Foreign_Generic.defaultOptions.unwrapSingleArguments,
             fieldTransform: Foreign_Generic.defaultOptions.fieldTransform
         });
-        return function ($67) {
-            return Data_Bifunctor.lmap(Data_Either.bifunctorEither)(renderError)(Control_Monad_Except.runExcept(decodeJSON($67)));
+        return function ($70) {
+            return Data_Bifunctor.lmap(Data_Either.bifunctorEither)(renderError)(Control_Monad_Except.runExcept(decodeJSON($70)));
         };
     };
 };
 var getApiV1I2cDevices = function (v) {
-    return Data_Functor.mapFlipped(Effect_Aff.functorAff)(Affjax.get(Affjax_ResponseFormat.string)(v + "/api/v1/i2c-devices"))(function (res) {
-        if (res.body instanceof Data_Either.Left) {
-            return {
-                body: Data_Either.Left.create(Affjax_ResponseFormat.printResponseFormatError(res.body.value0)),
-                headers: res.headers,
-                status: res.status,
-                statusText: res.statusText
+    return function (maybeBusNum) {
+        var query = (function () {
+            if (maybeBusNum instanceof Data_Maybe.Just) {
+                return "?busnum=" + Data_Int.toStringAs(Data_Int.decimal)(maybeBusNum.value0);
             };
-        };
-        if (res.body instanceof Data_Either.Right) {
-            return {
-                body: decoder(genericI2cDevices)(Foreign_Generic_Class.genericDecodeConstructor(new Data_Symbol.IsSymbol(function () {
-                    return "I2cDevices";
-                }))(Foreign_Generic_Class.genericDecodeArgsArgument(Foreign_Generic_Class.decode_Record()(Foreign_Generic_Class.decodeRecordCons()(Foreign_Generic_Class.decodeRecordNil)(new Data_Symbol.IsSymbol(function () {
-                    return "data";
-                }))(Foreign_Generic_Class.decode_Other(Foreign_Class.arrayDecode(Foreign_Class.intDecode)))())))(Foreign_Generic_Class.genericCountArgsArgument))(res.body.value0),
-                headers: res.headers,
-                status: res.status,
-                statusText: res.statusText
+            if (maybeBusNum instanceof Data_Maybe.Nothing) {
+                return "";
             };
-        };
-        throw new Error("Failed pattern match at Api line 162, column 17 - line 164, column 45: " + [ res.body.constructor.name ]);
-    });
+            throw new Error("Failed pattern match at Api line 168, column 5 - line 170, column 18: " + [ maybeBusNum.constructor.name ]);
+        })();
+        return Data_Functor.mapFlipped(Effect_Aff.functorAff)(Affjax.get(Affjax_ResponseFormat.string)(v + ("/api/v1/i2c-devices" + query)))(function (res) {
+            if (res.body instanceof Data_Either.Left) {
+                return {
+                    body: Data_Either.Left.create(Affjax_ResponseFormat.printResponseFormatError(res.body.value0)),
+                    headers: res.headers,
+                    status: res.status,
+                    statusText: res.statusText
+                };
+            };
+            if (res.body instanceof Data_Either.Right) {
+                return {
+                    body: decoder(genericI2cDevices)(Foreign_Generic_Class.genericDecodeConstructor(new Data_Symbol.IsSymbol(function () {
+                        return "I2cDevices";
+                    }))(Foreign_Generic_Class.genericDecodeArgsArgument(Foreign_Generic_Class.decode_Record()(Foreign_Generic_Class.decodeRecordCons()(Foreign_Generic_Class.decodeRecordNil)(new Data_Symbol.IsSymbol(function () {
+                        return "data";
+                    }))(Foreign_Generic_Class.decode_Other(Foreign_Class.arrayDecode(Foreign_Class.intDecode)))())))(Foreign_Generic_Class.genericCountArgsArgument))(res.body.value0),
+                    headers: res.headers,
+                    status: res.status,
+                    statusText: res.statusText
+                };
+            };
+            throw new Error("Failed pattern match at Api line 162, column 15 - line 164, column 44: " + [ res.body.constructor.name ]);
+        });
+    };
 };
 var decodeMeasDateTime = new Foreign_Class.Decode(function (value) {
     var error = Data_List_NonEmpty.singleton(new Foreign.TypeMismatch("DateTime", Foreign.tagOf(value)));
@@ -20528,7 +20539,7 @@ var getApiV1Measurements = function (v) {
             if (maybeLimits instanceof Data_Maybe.Nothing) {
                 return "";
             };
-            throw new Error("Failed pattern match at Api line 136, column 7 - line 140, column 5: " + [ maybeLimits.constructor.name ]);
+            throw new Error("Failed pattern match at Api line 136, column 5 - line 140, column 3: " + [ maybeLimits.constructor.name ]);
         })();
         var pickupData = function (v1) {
             return v1.data;
@@ -20554,7 +20565,7 @@ var getApiV1Measurements = function (v) {
                     statusText: res.statusText
                 };
             };
-            throw new Error("Failed pattern match at Api line 130, column 17 - line 132, column 74: " + [ res.body.constructor.name ]);
+            throw new Error("Failed pattern match at Api line 130, column 15 - line 132, column 72: " + [ res.body.constructor.name ]);
         });
     };
 };
@@ -20615,7 +20626,7 @@ var Navigate = function (Monad0, navigate) {
     this.Monad0 = Monad0;
     this.navigate = navigate;
 };
-var HasApiAccessMethod = function (Monad0, getApiBaseURL, getApiTimeout) {
+var HasApiAccessible = function (Monad0, getApiBaseURL, getApiTimeout) {
     this.Monad0 = Monad0;
     this.getApiBaseURL = getApiBaseURL;
     this.getApiTimeout = getApiTimeout;
@@ -20649,13 +20660,13 @@ var getApiTimeout = function (dict) {
 var getApiBaseURL = function (dict) {
     return dict.getApiBaseURL;
 };
-var hasApiAccessMethodHalogenM = function (dictHasApiAccessMethod) {
-    return new HasApiAccessMethod(function () {
+var hasApiAccessibleHalogenM = function (dictHasApiAccessible) {
+    return new HasApiAccessible(function () {
         return Halogen_Query_HalogenM.monadHalogenM;
-    }, Control_Monad_Trans_Class.lift(Halogen_Query_HalogenM.monadTransHalogenM)(dictHasApiAccessMethod.Monad0())(getApiBaseURL(dictHasApiAccessMethod)), Control_Monad_Trans_Class.lift(Halogen_Query_HalogenM.monadTransHalogenM)(dictHasApiAccessMethod.Monad0())(getApiTimeout(dictHasApiAccessMethod)));
+    }, Control_Monad_Trans_Class.lift(Halogen_Query_HalogenM.monadTransHalogenM)(dictHasApiAccessible.Monad0())(getApiBaseURL(dictHasApiAccessible)), Control_Monad_Trans_Class.lift(Halogen_Query_HalogenM.monadTransHalogenM)(dictHasApiAccessible.Monad0())(getApiTimeout(dictHasApiAccessible)));
 };
 var functorAppM = Control_Monad_Reader_Trans.functorReaderT(Effect_Aff.functorAff);
-var hasApiAccessMethodAppM = new HasApiAccessMethod(function () {
+var hasApiAccessibleAppM = new HasApiAccessible(function () {
     return monadAppM;
 }, Data_Functor.mapFlipped(functorAppM)(Control_Monad_Reader_Class.ask(Control_Monad_Reader_Trans.monadAskReaderT(Effect_Aff.monadAff)))(function (env) {
     return env.apiBaseURL;
@@ -20681,7 +20692,7 @@ var navigateAppM = new Navigate(function () {
 module.exports = {
     AppM: AppM,
     Navigate: Navigate,
-    HasApiAccessMethod: HasApiAccessMethod,
+    HasApiAccessible: HasApiAccessible,
     runAppM: runAppM,
     navigate: navigate,
     getApiBaseURL: getApiBaseURL,
@@ -20696,8 +20707,8 @@ module.exports = {
     monadAskAppM: monadAskAppM,
     navigateAppM: navigateAppM,
     navigateHalogenM: navigateHalogenM,
-    hasApiAccessMethodAppM: hasApiAccessMethodAppM,
-    hasApiAccessMethodHalogenM: hasApiAccessMethodHalogenM
+    hasApiAccessibleAppM: hasApiAccessibleAppM,
+    hasApiAccessibleHalogenM: hasApiAccessibleHalogenM
 };
 
 },{"../Api/index.js":70,"../Control.Applicative/index.js":105,"../Control.Apply/index.js":107,"../Control.Bind/index.js":111,"../Control.Monad.Reader.Class/index.js":129,"../Control.Monad.Reader.Trans/index.js":130,"../Control.Monad.Reader/index.js":131,"../Control.Monad.Trans.Class/index.js":140,"../Control.Monad/index.js":146,"../Control.Semigroupoid/index.js":150,"../Data.Eq/index.js":210,"../Data.Function/index.js":227,"../Data.Functor/index.js":237,"../Data.Semigroup/index.js":329,"../Data.Time.Duration/index.js":356,"../Effect.Aff.Class/index.js":376,"../Effect.Aff/index.js":379,"../Effect.Class/index.js":380,"../Halogen.Query.HalogenM/index.js":440,"../Halogen/index.js":452,"../Prelude/index.js":467,"../Route/index.js":475,"../Routing.PushState/index.js":479,"../Type.Equality/index.js":491}],72:[function(require,module,exports){
@@ -80090,16 +80101,16 @@ var routeSignal = function (hio) {
 };
 var rootComponent = function (dictMonadAff) {
     return function (dictNavigate) {
-        return function (dictHasApiAccessMethod) {
+        return function (dictHasApiAccessible) {
             var render = function (state) {
                 if (state.route instanceof Route.Home) {
-                    return Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp1)(Data_Unit.unit)(Page_Home.component(dictMonadAff)(dictNavigate)(dictHasApiAccessMethod))(Data_Unit.unit)(Data_Void.absurd);
+                    return Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp1)(Data_Unit.unit)(Page_Home.component(dictMonadAff)(dictNavigate)(dictHasApiAccessible))(Data_Unit.unit)(Data_Void.absurd);
                 };
                 if (state.route instanceof Route.Plotdata) {
-                    return Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp2)(Data_Unit.unit)(Page_Plotdata.component(dictMonadAff)(dictNavigate)(dictHasApiAccessMethod))(state.route)(Data_Void.absurd);
+                    return Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp2)(Data_Unit.unit)(Page_Plotdata.component(dictMonadAff)(dictNavigate)(dictHasApiAccessible))(state.route)(Data_Void.absurd);
                 };
                 if (state.route instanceof Route.Infrared) {
-                    return Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp3)(Data_Unit.unit)(Page_Infrared.component(dictMonadAff)(dictNavigate)(dictHasApiAccessMethod))(Data_Unit.unit)(Data_Void.absurd);
+                    return Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp3)(Data_Unit.unit)(Page_Infrared.component(dictMonadAff)(dictNavigate)(dictHasApiAccessible))(Data_Unit.unit)(Data_Void.absurd);
                 };
                 if (state.route instanceof Route.Settings) {
                     return Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp4)(Data_Unit.unit)(Page_Settings.component(dictMonadAff)(dictNavigate))(Data_Unit.unit)(Data_Void.absurd);
@@ -80143,9 +80154,9 @@ var main = Halogen_Aff_Util.runHalogenAff(Control_Bind.bind(Effect_Aff.bindAff)(
             var env = {
                 psInterface: v1,
                 apiBaseURL: v2,
-                apiTimeout: 1000.0
+                apiTimeout: 1200.0
             };
-            return Control_Bind.bind(Effect_Aff.bindAff)(Halogen_VDom_Driver.runUI(Halogen_Component.hoist(Halogen_HTML_Core.bifunctorHTML)(Effect_Aff.functorAff)(Data_Function.flip(AppM.runAppM)(env))(rootComponent(AppM.monadAffAppM)(AppM.navigateAppM)(AppM.hasApiAccessMethodAppM)))(Data_Unit.unit)(v))(function (v3) {
+            return Control_Bind.bind(Effect_Aff.bindAff)(Halogen_VDom_Driver.runUI(Halogen_Component.hoist(Halogen_HTML_Core.bifunctorHTML)(Effect_Aff.functorAff)(Data_Function.flip(AppM.runAppM)(env))(rootComponent(AppM.monadAffAppM)(AppM.navigateAppM)(AppM.hasApiAccessibleAppM)))(Data_Unit.unit)(v))(function (v3) {
                 return Effect_Aff.forkAff(routeSignal(v3)(v1));
             });
         });
@@ -80274,12 +80285,27 @@ module.exports = {
 };
 
 },{"./foreign.js":454}],456:[function(require,module,exports){
-// Generated by purs version 0.12.1
+
+/**
+ * 
+ *  PiHVAC <https://github.com/ak1211/pi_hvac>
+ *  Copyright 2019 Akihiro Yamamoto
+ * 
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 "use strict";
 var AppM = require("../AppM/index.js");
 var CSS = require("../CSS/index.js");
-var CSS_Geometry = require("../CSS.Geometry/index.js");
-var CSS_Size = require("../CSS.Size/index.js");
 var Control_Applicative = require("../Control.Applicative/index.js");
 var Control_Bind = require("../Control.Bind/index.js");
 var Data_Function = require("../Data.Function/index.js");
@@ -80319,13 +80345,12 @@ var NavigateTo = (function () {
     };
     return NavigateTo;
 })();
-var document = (function () {
-    var license = [ Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text("Licensed under the Apache License, Version 2.0 (the \"License\");"), Halogen_HTML_Elements.br_, Halogen_HTML_Core.text("you may not use this file except in compliance with the License.") ]), Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text("You may obtain a copy of the License at "), Halogen_HTML_Elements.a([ Halogen_HTML_Properties.href("http://www.apache.org/licenses/LICENSE-2.0.html") ])([ Halogen_HTML_Core.text("Apache License, Version 2.0") ]) ]), Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text("Unless required by applicable law or agreed to in writing, software "), Halogen_HTML_Core.text("distributed under the License is distributed on an \"AS IS\" BASIS, "), Halogen_HTML_Core.text("WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.") ]), Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text("See the License for the specific language governing permissions and "), Halogen_HTML_Core.text("limitations under the License.") ]) ];
-    return [ Halogen_HTML_Elements.h2([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.h2) ])([ Halogen_HTML_Core.text("About this application") ]), Halogen_HTML_Elements.p([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.mt5, Halogen_Themes_Bootstrap4.mb5, Halogen_Themes_Bootstrap4.mx5 ]) ])([ Halogen_HTML_Core.text("PiHVAC <"), Halogen_HTML_Elements.a([ Halogen_HTML_Properties.href("https://github.com/ak1211/pi_hvac") ])([ Halogen_HTML_Core.text("https://github.com/ak1211/pi_hvac") ]), Halogen_HTML_Core.text(">"), Halogen_HTML_Elements.br_, Halogen_HTML_Core.text("Copyright 2019 Akihiro Yamamoto") ]), Halogen_HTML_Elements.p([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.mt4), Halogen_HTML_CSS.style(CSS_Geometry.maxWidth(CSS_Size.rem(50.0))) ])(license), Halogen_HTML_Elements.h2([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.h2) ])([ Halogen_HTML_Core.text("Open source agreement") ]), Halogen_HTML_Elements.p([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.mb5) ])([ Halogen_HTML_Core.text("Apache License") ]) ];
-})();
+var document = [ Halogen_HTML_Elements.h2([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.h2) ])([ Halogen_HTML_Core.text("About this application") ]), Halogen_HTML_Elements.p([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.m4 ]) ])([ Halogen_HTML_Core.text("PiHVAC <"), Halogen_HTML_Elements.a([ Halogen_HTML_Properties.href("https://github.com/ak1211/pi_hvac") ])([ Halogen_HTML_Core.text("https://github.com/ak1211/pi_hvac") ]), Halogen_HTML_Core.text(">"), Halogen_HTML_Elements.br_, Halogen_HTML_Core.text("Copyright 2019 Akihiro Yamamoto") ]), Halogen_HTML_Elements.h2([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.h2) ])([ Halogen_HTML_Core.text("The License") ]), Halogen_HTML_Elements.pre([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.m4) ])([ Halogen_HTML_Core.text("\x0a                                 Apache License\x0a                           Version 2.0, January 2004\x0a                        http://www.apache.org/licenses/\x0a\x0a   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION\x0a\x0a   1. Definitions.\x0a\x0a      \"License\" shall mean the terms and conditions for use, reproduction,\x0a      and distribution as defined by Sections 1 through 9 of this document.\x0a\x0a      \"Licensor\" shall mean the copyright owner or entity authorized by\x0a      the copyright owner that is granting the License.\x0a\x0a      \"Legal Entity\" shall mean the union of the acting entity and all\x0a      other entities that control, are controlled by, or are under common\x0a      control with that entity. For the purposes of this definition,\x0a      \"control\" means (i) the power, direct or indirect, to cause the\x0a      direction or management of such entity, whether by contract or\x0a      otherwise, or (ii) ownership of fifty percent (50%) or more of the\x0a      outstanding shares, or (iii) beneficial ownership of such entity.\x0a\x0a      \"You\" (or \"Your\") shall mean an individual or Legal Entity\x0a      exercising permissions granted by this License.\x0a\x0a      \"Source\" form shall mean the preferred form for making modifications,\x0a      including but not limited to software source code, documentation\x0a      source, and configuration files.\x0a\x0a      \"Object\" form shall mean any form resulting from mechanical\x0a      transformation or translation of a Source form, including but\x0a      not limited to compiled object code, generated documentation,\x0a      and conversions to other media types.\x0a\x0a      \"Work\" shall mean the work of authorship, whether in Source or\x0a      Object form, made available under the License, as indicated by a\x0a      copyright notice that is included in or attached to the work\x0a      (an example is provided in the Appendix below).\x0a\x0a      \"Derivative Works\" shall mean any work, whether in Source or Object\x0a      form, that is based on (or derived from) the Work and for which the\x0a      editorial revisions, annotations, elaborations, or other modifications\x0a      represent, as a whole, an original work of authorship. For the purposes\x0a      of this License, Derivative Works shall not include works that remain\x0a      separable from, or merely link (or bind by name) to the interfaces of,\x0a      the Work and Derivative Works thereof.\x0a\x0a      \"Contribution\" shall mean any work of authorship, including\x0a      the original version of the Work and any modifications or additions\x0a      to that Work or Derivative Works thereof, that is intentionally\x0a      submitted to Licensor for inclusion in the Work by the copyright owner\x0a      or by an individual or Legal Entity authorized to submit on behalf of\x0a      the copyright owner. For the purposes of this definition, \"submitted\"\x0a      means any form of electronic, verbal, or written communication sent\x0a      to the Licensor or its representatives, including but not limited to\x0a      communication on electronic mailing lists, source code control systems,\x0a      and issue tracking systems that are managed by, or on behalf of, the\x0a      Licensor for the purpose of discussing and improving the Work, but\x0a      excluding communication that is conspicuously marked or otherwise\x0a      designated in writing by the copyright owner as \"Not a Contribution.\"\x0a\x0a      \"Contributor\" shall mean Licensor and any individual or Legal Entity\x0a      on behalf of whom a Contribution has been received by Licensor and\x0a      subsequently incorporated within the Work.\x0a\x0a   2. Grant of Copyright License. Subject to the terms and conditions of\x0a      this License, each Contributor hereby grants to You a perpetual,\x0a      worldwide, non-exclusive, no-charge, royalty-free, irrevocable\x0a      copyright license to reproduce, prepare Derivative Works of,\x0a      publicly display, publicly perform, sublicense, and distribute the\x0a      Work and such Derivative Works in Source or Object form.\x0a\x0a   3. Grant of Patent License. Subject to the terms and conditions of\x0a      this License, each Contributor hereby grants to You a perpetual,\x0a      worldwide, non-exclusive, no-charge, royalty-free, irrevocable\x0a      (except as stated in this section) patent license to make, have made,\x0a      use, offer to sell, sell, import, and otherwise transfer the Work,\x0a      where such license applies only to those patent claims licensable\x0a      by such Contributor that are necessarily infringed by their\x0a      Contribution(s) alone or by combination of their Contribution(s)\x0a      with the Work to which such Contribution(s) was submitted. If You\x0a      institute patent litigation against any entity (including a\x0a      cross-claim or counterclaim in a lawsuit) alleging that the Work\x0a      or a Contribution incorporated within the Work constitutes direct\x0a      or contributory patent infringement, then any patent licenses\x0a      granted to You under this License for that Work shall terminate\x0a      as of the date such litigation is filed.\x0a\x0a   4. Redistribution. You may reproduce and distribute copies of the\x0a      Work or Derivative Works thereof in any medium, with or without\x0a      modifications, and in Source or Object form, provided that You\x0a      meet the following conditions:\x0a\x0a      (a) You must give any other recipients of the Work or\x0a          Derivative Works a copy of this License; and\x0a\x0a      (b) You must cause any modified files to carry prominent notices\x0a          stating that You changed the files; and\x0a\x0a      (c) You must retain, in the Source form of any Derivative Works\x0a          that You distribute, all copyright, patent, trademark, and\x0a          attribution notices from the Source form of the Work,\x0a          excluding those notices that do not pertain to any part of\x0a          the Derivative Works; and\x0a\x0a      (d) If the Work includes a \"NOTICE\" text file as part of its\x0a          distribution, then any Derivative Works that You distribute must\x0a          include a readable copy of the attribution notices contained\x0a          within such NOTICE file, excluding those notices that do not\x0a          pertain to any part of the Derivative Works, in at least one\x0a          of the following places: within a NOTICE text file distributed\x0a          as part of the Derivative Works; within the Source form or\x0a          documentation, if provided along with the Derivative Works; or,\x0a          within a display generated by the Derivative Works, if and\x0a          wherever such third-party notices normally appear. The contents\x0a          of the NOTICE file are for informational purposes only and\x0a          do not modify the License. You may add Your own attribution\x0a          notices within Derivative Works that You distribute, alongside\x0a          or as an addendum to the NOTICE text from the Work, provided\x0a          that such additional attribution notices cannot be construed\x0a          as modifying the License.\x0a\x0a      You may add Your own copyright statement to Your modifications and\x0a      may provide additional or different license terms and conditions\x0a      for use, reproduction, or distribution of Your modifications, or\x0a      for any such Derivative Works as a whole, provided Your use,\x0a      reproduction, and distribution of the Work otherwise complies with\x0a      the conditions stated in this License.\x0a\x0a   5. Submission of Contributions. Unless You explicitly state otherwise,\x0a      any Contribution intentionally submitted for inclusion in the Work\x0a      by You to the Licensor shall be under the terms and conditions of\x0a      this License, without any additional terms or conditions.\x0a      Notwithstanding the above, nothing herein shall supersede or modify\x0a      the terms of any separate license agreement you may have executed\x0a      with Licensor regarding such Contributions.\x0a\x0a   6. Trademarks. This License does not grant permission to use the trade\x0a      names, trademarks, service marks, or product names of the Licensor,\x0a      except as required for reasonable and customary use in describing the\x0a      origin of the Work and reproducing the content of the NOTICE file.\x0a\x0a   7. Disclaimer of Warranty. Unless required by applicable law or\x0a      agreed to in writing, Licensor provides the Work (and each\x0a      Contributor provides its Contributions) on an \"AS IS\" BASIS,\x0a      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or\x0a      implied, including, without limitation, any warranties or conditions\x0a      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A\x0a      PARTICULAR PURPOSE. You are solely responsible for determining the\x0a      appropriateness of using or redistributing the Work and assume any\x0a      risks associated with Your exercise of permissions under this License.\x0a\x0a   8. Limitation of Liability. In no event and under no legal theory,\x0a      whether in tort (including negligence), contract, or otherwise,\x0a      unless required by applicable law (such as deliberate and grossly\x0a      negligent acts) or agreed to in writing, shall any Contributor be\x0a      liable to You for damages, including any direct, indirect, special,\x0a      incidental, or consequential damages of any character arising as a\x0a      result of this License or out of the use or inability to use the\x0a      Work (including but not limited to damages for loss of goodwill,\x0a      work stoppage, computer failure or malfunction, or any and all\x0a      other commercial damages or losses), even if such Contributor\x0a      has been advised of the possibility of such damages.\x0a\x0a   9. Accepting Warranty or Additional Liability. While redistributing\x0a      the Work or Derivative Works thereof, You may choose to offer,\x0a      and charge a fee for, acceptance of support, warranty, indemnity,\x0a      or other liability obligations and/or rights consistent with this\x0a      License. However, in accepting such obligations, You may act only\x0a      on Your own behalf and on Your sole responsibility, not on behalf\x0a      of any other Contributor, and only if You agree to indemnify,\x0a      defend, and hold each Contributor harmless for any liability\x0a      incurred by, or claims asserted against, such Contributor by reason\x0a      of your accepting any such warranty or additional liability.\x0a\x0a   END OF TERMS AND CONDITIONS\x0a\x0a   APPENDIX: How to apply the Apache License to your work.\x0a\x0a      To apply the Apache License to your work, attach the following\x0a      boilerplate notice, with the fields enclosed by brackets \"[]\"\x0a      replaced with your own identifying information. (Don't include\x0a      the brackets!)  The text should be enclosed in the appropriate\x0a      comment syntax for the file format. We also recommend that a\x0a      file or class name and description of purpose be included on the\x0a      same \"printed page\" as the copyright notice for easier\x0a      identification within third-party archives.\x0a\x0a   Copyright 2019 Akihiro Yamamoto.\x0a\x0a   Licensed under the Apache License, Version 2.0 (the \"License\");\x0a   you may not use this file except in compliance with the License.\x0a   You may obtain a copy of the License at\x0a\x0a       http://www.apache.org/licenses/LICENSE-2.0\x0a\x0a   Unless required by applicable law or agreed to in writing, software\x0a   distributed under the License is distributed on an \"AS IS\" BASIS,\x0a   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\x0a   See the License for the specific language governing permissions and\x0a   limitations under the License.") ]), Halogen_HTML_Elements.h2([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.h2) ])([ Halogen_HTML_Core.text("External Libraries") ]), Halogen_HTML_Elements.p([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.m4) ])([ Halogen_HTML_Core.text("Apache License") ]) ];
 var render = function (state) {
     return Halogen_HTML_Elements.div_([ Page_Utils.navbar(NavigateTo.create)(Route.About.value), Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_("container") ])(document) ]);
 };
+
+// | child component
 var component = function (dictMonadAff) {
     return function (dictNavigate) {
         var initialState = {
@@ -80358,11 +80383,32 @@ module.exports = {
     component: component
 };
 
-},{"../AppM/index.js":71,"../CSS.Geometry/index.js":83,"../CSS.Size/index.js":89,"../CSS/index.js":97,"../Control.Applicative/index.js":105,"../Control.Bind/index.js":111,"../Data.Function/index.js":227,"../Data.Maybe/index.js":292,"../Effect.Aff.Class/index.js":376,"../Halogen.Component/index.js":429,"../Halogen.HTML.CSS/index.js":432,"../Halogen.HTML.Core/index.js":433,"../Halogen.HTML.Elements/index.js":434,"../Halogen.HTML.Properties/index.js":436,"../Halogen.HTML/index.js":437,"../Halogen.Query.HalogenM/index.js":440,"../Halogen.Query/index.js":442,"../Halogen.Themes.Bootstrap4/index.js":443,"../Halogen/index.js":452,"../Page.Utils/index.js":462,"../Prelude/index.js":467,"../Route/index.js":475}],457:[function(require,module,exports){
-// Generated by purs version 0.12.1
+},{"../AppM/index.js":71,"../CSS/index.js":97,"../Control.Applicative/index.js":105,"../Control.Bind/index.js":111,"../Data.Function/index.js":227,"../Data.Maybe/index.js":292,"../Effect.Aff.Class/index.js":376,"../Halogen.Component/index.js":429,"../Halogen.HTML.CSS/index.js":432,"../Halogen.HTML.Core/index.js":433,"../Halogen.HTML.Elements/index.js":434,"../Halogen.HTML.Properties/index.js":436,"../Halogen.HTML/index.js":437,"../Halogen.Query.HalogenM/index.js":440,"../Halogen.Query/index.js":442,"../Halogen.Themes.Bootstrap4/index.js":443,"../Halogen/index.js":452,"../Page.Utils/index.js":462,"../Prelude/index.js":467,"../Route/index.js":475}],457:[function(require,module,exports){
+
+/**
+ * 
+ *  PiHVAC <https://github.com/ak1211/pi_hvac>
+ *  Copyright 2019 Akihiro Yamamoto
+ * 
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 "use strict";
 var Api = require("../Api/index.js");
 var AppM = require("../AppM/index.js");
+var CSS = require("../CSS/index.js");
+var CSS_Geometry = require("../CSS.Geometry/index.js");
+var CSS_Size = require("../CSS.Size/index.js");
+var CSS_Stylesheet = require("../CSS.Stylesheet/index.js");
 var Component_RadialGauge = require("../Component.RadialGauge/index.js");
 var Control_Alt = require("../Control.Alt/index.js");
 var Control_Applicative = require("../Control.Applicative/index.js");
@@ -80375,11 +80421,13 @@ var Data_DateTime_Instant = require("../Data.DateTime.Instant/index.js");
 var Data_Either = require("../Data.Either/index.js");
 var Data_Either_Nested = require("../Data.Either.Nested/index.js");
 var Data_EuclideanRing = require("../Data.EuclideanRing/index.js");
+var Data_Foldable = require("../Data.Foldable/index.js");
 var Data_Function = require("../Data.Function/index.js");
 var Data_Functor = require("../Data.Functor/index.js");
 var Data_Functor_Coproduct_Nested = require("../Data.Functor.Coproduct.Nested/index.js");
 var Data_Int = require("../Data.Int/index.js");
 var Data_Maybe = require("../Data.Maybe/index.js");
+var Data_Monoid = require("../Data.Monoid/index.js");
 var Data_Newtype = require("../Data.Newtype/index.js");
 var Data_Ord = require("../Data.Ord/index.js");
 var Data_Ring = require("../Data.Ring/index.js");
@@ -80396,6 +80444,7 @@ var Halogen = require("../Halogen/index.js");
 var Halogen_Component = require("../Halogen.Component/index.js");
 var Halogen_Component_ChildPath = require("../Halogen.Component.ChildPath/index.js");
 var Halogen_HTML = require("../Halogen.HTML/index.js");
+var Halogen_HTML_CSS = require("../Halogen.HTML.CSS/index.js");
 var Halogen_HTML_Elements = require("../Halogen.HTML.Elements/index.js");
 var Halogen_HTML_Properties = require("../Halogen.HTML.Properties/index.js");
 var Halogen_Query = require("../Halogen.Query/index.js");
@@ -80426,6 +80475,8 @@ var Update = (function () {
     };
     return Update;
 })();
+
+// |
 var temperature = function (val) {
     return {
         refLabel: "temp",
@@ -80442,6 +80493,8 @@ var temperature = function (val) {
         }
     };
 };
+
+// |
 var pressure = function (val) {
     return {
         refLabel: "pres",
@@ -80458,6 +80511,8 @@ var pressure = function (val) {
         }
     };
 };
+
+// |
 var hygro = function (val) {
     return {
         refLabel: "hygro",
@@ -80474,20 +80529,24 @@ var hygro = function (val) {
         }
     };
 };
+
+// | component
 var component = function (dictMonadAff) {
     return function (dictNavigate) {
-        return function (dictHasApiAccessMethod) {
-            var render = function (state) {
+        return function (dictHasApiAccessible) {
+            
+            //| render
+var render = function (state) {
                 var msgLastUpdatedAt = function (v) {
                     var invalidType = Page_Utils.toastItem("Error")("")("\u6709\u52b9\u306a\u65e5\u4ed8\u3067\u306f\u3042\u308a\u307e\u305b\u3093\u3067\u3057\u305f");
                     var at = Data_DateTime_Instant.unInstant(Data_DateTime_Instant.fromDateTime(v));
                     var duration = Data_Newtype.wrap(Data_Time_Duration.newtypeMilliseconds)(Data_Newtype.unwrap(Data_Time_Duration.newtypeMilliseconds)(state.nowTime) - Data_Newtype.unwrap(Data_Time_Duration.newtypeMilliseconds)(at));
-                    var subhead = (function () {
-                        var min = Data_Int.floor(Data_Newtype.unwrap(Data_Time_Duration.newtypeMilliseconds)(duration) / (60.0 * 1000.0));
-                        return Data_Int.toStringAs(Data_Int.decimal)(min) + "mins ago";
-                    })();
+                    var minute = Data_Int.floor(Data_Newtype.unwrap(Data_Time_Duration.newtypeMilliseconds)(duration) / (60.0 * 1000.0));
+                    var message = function (time) {
+                        return Data_Foldable.intercalate(Data_Foldable.foldableArray)(Data_Monoid.monoidString)(" ")([ "Updated at", time + ",", Data_Int.toStringAs(Data_Int.decimal)(minute), "mins ago." ]);
+                    };
                     var ok = function (v1) {
-                        return Page_Utils.toastItem("Updated at")(subhead)(v1.date + (" " + v1.time));
+                        return Page_Utils.snackbarItem(message(v1.time));
                     };
                     return Data_Maybe.maybe(invalidType)(ok)(Page_Utils.asiaTokyoDateTime(v));
                 };
@@ -80512,9 +80571,11 @@ var component = function (dictMonadAff) {
                             msg: msgLastUpdatedAt(v.measured_at)
                         };
                     };
-                    throw new Error("Failed pattern match at Page.Home line 126, column 19 - line 141, column 10: " + [ state.measValues.constructor.name ]);
+                    throw new Error("Failed pattern match at Page.Home line 135, column 19 - line 150, column 10: " + [ state.measValues.constructor.name ]);
                 })();
-                return Halogen_HTML_Elements.div_([ Page_Utils.navbar(NavigateTo.create)(Route.Home.value), Page_Utils.toast([ latestValue.msg ]), Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.container) ])([ Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.row) ])([ Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.colLg4) ])([ Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp1)(Data_Unit.unit)(Component_RadialGauge.component(dictMonadAff))(latestValue.t)(Data_Void.absurd) ]), Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.colLg4) ])([ Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp2)(Data_Unit.unit)(Component_RadialGauge.component(dictMonadAff))(latestValue.p)(Data_Void.absurd) ]), Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.colLg4) ])([ Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp3)(Data_Unit.unit)(Component_RadialGauge.component(dictMonadAff))(latestValue.h)(Data_Void.absurd) ]) ]) ]) ]);
+                return Halogen_HTML_Elements.div_([ Page_Utils.navbar(NavigateTo.create)(Route.Home.value), Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.container) ])([ Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.row), Halogen_HTML_CSS.style(Control_Bind.discard(Control_Bind.discardUnit)(CSS_Stylesheet.bindStyleM)(CSS_Geometry.marginTop(CSS_Size.px(30.0)))(function () {
+                    return CSS_Geometry.marginBottom(CSS_Size.px(30.0));
+                })) ])([ Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.colLg4) ])([ Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp1)(Data_Unit.unit)(Component_RadialGauge.component(dictMonadAff))(latestValue.t)(Data_Void.absurd) ]), Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.colLg4) ])([ Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp2)(Data_Unit.unit)(Component_RadialGauge.component(dictMonadAff))(latestValue.p)(Data_Void.absurd) ]), Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.colLg4) ])([ Halogen_HTML["slot'"](Halogen_Component_ChildPath.cp3)(Data_Unit.unit)(Component_RadialGauge.component(dictMonadAff))(latestValue.h)(Data_Void.absurd) ]) ]), Page_Utils.toast([ latestValue.msg ]) ]) ]);
             };
             var initialMeasValues = new Data_Either.Left("\u6e2c\u5b9a\u30c7\u30fc\u30bf\u304c\u3042\u308a\u307e\u305b\u3093");
             var initialState = {
@@ -80528,8 +80589,8 @@ var component = function (dictMonadAff) {
                     });
                 };
                 if (v instanceof Update) {
-                    return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(AppM.getApiBaseURL(AppM.hasApiAccessMethodHalogenM(dictHasApiAccessMethod)))(function (v1) {
-                        return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(AppM.getApiTimeout(AppM.hasApiAccessMethodHalogenM(dictHasApiAccessMethod)))(function (v2) {
+                    return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(AppM.getApiBaseURL(AppM.hasApiAccessibleHalogenM(dictHasApiAccessible)))(function (v1) {
+                        return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(AppM.getApiTimeout(AppM.hasApiAccessibleHalogenM(dictHasApiAccessible)))(function (v2) {
                             return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Effect_Aff_Class.liftAff(Halogen_Query_HalogenM.monadAffHalogenM(dictMonadAff))((function () {
                                 var timeout = Data_Functor.voidLeft(Effect_Aff.functorAff)(Effect_Aff.delay(v2))(new Data_Either.Left("\u30b5\u30fc\u30d0\u30fc\u304b\u3089\u306e\u5fdc\u7b54\u304c\u3042\u308a\u307e\u305b\u3093\u3067\u3057\u305f"));
                                 var request = Api.getApiV1Measurements(v1)(Data_Maybe.Nothing.value);
@@ -80562,7 +80623,7 @@ var component = function (dictMonadAff) {
                         });
                     });
                 };
-                throw new Error("Failed pattern match at Page.Home line 89, column 10 - line 107, column 16: " + [ v.constructor.name ]);
+                throw new Error("Failed pattern match at Page.Home line 92, column 10 - line 110, column 16: " + [ v.constructor.name ]);
             };
             return Halogen_Component.lifecycleParentComponent(Data_Either.ordEither(Data_Ord.ordUnit)(Data_Either.ordEither(Data_Ord.ordUnit)(Data_Either.ordEither(Data_Ord.ordUnit)(Data_Ord.ordVoid))))({
                 initialState: Data_Function["const"](initialState),
@@ -80581,41 +80642,64 @@ module.exports = {
     component: component
 };
 
-},{"../Api/index.js":70,"../AppM/index.js":71,"../Component.RadialGauge/index.js":101,"../Control.Alt/index.js":102,"../Control.Applicative/index.js":105,"../Control.Bind/index.js":111,"../Control.Monad.State.Class/index.js":137,"../Control.Parallel.Class/index.js":147,"../Control.Semigroupoid/index.js":150,"../Data.Array.NonEmpty/index.js":172,"../Data.DateTime.Instant/index.js":198,"../Data.Either.Nested/index.js":205,"../Data.Either/index.js":206,"../Data.EuclideanRing/index.js":212,"../Data.Function/index.js":227,"../Data.Functor.Coproduct.Nested/index.js":231,"../Data.Functor/index.js":237,"../Data.Int/index.js":247,"../Data.Maybe/index.js":292,"../Data.Newtype/index.js":303,"../Data.Ord/index.js":312,"../Data.Ring/index.js":323,"../Data.Semigroup/index.js":329,"../Data.Semiring/index.js":332,"../Data.Time.Duration/index.js":356,"../Data.Unit/index.js":370,"../Data.Void/index.js":372,"../Effect.Aff.Class/index.js":376,"../Effect.Aff/index.js":379,"../Effect.Class/index.js":380,"../Effect.Now/index.js":387,"../Halogen.Component.ChildPath/index.js":428,"../Halogen.Component/index.js":429,"../Halogen.HTML.Elements/index.js":434,"../Halogen.HTML.Properties/index.js":436,"../Halogen.HTML/index.js":437,"../Halogen.Query.HalogenM/index.js":440,"../Halogen.Query.InputF/index.js":441,"../Halogen.Query/index.js":442,"../Halogen.Themes.Bootstrap4/index.js":443,"../Halogen/index.js":452,"../Page.Utils/index.js":462,"../Prelude/index.js":467,"../Route/index.js":475}],458:[function(require,module,exports){
-// Generated by purs version 0.12.1
+},{"../Api/index.js":70,"../AppM/index.js":71,"../CSS.Geometry/index.js":83,"../CSS.Size/index.js":89,"../CSS.Stylesheet/index.js":91,"../CSS/index.js":97,"../Component.RadialGauge/index.js":101,"../Control.Alt/index.js":102,"../Control.Applicative/index.js":105,"../Control.Bind/index.js":111,"../Control.Monad.State.Class/index.js":137,"../Control.Parallel.Class/index.js":147,"../Control.Semigroupoid/index.js":150,"../Data.Array.NonEmpty/index.js":172,"../Data.DateTime.Instant/index.js":198,"../Data.Either.Nested/index.js":205,"../Data.Either/index.js":206,"../Data.EuclideanRing/index.js":212,"../Data.Foldable/index.js":217,"../Data.Function/index.js":227,"../Data.Functor.Coproduct.Nested/index.js":231,"../Data.Functor/index.js":237,"../Data.Int/index.js":247,"../Data.Maybe/index.js":292,"../Data.Monoid/index.js":301,"../Data.Newtype/index.js":303,"../Data.Ord/index.js":312,"../Data.Ring/index.js":323,"../Data.Semigroup/index.js":329,"../Data.Semiring/index.js":332,"../Data.Time.Duration/index.js":356,"../Data.Unit/index.js":370,"../Data.Void/index.js":372,"../Effect.Aff.Class/index.js":376,"../Effect.Aff/index.js":379,"../Effect.Class/index.js":380,"../Effect.Now/index.js":387,"../Halogen.Component.ChildPath/index.js":428,"../Halogen.Component/index.js":429,"../Halogen.HTML.CSS/index.js":432,"../Halogen.HTML.Elements/index.js":434,"../Halogen.HTML.Properties/index.js":436,"../Halogen.HTML/index.js":437,"../Halogen.Query.HalogenM/index.js":440,"../Halogen.Query.InputF/index.js":441,"../Halogen.Query/index.js":442,"../Halogen.Themes.Bootstrap4/index.js":443,"../Halogen/index.js":452,"../Page.Utils/index.js":462,"../Prelude/index.js":467,"../Route/index.js":475}],458:[function(require,module,exports){
+
+/**
+ * 
+ *  PiHVAC <https://github.com/ak1211/pi_hvac>
+ *  Copyright 2019 Akihiro Yamamoto
+ * 
+ *  Licensed under the Apache License, Version 2.0 (the "License");
+ *  you may not use this file except in compliance with the License.
+ *  You may obtain a copy of the License at
+ * 
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
 "use strict";
 var Api = require("../Api/index.js");
 var AppM = require("../AppM/index.js");
-var Component_RadialGauge = require("../Component.RadialGauge/index.js");
+var CSS = require("../CSS/index.js");
+var CSS_Geometry = require("../CSS.Geometry/index.js");
+var CSS_Size = require("../CSS.Size/index.js");
 var Control_Alt = require("../Control.Alt/index.js");
 var Control_Applicative = require("../Control.Applicative/index.js");
 var Control_Bind = require("../Control.Bind/index.js");
 var Control_Monad_State_Class = require("../Control.Monad.State.Class/index.js");
 var Control_Parallel_Class = require("../Control.Parallel.Class/index.js");
 var Control_Semigroupoid = require("../Control.Semigroupoid/index.js");
-var Data_Array_NonEmpty = require("../Data.Array.NonEmpty/index.js");
-var Data_DateTime_Instant = require("../Data.DateTime.Instant/index.js");
+var Data_Array = require("../Data.Array/index.js");
+var Data_Bifunctor = require("../Data.Bifunctor/index.js");
+var Data_Boolean = require("../Data.Boolean/index.js");
 var Data_Either = require("../Data.Either/index.js");
-var Data_Either_Nested = require("../Data.Either.Nested/index.js");
+var Data_Eq = require("../Data.Eq/index.js");
+var Data_Foldable = require("../Data.Foldable/index.js");
 var Data_Function = require("../Data.Function/index.js");
 var Data_Functor = require("../Data.Functor/index.js");
-var Data_Functor_Coproduct_Nested = require("../Data.Functor.Coproduct.Nested/index.js");
+var Data_HeytingAlgebra = require("../Data.HeytingAlgebra/index.js");
 var Data_Int = require("../Data.Int/index.js");
+var Data_Map = require("../Data.Map/index.js");
+var Data_Map_Internal = require("../Data.Map.Internal/index.js");
 var Data_Maybe = require("../Data.Maybe/index.js");
-var Data_Newtype = require("../Data.Newtype/index.js");
-var Data_Show = require("../Data.Show/index.js");
-var Data_Time_Duration = require("../Data.Time.Duration/index.js");
+var Data_Ord = require("../Data.Ord/index.js");
+var Data_Semiring = require("../Data.Semiring/index.js");
+var Data_Tuple = require("../Data.Tuple/index.js");
+var Data_Unfoldable = require("../Data.Unfoldable/index.js");
+var Data_Unfoldable1 = require("../Data.Unfoldable1/index.js");
 var Effect_Aff = require("../Effect.Aff/index.js");
 var Effect_Aff_Class = require("../Effect.Aff.Class/index.js");
-var Effect_Class = require("../Effect.Class/index.js");
-var Effect_Console = require("../Effect.Console/index.js");
-var Effect_Now = require("../Effect.Now/index.js");
 var Halogen = require("../Halogen/index.js");
 var Halogen_Component = require("../Halogen.Component/index.js");
-var Halogen_Component_ChildPath = require("../Halogen.Component.ChildPath/index.js");
 var Halogen_HTML = require("../Halogen.HTML/index.js");
+var Halogen_HTML_CSS = require("../Halogen.HTML.CSS/index.js");
 var Halogen_HTML_Core = require("../Halogen.HTML.Core/index.js");
 var Halogen_HTML_Elements = require("../Halogen.HTML.Elements/index.js");
+var Halogen_HTML_Events = require("../Halogen.HTML.Events/index.js");
 var Halogen_HTML_Properties = require("../Halogen.HTML.Properties/index.js");
 var Halogen_Query = require("../Halogen.Query/index.js");
 var Halogen_Query_HalogenM = require("../Halogen.Query.HalogenM/index.js");
@@ -80635,24 +80719,134 @@ var NavigateTo = (function () {
     };
     return NavigateTo;
 })();
-var Update = (function () {
-    function Update(value0) {
+var Initialize = (function () {
+    function Initialize(value0) {
         this.value0 = value0;
     };
-    Update.create = function (value0) {
-        return new Update(value0);
+    Initialize.create = function (value0) {
+        return new Initialize(value0);
     };
-    return Update;
+    return Initialize;
 })();
+var Detect = (function () {
+    function Detect(value0) {
+        this.value0 = value0;
+    };
+    Detect.create = function (value0) {
+        return new Detect(value0);
+    };
+    return Detect;
+})();
+
+// |
+var toHexS = Data_Int.toStringAs(Data_Int.hexadecimal);
+
+// |
+var tableRow = function (index) {
+    return function (columns) {
+        var tl = (function () {
+            var f = function ($34) {
+                return Halogen_HTML_Elements.td_(Data_Array.singleton(Halogen_HTML_Core.text($34)));
+            };
+            return Data_Functor.map(Data_Functor.functorArray)(f)(columns);
+        })();
+        var hd = Halogen_HTML_Elements.th_([ Halogen_HTML_Core.text(toHexS(index)) ]);
+        return Halogen_HTML_Elements.tr_(Data_Array.cons(hd)(tl));
+    };
+};
+
+// |
+var tableHeading = function (range) {
+    var tl = (function () {
+        var f = function ($35) {
+            return Halogen_HTML_Elements.th_(Data_Array.singleton(Halogen_HTML_Core.text(toHexS($35))));
+        };
+        return Data_Functor.map(Data_Functor.functorArray)(f)(range);
+    })();
+    var hd = Halogen_HTML_Elements.th_([ Halogen_HTML_Core.text("#") ]);
+    return Halogen_HTML_Elements.thead_([ Halogen_HTML_Elements.tr_(Data_Array.cons(hd)(tl)) ]);
+};
+
+// |
+var tableBody = function (range) {
+    return function (array2D) {
+        return Halogen_HTML_Elements.tbody_(Data_Array.zipWith(tableRow)(range)(array2D));
+    };
+};
+
+// |
+var splitAt = function (n) {
+    return function (xs) {
+        return new Data_Tuple.Tuple(Data_Array.take(n)(xs), Data_Array.drop(n)(xs));
+    };
+};
+
+// |
+var toArray2D = function (n) {
+    var chop = function (xs) {
+        var v = splitAt(n)(xs);
+        if (v.value1.length === 0) {
+            return new Data_Tuple.Tuple(v.value0, Data_Maybe.Nothing.value);
+        };
+        return new Data_Tuple.Tuple(v.value0, new Data_Maybe.Just(v.value1));
+    };
+    return Data_Unfoldable1.unfoldr1(Data_Unfoldable1.unfoldable1Array)(chop);
+};
+
+// |
+var i2cDevices = function (v) {
+    if (v instanceof Data_Either.Left) {
+        return Halogen_HTML_Elements.p_([ Halogen_HTML_Core.text(v.value0) ]);
+    };
+    if (v instanceof Data_Either.Right) {
+        var devices = (function () {
+            var f = function (n) {
+                return new Data_Tuple.Tuple(n, toHexS(n));
+            };
+            return Data_Map_Internal.fromFoldable(Data_Ord.ordInt)(Data_Foldable.foldableArray)(Data_Functor.map(Data_Functor.functorArray)(f)(v.value0));
+        })();
+        var cellFiller = function (addr) {
+            if (Data_Foldable.any(Data_Foldable.foldableArray)(Data_HeytingAlgebra.heytingAlgebraBoolean)(function (v1) {
+                return v1 === addr;
+            })(Data_Array.range(3)(119))) {
+                return "\u2022";
+            };
+            if (Data_Boolean.otherwise) {
+                return " ";
+            };
+            throw new Error("Failed pattern match at Page.Infrared line 166, column 3 - line 166, column 30: " + [ addr.constructor.name ]);
+        };
+        var addressTableRangeRowHeading = Data_Functor.map(Data_Functor.functorArray)(function (v1) {
+            return v1 * 16 | 0;
+        })(Data_Array.range(0)(15));
+        var addressTableRangeHeading = Data_Array.range(0)(15);
+        var addressTableRange = Data_Array.range(0)(127);
+        var detectedDevAddresses = (function () {
+            var f = function (x) {
+                return Data_Maybe.fromMaybe(cellFiller(x))(Data_Map_Internal.lookup(Data_Ord.ordInt)(x)(devices));
+            };
+            return Data_Functor.map(Data_Functor.functorArray)(f)(addressTableRange);
+        })();
+        return Halogen_HTML_Elements.p_([ Halogen_HTML_Elements.table([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.table, Halogen_Themes_Bootstrap4.tableHover ]) ])([ Halogen_HTML_Elements.caption_([ Halogen_HTML_Core.text("Hexadecimal addresses") ]), tableHeading(addressTableRangeHeading), tableBody(addressTableRangeRowHeading)(toArray2D(16)(detectedDevAddresses)) ]) ]);
+    };
+    throw new Error("Failed pattern match at Page.Infrared line 134, column 1 - line 134, column 58: " + [ v.constructor.name ]);
+};
+
+// |
+var i2c = Halogen_HTML_Elements.span_([ Halogen_HTML_Core.text("I"), Halogen_HTML_Elements.sup_([ Halogen_HTML_Core.text("2") ]), Halogen_HTML_Core.text("C") ]);
+
+// | component
 var component = function (dictMonadAff) {
     return function (dictNavigate) {
-        return function (dictHasApiAccessMethod) {
-            var render = function (state) {
-                return Halogen_HTML_Elements.div_([ Page_Utils.navbar(NavigateTo.create)(Route.Infrared.value), Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.container) ])([ Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.row) ])([ Halogen_HTML_Core.text("aaa") ]) ]) ]);
-            };
-            var initialMeasValues = new Data_Either.Left("\u6e2c\u5b9a\u30c7\u30fc\u30bf\u304c\u3042\u308a\u307e\u305b\u3093");
+        return function (dictHasApiAccessible) {
             var initialState = {
-                measValues: initialMeasValues
+                detectedAddresses: new Data_Either.Left("Click button to detect devices.")
+            };
+            var i2cDetectButton = Halogen_HTML_Elements.button([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.btn, Halogen_Themes_Bootstrap4.btnOutlineSuccess, Halogen_Themes_Bootstrap4.justifyContentCenter ]), Halogen_HTML_Events.onClick(Halogen_HTML_Events.input_(Detect.create)), Halogen_HTML_CSS.style(CSS_Geometry.marginLeft(CSS_Size.px(30.0))) ])([ Page_Utils.icon("fas fa-search") ]);
+            
+            //| render
+var render = function (state) {
+                return Halogen_HTML_Elements.div_([ Page_Utils.navbar(NavigateTo.create)(Route.Infrared.value), Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.container) ])([ Halogen_HTML_Elements.h2_([ i2c, Halogen_HTML_Core.text(" devices"), i2cDetectButton ]), i2cDevices(state.detectedAddresses) ]) ]);
             };
             var $$eval = function (v) {
                 if (v instanceof NavigateTo) {
@@ -80660,49 +80854,45 @@ var component = function (dictMonadAff) {
                         return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value1);
                     });
                 };
-                if (v instanceof Update) {
-                    return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(AppM.getApiBaseURL(AppM.hasApiAccessMethodHalogenM(dictHasApiAccessMethod)))(function (v1) {
-                        return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(AppM.getApiTimeout(AppM.hasApiAccessMethodHalogenM(dictHasApiAccessMethod)))(function (v2) {
+                if (v instanceof Initialize) {
+                    return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value0);
+                };
+                if (v instanceof Detect) {
+                    return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(AppM.getApiBaseURL(AppM.hasApiAccessibleHalogenM(dictHasApiAccessible)))(function (v1) {
+                        return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(AppM.getApiTimeout(AppM.hasApiAccessibleHalogenM(dictHasApiAccessible)))(function (v2) {
                             return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Effect_Aff_Class.liftAff(Halogen_Query_HalogenM.monadAffHalogenM(dictMonadAff))((function () {
                                 var timeout = Data_Functor.voidLeft(Effect_Aff.functorAff)(Effect_Aff.delay(v2))(new Data_Either.Left("\u30b5\u30fc\u30d0\u30fc\u304b\u3089\u306e\u5fdc\u7b54\u304c\u3042\u308a\u307e\u305b\u3093\u3067\u3057\u305f"));
-                                var request = Api.getApiV1Measurements(v1)(Data_Maybe.Nothing.value);
-                                var nonEmptyVal = function ($20) {
-                                    return Data_Maybe.maybe(initialMeasValues)(Data_Either.Right.create)(Data_Array_NonEmpty.fromArray($20));
-                                };
                                 var response = function (r) {
-                                    return Control_Bind.bindFlipped(Data_Either.bindEither)(nonEmptyVal)(r.body);
+                                    return Data_Bifunctor.rmap(Data_Either.bifunctorEither)(function (v3) {
+                                        return v3.data;
+                                    })(r.body);
                                 };
+                                var request = Api.getApiV1I2cDevices(v1)(new Data_Maybe.Just(1));
                                 return Control_Parallel_Class.sequential(Effect_Aff.parallelAff)(Control_Alt.alt(Effect_Aff.altParAff)(Control_Parallel_Class.parallel(Effect_Aff.parallelAff)(Data_Functor.map(Effect_Aff.functorAff)(response)(request)))(Control_Parallel_Class.parallel(Effect_Aff.parallelAff)(timeout)));
                             })()))(function (v3) {
-                                return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Effect_Aff_Class.liftAff(Halogen_Query_HalogenM.monadAffHalogenM(dictMonadAff))(Api.getApiV1I2cDevices(v1)))(function (v4) {
-                                    return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()))(Effect_Console.logShow(Data_Either.showEither(Data_Show.showString)(Api.showI2cDevices))(v4.body)))(function () {
-                                        return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (st) {
-                                            var $16 = {};
-                                            for (var $17 in st) {
-                                                if ({}.hasOwnProperty.call(st, $17)) {
-                                                    $16[$17] = st[$17];
-                                                };
-                                            };
-                                            $16.measValues = v3;
-                                            return $16;
-                                        }))(function () {
-                                            return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()))(Page_Utils.showToast))(function () {
-                                                return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value0);
-                                            });
-                                        });
-                                    });
+                                return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.modify_(Halogen_Query_HalogenM.monadStateHalogenM)(function (st) {
+                                    var $30 = {};
+                                    for (var $31 in st) {
+                                        if ({}.hasOwnProperty.call(st, $31)) {
+                                            $30[$31] = st[$31];
+                                        };
+                                    };
+                                    $30.detectedAddresses = v3;
+                                    return $30;
+                                }))(function () {
+                                    return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value0);
                                 });
                             });
                         });
                     });
                 };
-                throw new Error("Failed pattern match at Page.Infrared line 85, column 10 - line 104, column 16: " + [ v.constructor.name ]);
+                throw new Error("Failed pattern match at Page.Infrared line 84, column 10 - line 102, column 16: " + [ v.constructor.name ]);
             };
             return Halogen_Component.lifecycleComponent(Halogen_HTML_Core.bifunctorHTML)({
                 initialState: Data_Function["const"](initialState),
                 render: render,
                 "eval": $$eval,
-                initializer: new Data_Maybe.Just(Halogen_Query.action(Update.create)),
+                initializer: new Data_Maybe.Just(Halogen_Query.action(Initialize.create)),
                 finalizer: Data_Maybe.Nothing.value,
                 receiver: Data_Function["const"](Data_Maybe.Nothing.value)
             });
@@ -80711,11 +80901,12 @@ var component = function (dictMonadAff) {
 };
 module.exports = {
     NavigateTo: NavigateTo,
-    Update: Update,
+    Initialize: Initialize,
+    Detect: Detect,
     component: component
 };
 
-},{"../Api/index.js":70,"../AppM/index.js":71,"../Component.RadialGauge/index.js":101,"../Control.Alt/index.js":102,"../Control.Applicative/index.js":105,"../Control.Bind/index.js":111,"../Control.Monad.State.Class/index.js":137,"../Control.Parallel.Class/index.js":147,"../Control.Semigroupoid/index.js":150,"../Data.Array.NonEmpty/index.js":172,"../Data.DateTime.Instant/index.js":198,"../Data.Either.Nested/index.js":205,"../Data.Either/index.js":206,"../Data.Function/index.js":227,"../Data.Functor.Coproduct.Nested/index.js":231,"../Data.Functor/index.js":237,"../Data.Int/index.js":247,"../Data.Maybe/index.js":292,"../Data.Newtype/index.js":303,"../Data.Show/index.js":335,"../Data.Time.Duration/index.js":356,"../Effect.Aff.Class/index.js":376,"../Effect.Aff/index.js":379,"../Effect.Class/index.js":380,"../Effect.Console/index.js":382,"../Effect.Now/index.js":387,"../Halogen.Component.ChildPath/index.js":428,"../Halogen.Component/index.js":429,"../Halogen.HTML.Core/index.js":433,"../Halogen.HTML.Elements/index.js":434,"../Halogen.HTML.Properties/index.js":436,"../Halogen.HTML/index.js":437,"../Halogen.Query.HalogenM/index.js":440,"../Halogen.Query/index.js":442,"../Halogen.Themes.Bootstrap4/index.js":443,"../Halogen/index.js":452,"../Page.Utils/index.js":462,"../Prelude/index.js":467,"../Route/index.js":475}],459:[function(require,module,exports){
+},{"../Api/index.js":70,"../AppM/index.js":71,"../CSS.Geometry/index.js":83,"../CSS.Size/index.js":89,"../CSS/index.js":97,"../Control.Alt/index.js":102,"../Control.Applicative/index.js":105,"../Control.Bind/index.js":111,"../Control.Monad.State.Class/index.js":137,"../Control.Parallel.Class/index.js":147,"../Control.Semigroupoid/index.js":150,"../Data.Array/index.js":178,"../Data.Bifunctor/index.js":185,"../Data.Boolean/index.js":188,"../Data.Either/index.js":206,"../Data.Eq/index.js":210,"../Data.Foldable/index.js":217,"../Data.Function/index.js":227,"../Data.Functor/index.js":237,"../Data.HeytingAlgebra/index.js":242,"../Data.Int/index.js":247,"../Data.Map.Internal/index.js":288,"../Data.Map/index.js":289,"../Data.Maybe/index.js":292,"../Data.Ord/index.js":312,"../Data.Semiring/index.js":332,"../Data.Tuple/index.js":364,"../Data.Unfoldable/index.js":368,"../Data.Unfoldable1/index.js":366,"../Effect.Aff.Class/index.js":376,"../Effect.Aff/index.js":379,"../Halogen.Component/index.js":429,"../Halogen.HTML.CSS/index.js":432,"../Halogen.HTML.Core/index.js":433,"../Halogen.HTML.Elements/index.js":434,"../Halogen.HTML.Events/index.js":435,"../Halogen.HTML.Properties/index.js":436,"../Halogen.HTML/index.js":437,"../Halogen.Query.HalogenM/index.js":440,"../Halogen.Query/index.js":442,"../Halogen.Themes.Bootstrap4/index.js":443,"../Halogen/index.js":452,"../Page.Utils/index.js":462,"../Prelude/index.js":467,"../Route/index.js":475}],459:[function(require,module,exports){
 // Generated by purs version 0.12.1
 "use strict";
 var Api = require("../Api/index.js");
@@ -80897,7 +81088,7 @@ var card = function (id_) {
 };
 var component = function (dictMonadAff) {
     return function (dictNavigate) {
-        return function (dictHasApiAccessMethod) {
+        return function (dictHasApiAccessible) {
             var render = function (state) {
                 var chartdatasets = chartDatasets(state.measValues);
                 var humChartData = {
@@ -80956,7 +81147,7 @@ var component = function (dictMonadAff) {
                     return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Data_Maybe.maybe(Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Unit.unit))(modifyRecordsLimit)(Data_Int.fromString(v.value0)))(function () {
                         return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.get(Halogen_Query_HalogenM.monadStateHalogenM))(function (v1) {
                             var limit = Data_Maybe.Just.create(Data_Newtype.unwrap(Route.newtypeRecordsLimit)(v1.recordsLimit));
-                            return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(AppM.getApiBaseURL(AppM.hasApiAccessMethodHalogenM(dictHasApiAccessMethod)))(function (v2) {
+                            return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(AppM.getApiBaseURL(AppM.hasApiAccessibleHalogenM(dictHasApiAccessible)))(function (v2) {
                                 return Control_Bind.bind(Halogen_Query_HalogenM.bindHalogenM)(Effect_Aff_Class.liftAff(Halogen_Query_HalogenM.monadAffHalogenM(dictMonadAff))(Api.getApiV1Measurements(v2)(limit)))(function (v3) {
                                     return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)((function () {
                                         if (v3.body instanceof Data_Either.Left) {
@@ -81098,10 +81289,8 @@ exports.showToastJs = function () {
 "use strict";
 var $foreign = require("./foreign.js");
 var CSS = require("../CSS/index.js");
-var CSS_Display = require("../CSS.Display/index.js");
 var CSS_Geometry = require("../CSS.Geometry/index.js");
 var CSS_Size = require("../CSS.Size/index.js");
-var CSS_Stylesheet = require("../CSS.Stylesheet/index.js");
 var Control_Applicative = require("../Control.Applicative/index.js");
 var Control_Bind = require("../Control.Bind/index.js");
 var DOM_HTML_Indexed_ButtonType = require("../DOM.HTML.Indexed.ButtonType/index.js");
@@ -81130,13 +81319,10 @@ var Halogen_Themes_Bootstrap4 = require("../Halogen.Themes.Bootstrap4/index.js")
 var Prelude = require("../Prelude/index.js");
 var Route = require("../Route/index.js");
 var toast = function (xs) {
-    return Halogen_HTML_Elements.div([ Halogen_HTML_Properties.attr("aria-live")("polite"), Halogen_HTML_Properties.attr("aria-atomic")("true"), Halogen_HTML_CSS.style(Control_Bind.discard(Control_Bind.discardUnit)(CSS_Stylesheet.bindStyleM)(CSS_Display.position(CSS_Display.relative))(function () {
-        return CSS_Geometry.minHeight(CSS_Size.px(200.0));
-    })) ])([ Halogen_HTML_Elements.div([ Halogen_HTML_CSS.style(Control_Bind.discard(Control_Bind.discardUnit)(CSS_Stylesheet.bindStyleM)(CSS_Display.position(CSS_Display.absolute))(function () {
-        return Control_Bind.discard(Control_Bind.discardUnit)(CSS_Stylesheet.bindStyleM)(CSS_Geometry.top(CSS_Size.px(0.0)))(function () {
-            return CSS_Geometry.right(CSS_Size.px(0.0));
-        });
-    })) ])(xs) ]);
+    return Halogen_HTML_Elements.div([ Halogen_HTML_Properties.attr("aria-live")("polite"), Halogen_HTML_Properties.attr("aria-atomic")("true") ])(xs);
+};
+var snackbarItem = function (text) {
+    return Halogen_HTML_Elements.div([ Halogen_HTML_Properties.classes([ "toast", Halogen_Themes_Bootstrap4.bgInfo, Halogen_Themes_Bootstrap4.mxAuto ]), Halogen_HTML_Properties.attr("role")("alert"), Halogen_HTML_Properties.attr("aria-live")("assertive"), Halogen_HTML_Properties.attr("aria-atomic")("true") ])([ Halogen_HTML_Elements.div([ Halogen_HTML_Properties.classes([ "toast-body", Halogen_Themes_Bootstrap4.textCenter ]) ])([ Halogen_HTML_Elements.span([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.textWhite) ])([ Halogen_HTML_Core.text(text) ]) ]) ]);
 };
 var showToast = $foreign.showToastJs;
 var navbar = function (navigateAction) {
@@ -81160,7 +81346,7 @@ var icon = function (iconName) {
 var toastItem = function (head) {
     return function (subhead) {
         return function (text) {
-            return Halogen_HTML_Elements.div([ Halogen_HTML_Properties.classes([ "toast", Halogen_Themes_Bootstrap4.bgInfo ]), Halogen_HTML_Properties.attr("role")("alert"), Halogen_HTML_Properties.attr("aria-live")("assertive"), Halogen_HTML_Properties.attr("aria-atomic")("true") ])([ Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_("toast-header") ])([ Halogen_HTML_Elements.strong([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.mrAuto) ])([ Halogen_HTML_Core.text(head) ]), Halogen_HTML_Elements.small([ Halogen_HTML_CSS.style(CSS_Geometry.marginLeft(CSS_Size.px(40.0))) ])([ Halogen_HTML_Core.text(subhead) ]), Halogen_HTML_Elements.button([ Halogen_HTML_Properties.type_(Halogen_HTML_Core.buttonTypeIsProp)(DOM_HTML_Indexed_ButtonType.ButtonButton.value), Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.ml2, Halogen_Themes_Bootstrap4.mb1, Halogen_Themes_Bootstrap4.close ]), Halogen_HTML_Properties.attr("data-dismiss")("toast"), Halogen_HTML_Properties.attr("area-label")("Close") ])([ Halogen_HTML_Elements.span([ Halogen_HTML_Properties.attr("aria-hidden")("true") ])([ icon("fas fa-times-circle") ]) ]) ]), Halogen_HTML_Elements.div([ Halogen_HTML_Properties.classes([ "toast-body", Halogen_Themes_Bootstrap4.textWhite ]) ])([ Halogen_HTML_Core.text(text) ]) ]);
+            return Halogen_HTML_Elements.div([ Halogen_HTML_Properties.classes([ "toast", Halogen_Themes_Bootstrap4.bgInfo, Halogen_Themes_Bootstrap4.mxAuto ]), Halogen_HTML_Properties.attr("role")("alert"), Halogen_HTML_Properties.attr("aria-live")("assertive"), Halogen_HTML_Properties.attr("aria-atomic")("true") ])([ Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_("toast-header") ])([ Halogen_HTML_Elements.strong([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.mrAuto) ])([ Halogen_HTML_Core.text(head) ]), Halogen_HTML_Elements.small([ Halogen_HTML_CSS.style(CSS_Geometry.marginLeft(CSS_Size.px(40.0))) ])([ Halogen_HTML_Core.text(subhead) ]), Halogen_HTML_Elements.button([ Halogen_HTML_Properties.type_(Halogen_HTML_Core.buttonTypeIsProp)(DOM_HTML_Indexed_ButtonType.ButtonButton.value), Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.ml2, Halogen_Themes_Bootstrap4.mb1, Halogen_Themes_Bootstrap4.close ]), Halogen_HTML_Properties.attr("data-dismiss")("toast"), Halogen_HTML_Properties.attr("area-label")("Close") ])([ Halogen_HTML_Elements.span([ Halogen_HTML_Properties.attr("aria-hidden")("true") ])([ icon("fas fa-times-circle") ]) ]) ]), Halogen_HTML_Elements.div([ Halogen_HTML_Properties.classes([ "toast-body", Halogen_Themes_Bootstrap4.textWhite ]) ])([ Halogen_HTML_Core.text(text) ]) ]);
         };
     };
 };
@@ -81200,10 +81386,11 @@ module.exports = {
     getContext2dById: getContext2dById,
     asiaTokyoDateTime: asiaTokyoDateTime,
     toast: toast,
-    toastItem: toastItem
+    toastItem: toastItem,
+    snackbarItem: snackbarItem
 };
 
-},{"../CSS.Display/index.js":78,"../CSS.Geometry/index.js":83,"../CSS.Size/index.js":89,"../CSS.Stylesheet/index.js":91,"../CSS/index.js":97,"../Control.Applicative/index.js":105,"../Control.Bind/index.js":111,"../DOM.HTML.Indexed.ButtonType/index.js":151,"../Data.DateTime/index.js":200,"../Data.Either/index.js":206,"../Data.Eq/index.js":210,"../Data.Formatter.DateTime/index.js":219,"../Data.Function/index.js":227,"../Data.Functor/index.js":237,"../Data.Maybe/index.js":292,"../Data.String.Common/index.js":341,"../Data.String.Pattern/index.js":345,"../Data.String/index.js":351,"../Data.Time.Duration/index.js":356,"../Effect/index.js":395,"../Graphics.Canvas/index.js":422,"../Halogen.HTML.CSS/index.js":432,"../Halogen.HTML.Core/index.js":433,"../Halogen.HTML.Elements/index.js":434,"../Halogen.HTML.Events/index.js":435,"../Halogen.HTML.Properties/index.js":436,"../Halogen.HTML/index.js":437,"../Halogen.Query/index.js":442,"../Halogen.Themes.Bootstrap4/index.js":443,"../Halogen/index.js":452,"../Prelude/index.js":467,"../Route/index.js":475,"./foreign.js":461}],463:[function(require,module,exports){
+},{"../CSS.Geometry/index.js":83,"../CSS.Size/index.js":89,"../CSS/index.js":97,"../Control.Applicative/index.js":105,"../Control.Bind/index.js":111,"../DOM.HTML.Indexed.ButtonType/index.js":151,"../Data.DateTime/index.js":200,"../Data.Either/index.js":206,"../Data.Eq/index.js":210,"../Data.Formatter.DateTime/index.js":219,"../Data.Function/index.js":227,"../Data.Functor/index.js":237,"../Data.Maybe/index.js":292,"../Data.String.Common/index.js":341,"../Data.String.Pattern/index.js":345,"../Data.String/index.js":351,"../Data.Time.Duration/index.js":356,"../Effect/index.js":395,"../Graphics.Canvas/index.js":422,"../Halogen.HTML.CSS/index.js":432,"../Halogen.HTML.Core/index.js":433,"../Halogen.HTML.Elements/index.js":434,"../Halogen.HTML.Events/index.js":435,"../Halogen.HTML.Properties/index.js":436,"../Halogen.HTML/index.js":437,"../Halogen.Query/index.js":442,"../Halogen.Themes.Bootstrap4/index.js":443,"../Halogen/index.js":452,"../Prelude/index.js":467,"../Route/index.js":475,"./foreign.js":461}],463:[function(require,module,exports){
 "use strict";
 
 // module Partial.Unsafe

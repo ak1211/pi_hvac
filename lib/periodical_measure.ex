@@ -22,7 +22,7 @@ defmodule PeriodicalMeasure do
   alias PiHvac.Repo
   alias PiHvac.Api.EnvMeasured
 
-  @doc "Periodical measure in Humidity, pressure, temperature and store to database."
+  @moduledoc "Periodical measure in Humidity, pressure, temperature and store to database."
 
   # Wire connections definition
   # The BME280 device is connected to I2C bus 1, and I2C address is 0x76

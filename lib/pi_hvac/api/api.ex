@@ -35,7 +35,7 @@ defmodule PiHvac.Api do
       [%EnvMeasured{}, ...]
 
   """
-  def list_envmeasured(params) do
+  def list_env_measured(params) do
     default = %{"limits" => 3}
     %{"limits" => lmt} = Map.merge(default, params)
     EnvMeasured

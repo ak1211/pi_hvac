@@ -14,12 +14,13 @@ defmodule PiHvac.Application do
       PiHvacWeb.Endpoint,
       # Starts a worker by calling: PiHvac.Worker.start_link(arg)
       # {PiHvac.Worker, arg},
-      PeriodicalMeasure
+      PeriodicalMeasure,
+      ADRSIR
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
     # for other strategies and supported options
-    opts = [strategy: :one_for_one, name: PiHvac.Supervisor]
+    opts = [strategy: :one_for_all, name: PiHvac.Supervisor]
     Supervisor.start_link(children, opts)
   end
 
