@@ -45,8 +45,8 @@ defmodule PiHvacWeb.Router do
     scope "/v1", V1, as: :v1 do
       resources "/measurements", EnvMeasuredController, except: [:new, :edit, :create, :update, :delete]
       resources "/i2c-devices", I2cDevicesController, except: [:new, :show, :edit, :create, :update, :delete]
-      resources "/infra-red", InfraRedController, except: [:index, :new, :edit, :create, :delete]
-      resources "/trans-ir", InfraRedController, except: [:index, :new, :show, :edit, :update, :delete]
+      resources "/infra-red", InfraRedController, except: [:index, :new, :edit, :update, :delete]
+      post "/trans-ir", TransIRController, :create
     end
   end
 end

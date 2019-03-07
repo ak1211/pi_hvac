@@ -53,7 +53,11 @@ defmodule ADRSIR do
   end
 
   def stop() do
-    GenServer.stop(__MODULE__)
+    GenServer.stop(__MODULE__, 1000)
+  end
+
+  def kill() do
+    GenServer.call(__MODULE__, :kill)
   end
 
   def read_command(num) do
@@ -88,15 +92,15 @@ defmodule ADRSIR do
   end
 
   def read_ir(num) do
-    GenServer.call(__MODULE__, {:read_ir, num})
+    GenServer.call(__MODULE__, {:read_ir, num}, 1000)
   end
 
   def write_ir(num, irdata) do
-    GenServer.call(__MODULE__, {:write_ir, num, irdata})
+    GenServer.call(__MODULE__, {:write_ir, num, irdata}, 1000)
   end
 
   def transmit_ir(irdata) do
-    GenServer.call(__MODULE__, {:transmit_ir, irdata})
+    GenServer.call(__MODULE__, {:transmit_ir, irdata}, 1000)
   end
 
   #
@@ -108,6 +112,11 @@ defmodule ADRSIR do
     {:ok, i2c}  = ElixirALE.I2C.start_link(@i2c_bus, @i2c_address)
     state       = %State{i2c: i2c}
     {:ok, state}
+  end
+
+  @impl GenServer
+  def handle_call(:kill, state) do
+    {:stop, :normal, state}
   end
 
   @impl GenServer

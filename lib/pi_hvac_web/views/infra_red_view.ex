@@ -7,6 +7,7 @@ defmodule PiHvacWeb.V1.InfraRedView do
   end
 
   def render("ir_code.json", %{infra_red: ir}) do
-    ir.ir_code
+    %{button_number: ir.button_number,
+      code: ir.ir_code}
   end
 end
