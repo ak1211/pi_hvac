@@ -1,0 +1,32 @@
+{
+  "name": "pi_hvac",
+  "version": "1.0.0",
+  "description": "Raspberry Pi HVAC system frontend",
+  "main": "app.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "canvas-gauges": "^2.1.5",
+    "chart.js": "^2.7.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "build": "pulp --psc-package browserify --to ../priv/static/js/app.js",
+    "test": "pulp --psc-package test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ak1211/pi_hvac.git"
+  },
+  "keywords": [
+    "Raspberry",
+    "Pi"
+  ],
+  "author": "Akihiro Yamamoto",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/ak1211/pi_hvac/issues"
+  },
+  "homepage": "https://github.com/ak1211/pi_hvac#readme"
+}
