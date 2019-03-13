@@ -260,7 +260,7 @@ component =
           , HH.dd_ [ HH.text $ showHex irValue.customer ]
           , HH.dt_ [ HH.text "data" ]
           , HH.dd_ [ HH.text $ showHex irValue.data ]
-          , HH.dt_ [ HH.text "invated-data" ]
+          , HH.dt_ [ HH.text "invarted-data" ]
           , HH.dd_ [ HH.text $ showHex irValue.invData ]
           ]
         ]

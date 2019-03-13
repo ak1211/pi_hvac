@@ -230,8 +230,8 @@ analysisPhase2 input =
     sInvData  <- take 24 8 "fail to read: inv-data code (NEC)"
     stopBit   <- take 32 1 "fail to read: stop bit (NEC)"
     { customer: Array.foldl deserialize 0x00 (Array.reverse sCustomer)
-    , data:  Array.foldl deserialize 0x00 (Array.reverse sData)
-    , invData:  Array.foldl deserialize 0x00 (Array.reverse sInvData)
+    , data: Array.foldl deserialize 0x00 (Array.reverse sData)
+    , invData: Array.foldl deserialize 0x00 (Array.reverse sInvData)
     } # (Right <<< NEC)
 
   other :: Either String IRCodeEnvelope
