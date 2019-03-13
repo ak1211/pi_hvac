@@ -38,6 +38,7 @@ import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (unwrap)
+import Data.String as String
 import Data.Tuple (Tuple(..))
 import Data.Unfoldable (unfoldr1)
 import Effect.Aff (delay, parallel, sequential)
@@ -50,7 +51,7 @@ import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Themes.Bootstrap4 as HB
-import InfraRedCode (IRCodeToken(..))
+import InfraRedCode (IRCodeEnvelope(..), IRCodeToken(..))
 import InfraRedCode as IRC
 import Page.Utils as PU
 import Route (Route)
@@ -212,23 +213,29 @@ component =
             ]
           , downloadInfraredRemoconCode state
           ]
-        , HH.h2 [ HP.class_ HB.h2 ] [ HH.text "T milliseconds" ]
-        , HH.p_ $ infraredSignals state.infraredValue
+        , HH.h2 [ HP.class_ HB.h2 ] [ HH.text "Pulse milliseconds" ]
+        , HH.p_ $ infraredPulse state.infraredValue
+        , HH.h2 [ HP.class_ HB.h2 ] [ HH.text "Decoded infrared signal" ]
+        , HH.p_ $ infraredSignal state.infraredValue
         ]
       ]
 
-  infraredSignals (Left _) = []
-  infraredSignals (Right (InfraRedValue ir)) =
+  infraredPulse (Left _) = [ HH.text " " ]
+  infraredPulse (Right (InfraRedValue ir)) =
     case runParser ir.code IRC.irCodeParser of
       Left err ->
         [ HH.text $ parseErrorMessage err ]
-      Right xs ->
-        intercalate [HH.text ", "] $ map toText xs
+      Right tokens ->
+        intercalate [HH.text ", "] $ map toText tokens
     where
 
-    toText (Ton n) = [ HH.span [HP.class_ HB.textPrimary] [HH.text $ strMillisec n <> "on"] ]
-    toText (Toff n) = [ HH.span [HP.class_ HB.textSuccess] [HH.text $ strMillisec n <> "off"] ]
-    toText (Leftover n) = [ HH.span [HP.class_ HB.textDanger] [HH.text $ strMillisec n <> "leftover"] ]
+    toText (Pulse p) =
+      [ HH.span [HP.class_ HB.textPrimary] [HH.text $ strMillisec p.on <> "on"]
+      , HH.text ", "
+      , HH.span [HP.class_ HB.textSuccess] [HH.text $ strMillisec p.off <> "off"]
+      ]
+    toText (Leftover n) =
+      [ HH.span [HP.class_ HB.textDanger] [HH.text $ strMillisec n <> "leftover"] ]
 
     strMillisec :: Int -> String
     strMillisec n =
@@ -236,7 +243,54 @@ component =
       $ FN.formatNumber "0.0"
       $ unwrap
       $ IRC.toMilliseconds n
- 
+
+  infraredSignal (Left _) = [ HH.text " " ]
+  infraredSignal (Right (InfraRedValue ir)) =
+    Bifunctor.lmap parseErrorMessage (runParser ir.code IRC.irCodeParser)
+    >>= IRC.irCodeSemanticAnalysis
+    # case _ of
+      Left msg ->
+        [ HH.text msg ]
+
+      Right (NEC irValue) ->
+        [ HH.dl_
+          [ HH.dt_ [ HH.text "format" ]
+          , HH.dd_ [ HH.text "NEC" ]
+          , HH.dt_ [ HH.text "customer" ]
+          , HH.dd_ [ HH.text $ showHex irValue.customer ]
+          , HH.dt_ [ HH.text "data" ]
+          , HH.dd_ [ HH.text $ showHex irValue.data ]
+          , HH.dt_ [ HH.text "invated-data" ]
+          , HH.dd_ [ HH.text $ showHex irValue.invData ]
+          ]
+        ]
+
+      Right (AEHA irValue) ->
+        [ HH.dl_
+          [ HH.dt_ [ HH.text "format" ]
+          , HH.dd_ [ HH.text "AEHA" ]
+          , HH.dt_ [ HH.text "customer" ]
+          , HH.dd_ [ HH.text $ showHex irValue.customer ]
+          , HH.dt_ [ HH.text "parity" ]
+          , HH.dd_ [ HH.text $ showHex irValue.parity ]
+          , HH.dt_ [ HH.text "data0" ]
+          , HH.dd_ [ HH.text $ showHex irValue.data0 ]
+          , HH.dt_ [ HH.text "data" ]
+          , HH.dd_
+            $ intercalate
+                [ HH.text ", " ]
+                $ map (Array.singleton <<< HH.text <<< showHex) irValue.data
+          ]
+        ]
+
+      Right (IRCodeEnvelope irValue) ->
+        [ HH.text "unknown format"
+        , HH.p_ [ HH.text $ show irValue ]
+        ]
+      where
+      showHex x =
+        "0x" <> (String.toUpper $ Int.toStringAs Int.hexadecimal x)
+
   i2cDetectButton =
     HH.button
       [ HP.classes
