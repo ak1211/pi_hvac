@@ -217,10 +217,10 @@ analysisPhase2 input =
     stopBit   <- maybe (Left "fail to read: stop bit (AEHA)") Right
                   $ guard (sData.last == Assert)
     let octet = toArray2D 8 $ sData.init
-    { customer: Array.foldl deserialize 0x00 (Array.reverse sCustomer)
-    , parity: Array.foldl deserialize 0x00 (Array.reverse sParity)
-    , data0: Array.foldl deserialize 0x00 (Array.reverse sData0)
-    , data: Array.foldl deserialize 0x00 <<< Array.reverse <$> octet
+    { customer: deserialize sCustomer
+    , parity: deserialize sParity
+    , data0: deserialize sData0
+    , data: map deserialize octet
     } # (Right <<< AEHA)
 
   nec :: Either String IRCodeEnvelope
@@ -229,9 +229,9 @@ analysisPhase2 input =
     sData     <- take 16 8 "fail to read: data code (NEC)"
     sInvData  <- take 24 8 "fail to read: inv-data code (NEC)"
     stopBit   <- take 32 1 "fail to read: stop bit (NEC)"
-    { customer: Array.foldl deserialize 0x00 (Array.reverse sCustomer)
-    , data: Array.foldl deserialize 0x00 (Array.reverse sData)
-    , invData: Array.foldl deserialize 0x00 (Array.reverse sInvData)
+    { customer: deserialize sCustomer
+    , data: deserialize sData
+    , invData: deserialize sInvData
     } # (Right <<< NEC)
 
   other :: Either String IRCodeEnvelope
@@ -239,9 +239,13 @@ analysisPhase2 input =
     Right $ IRCodeEnvelope (Tuple.snd input)
 
 -- |
-deserialize :: Int -> IRSignal -> Int
-deserialize acc Assert = acc * 2 + 1
-deserialize acc Negate = acc * 2 + 0
+deserialize :: IRSignals -> Int
+deserialize =
+  Array.foldl f 0 <<< Array.reverse
+  where
+  f :: Int -> IRSignal -> Int
+  f acc Assert = acc * 2 + 1
+  f acc Negate = acc * 2 + 0
 
 -- |
 toArray2D :: forall a. Int -> Array a -> Array (Array a)
