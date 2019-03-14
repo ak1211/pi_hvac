@@ -165,9 +165,9 @@ analysisPhase1 tokens =
   go :: IRCodeToken -> Array IRCodeToken -> Maybe (Tuple IRLeader IRSignals)
   go (Leftover _) _ = Nothing
   go (Pulse p) ps = do
-      let sigs = map decodePPM ps
-      guard $ Array.all Maybe.isJust sigs
-      pure $ Tuple (wrap p) (Array.catMaybes sigs)
+    let sigs = map decodePPM ps
+    guard $ Array.all Maybe.isJust sigs
+    pure $ Tuple (wrap p) (Array.catMaybes sigs)
 
   decodePPM :: IRCodeToken -> Maybe IRSignal
   decodePPM = case _ of
