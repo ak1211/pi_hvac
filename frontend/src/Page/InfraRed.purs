@@ -288,8 +288,9 @@ component =
         , HH.p_ [ HH.text $ show irValue ]
         ]
       where
-      showHex x =
-        "0x" <> (String.toUpper $ Int.toStringAs Int.hexadecimal x)
+      showHex x | x < 16 = "0x0" <> hexs x
+                | otherwise = "0x" <> hexs x
+      hexs = String.toUpper <<< Int.toStringAs Int.hexadecimal
 
   i2cDetectButton =
     HH.button
