@@ -44,9 +44,10 @@ import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Themes.Bootstrap4 as HB
-import Page.Utils as PU
+import Page.Commons as Commons
 import Route (Route, RecordsLimit(..), defRecordsLimit)
 import Route as Route
+import Utils as Utils
 
 type State =
   { measValues :: Api.EnvMeasValues
@@ -112,7 +113,7 @@ component =
         humChartData = {canvasId: idChartArea.hum, datasets: chartdatasets.rh, options: options}
      in
     HH.div_
-      [ PU.navbar NavigateTo (Route.Plotdata Nothing)
+      [ Commons.navbar NavigateTo (Route.Plotdata Nothing)
       , HH.div
         [ HP.class_ HB.container ]
         [ HH.form
@@ -188,7 +189,7 @@ card id_ class_ header body =
       ]
       [ HH.span [ HP.class_ HB.ml0 ] [ HH.text header ]
       , HH.span [ style $ marginLeft $ rem 1.0 ] []
-      , HH.span [ HP.class_ HB.textRight ] [ PU.icon "fas fa-chevron-down" ]
+      , HH.span [ HP.class_ HB.textRight ] [ Commons.icon "fas fa-chevron-down" ]
       ]
     , HH.div
       [ HP.classes ([ HB.cardBody, HB.collapse ] <> class_)
@@ -207,7 +208,7 @@ chartLabels values =
   map (maybe "N/A" showDateTime <<< localDateTime <<< measDateTime) values
   where
   showDateTime x  = x.date <> " " <> x.time
-  localDateTime   = PU.asiaTokyoDateTime <<< unwrap
+  localDateTime   = Utils.asiaTokyoDateTime <<< unwrap
   measDateTime    = _.measured_at <<< unwrap
 
 -- |
@@ -260,7 +261,7 @@ measurementalTable measValues =
     ]
   
   tableRow (Api.EnvMeasValue v) =
-    let datetime = PU.asiaTokyoDateTime $ unwrap v.measured_at
+    let datetime = Utils.asiaTokyoDateTime $ unwrap v.measured_at
     in
     HH.tr_ 
       [ HH.td_ [ HH.text $ fromMaybe "N/A" $ _.date <$> datetime ]

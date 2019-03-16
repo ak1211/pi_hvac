@@ -40,7 +40,6 @@ import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (unwrap)
 import Data.String as String
 import Data.Tuple (Tuple(..))
-import Data.Unfoldable (unfoldr1)
 import Effect.Aff (delay, parallel, sequential)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Console (logShow)
@@ -53,10 +52,11 @@ import Halogen.HTML.Properties as HP
 import Halogen.Themes.Bootstrap4 as HB
 import InfraRedCode (IRCodeEnvelope(..), IRCodeToken(..))
 import InfraRedCode as IRC
-import Page.Utils as PU
+import Page.Commons as Commons
 import Route (Route)
 import Route as Route
 import Text.Parsing.Parser (parseErrorMessage, runParser)
+import Utils (toArray2D)
 
 type DetectedAddresses = Either String (Array Int)
 
@@ -179,7 +179,7 @@ component =
   render :: State -> H.ComponentHTML Query
   render state =
     HH.div_
-      [ PU.navbar NavigateTo Route.Infrared
+      [ Commons.navbar NavigateTo Route.Infrared
       , HH.div
         [ HP.class_ HB.container ]
         [ HH.h2 [ HP.class_ HB.h2 ] [ i2c, HH.text " devices", i2cDetectButton ]
@@ -303,7 +303,7 @@ component =
       , style do
         marginLeft (px 31.0)
       ]
-      [ PU.icon "fas fa-search" ]
+      [ Commons.icon "fas fa-search" ]
 
   irDownloadButton =
     HH.button
@@ -423,23 +423,6 @@ i2cDevices (Right detectedDeviceAddresses) =
     where
     f :: Int -> Tuple Int String
     f n = Tuple n (toHexS n)
-
--- |
-toArray2D :: forall a. Int -> Array a -> Array (Array a)
-toArray2D width =
-  unfoldr1 (chop width)
-  where
-
-  chop :: Int -> Array a -> Tuple (Array a) (Maybe (Array a))
-  chop n xs = 
-    case splitAt n xs of
-      Tuple a [] -> Tuple a Nothing
-      Tuple a b -> Tuple a (Just b)
-
--- |
-splitAt :: forall a. Int -> Array a -> Tuple (Array a) (Array a)
-splitAt n xs = 
-  Tuple (Array.take n xs) (Array.drop n xs)
 
 -- |
 tableHeading :: forall p i. Array Int -> H.HTML p i

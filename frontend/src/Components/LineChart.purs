@@ -30,7 +30,7 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Page.Utils as PU
+import Page.Commons as Commons
 import Prelude
 
 type State =
@@ -97,7 +97,7 @@ component =
 -- |
 newChart :: String -> ChartDatasets -> LineChartOptions -> Effect (Maybe LineChartInstance)
 newChart canvasId datasets options =
-  f =<< PU.getContext2dById canvasId
+  f =<< Commons.getContext2dById canvasId
   where
   f :: Maybe Context2D -> Effect (Maybe LineChartInstance)
   f Nothing = pure Nothing

@@ -46,9 +46,10 @@ import Halogen.HTML as HH
 import Halogen.HTML.CSS (style)
 import Halogen.HTML.Properties as HP
 import Halogen.Themes.Bootstrap4 as HB
-import Page.Utils as PU
+import Page.Commons as Commons
 import Route (Route)
 import Route as Route
+import Utils as Utils
 
 type NonEmptyValues = NEA.NonEmptyArray Api.EnvMeasValue
 
@@ -107,7 +108,7 @@ component =
               sequential $ parallel (response <$> request) <|> parallel timeout
       time <- unInstant <$> H.liftEffect now
       H.modify_ \st -> st { measValues = val, nowTime = time }
-      H.liftEffect $ PU.showToast
+      H.liftEffect $ Commons.showToast
       pure next
 
   --| render
@@ -116,7 +117,7 @@ component =
     let v = latestValue
     in
     HH.div_
-      [ PU.navbar NavigateTo Route.Home
+      [ Commons.navbar NavigateTo Route.Home
       , HH.div [ HP.class_ HB.container ]
         [ HH.div
           [ HP.class_ HB.row
@@ -128,7 +129,7 @@ component =
           , HH.div [ HP.class_ HB.colLg4 ] [ HH.slot' ChildPath.cp2 unit RadialGauge.component v.p absurd ]
           , HH.div [ HP.class_ HB.colLg4 ] [ HH.slot' ChildPath.cp3 unit RadialGauge.component v.h absurd ]
           ]
-        , PU.toast [ v.msg ]
+        , Commons.toast [ v.msg ]
         ]
       ]
     where
@@ -151,15 +152,15 @@ component =
         }
 
     msgFailToAccess reason =
-      PU.toastItem "Error" "" reason
+      Commons.toastItem "Error" "" reason
 
     msgLastUpdatedAt (Api.MeasDateTime utc) =
-      maybe invalidType ok $ PU.asiaTokyoDateTime utc
+      maybe invalidType ok $ Utils.asiaTokyoDateTime utc
       where
 
-      invalidType = PU.toastItem "Error" "" "有効な日付ではありませんでした" 
+      invalidType = Commons.toastItem "Error" "" "有効な日付ではありませんでした" 
 
-      ok v = PU.snackbarItem $ message v.time
+      ok v = Commons.snackbarItem $ message v.time
       
       at :: Milliseconds
       at = unInstant $ fromDateTime utc

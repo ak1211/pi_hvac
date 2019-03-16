@@ -15,25 +15,20 @@
  limitations under the License.
 -}
 
-module Page.Utils
+module Page.Commons
   ( showToast
   , navbar
   , icon
   , getContext2dById
-  , asiaTokyoDateTime
   , toast
   , toastItem
   , snackbarItem
   ) where
 
+import Prelude
+
 import CSS (marginLeft, px)
-import Data.DateTime (DateTime)
-import Data.DateTime as DateTime
-import Data.Either (either)
-import Data.Formatter.DateTime (formatDateTime)
 import Data.Maybe (Maybe(..), maybe)
-import Data.String as String
-import Data.Time.Duration (Hours(..), fromDuration)
 import Effect (Effect)
 import Graphics.Canvas as Canvas
 import Halogen as H
@@ -45,7 +40,6 @@ import Halogen.HTML.Properties as HP
 import Halogen.Query as HQ
 import Halogen.Themes.Bootstrap4 as BS
 import Halogen.Themes.Bootstrap4 as HB
-import Prelude
 import Route (Route)
 import Route as Route
 
@@ -147,24 +141,6 @@ getContext2dById id_ = do
   where
     maybeC2d :: Canvas.CanvasElement -> Effect (Maybe Canvas.Context2D)
     maybeC2d elem = Just <$> Canvas.getContext2D elem
-
---|
-asiaTokyoDateTime :: DateTime -> Maybe {date :: String, time :: String}
-asiaTokyoDateTime utc = do
-  let offset = fromDuration (Hours 9.0)
-  local <- DateTime.adjust offset utc
-  dt <- either (const Nothing) Just $ formatDateTime "YYYY-MM-DD HH:mm:ss" local
-  chopDateTime dt
-
--- |
-chopDateTime :: String -> Maybe {date :: String, time :: String}
-chopDateTime original =
-  case String.split (String.Pattern " ") original of
-    [a, b] ->
-      Just {date: a, time: b}
-    
-    _ ->
-      Nothing
 
 -- |
 toast :: forall p i. Array (H.HTML p i) -> H.HTML p i

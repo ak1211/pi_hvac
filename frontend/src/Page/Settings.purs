@@ -27,7 +27,7 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Core as HC
 import Halogen.HTML.Properties as HP
-import Page.Utils as PU
+import Page.Commons as Commons
 import Prelude
 import Route (Route)
 import Route as Route
@@ -74,7 +74,7 @@ component =
 render :: State -> H.ComponentHTML Query
 render state =
   HH.div_
-    [ PU.navbar NavigateTo Route.Settings
+    [ Commons.navbar NavigateTo Route.Settings
     , HH.div
       [ HP.class_ (HC.ClassName "container")
       ]

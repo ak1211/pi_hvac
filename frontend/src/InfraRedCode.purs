@@ -49,11 +49,11 @@ import Data.String.CodeUnits (fromCharArray)
 import Data.Time.Duration (Milliseconds(..))
 import Data.Tuple (Tuple(..))
 import Data.Tuple as Tuple
-import Data.Unfoldable1 (unfoldr1)
 import Partial.Unsafe (unsafePartial)
 import Text.Parsing.Parser (Parser)
 import Text.Parsing.Parser.Combinators (try, (<?>))
 import Text.Parsing.Parser.Token (hexDigit)
+import Utils (toArray2D)
 
 -- | count is based on 38khz carrier
 type OnOffCount = {on :: Int, off :: Int}
@@ -246,20 +246,3 @@ deserialize =
   f :: Int -> IRSignal -> Int
   f acc Assert = acc * 2 + 1
   f acc Negate = acc * 2 + 0
-
--- |
-toArray2D :: forall a. Int -> Array a -> Array (Array a)
-toArray2D width =
-  unfoldr1 (chop width)
-  where
-
-  chop :: Int -> Array a -> Tuple (Array a) (Maybe (Array a))
-  chop n xs = 
-    case splitAt n xs of
-      Tuple a [] -> Tuple a Nothing
-      Tuple a b -> Tuple a (Just b)
-
--- |
-splitAt :: forall a. Int -> Array a -> Tuple (Array a) (Array a)
-splitAt n xs = 
-  Tuple (Array.take n xs) (Array.drop n xs)
