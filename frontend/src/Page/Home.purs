@@ -114,7 +114,7 @@ component =
   --| render
   render :: State -> H.ParentHTML Query ChildQuery ChildSlot m
   render state =
-    let v = latestValue
+    let v = latestValue state
     in
     HH.div_
       [ Commons.navbar NavigateTo Route.Home
@@ -125,60 +125,72 @@ component =
               marginTop (px 30.0)
               marginBottom (px 30.0)
           ]
-          [ HH.div [ HP.class_ HB.colLg4 ] [ HH.slot' ChildPath.cp1 unit RadialGauge.component v.t absurd ]
-          , HH.div [ HP.class_ HB.colLg4 ] [ HH.slot' ChildPath.cp2 unit RadialGauge.component v.p absurd ]
-          , HH.div [ HP.class_ HB.colLg4 ] [ HH.slot' ChildPath.cp3 unit RadialGauge.component v.h absurd ]
+          [ gauge $ HH.slot' ChildPath.cp1 unit RadialGauge.component v.t absurd
+          , gauge $ HH.slot' ChildPath.cp2 unit RadialGauge.component v.p absurd
+          , gauge $ HH.slot' ChildPath.cp3 unit RadialGauge.component v.h absurd
           ]
         , Commons.toast [ v.msg ]
         ]
       ]
     where
 
-    latestValue = case state.measValues of
-      Left err ->
-        { t: temperature 0.0
-        , p: pressure 0.0
-        , h: hygro 0.0
-        , msg: msgFailToAccess err
-        }
+    gauge x =
+      HH.div [ HP.class_ HB.colSm ] [ x ]
 
-      Right measValues ->
-        let v = unwrap $ NEA.last measValues
-        in
-        { t: temperature v.degc
-        , p: pressure v.hpa
-        , h: hygro v.rh
-        , msg: msgLastUpdatedAt v.measured_at
-        }
+-- |
+latestValue
+  :: forall p i
+  . State
+  -> {t :: RadialGauge.Input, p :: RadialGauge.Input, h :: RadialGauge.Input, msg :: H.HTML p i}
+latestValue state = case state.measValues of
+  Left err ->
+    { t: temperature 0.0
+    , p: pressure 0.0
+    , h: hygro 0.0
+    , msg: msgFailToAccess err
+    }
 
-    msgFailToAccess reason =
-      Commons.toastItem "Error" "" reason
+  Right measValues ->
+    let v = unwrap $ NEA.last measValues
+    in
+    { t: temperature v.degc
+    , p: pressure v.hpa
+    , h: hygro v.rh
+    , msg: msgLastUpdatedAt state v.measured_at
+    }
 
-    msgLastUpdatedAt (Api.MeasDateTime utc) =
-      maybe invalidType ok $ Utils.asiaTokyoDateTime utc
-      where
+-- |
+msgFailToAccess :: forall p i. String -> H.HTML p i
+msgFailToAccess reason =
+  Commons.toastItem "Error" "" reason
 
-      invalidType = Commons.toastItem "Error" "" "有効な日付ではありませんでした" 
+-- |
+msgLastUpdatedAt :: forall p i. State -> Api.MeasDateTime -> H.HTML p i
+msgLastUpdatedAt state (Api.MeasDateTime utc) =
+  maybe invalidType ok $ Utils.asiaTokyoDateTime utc
+  where
 
-      ok v = Commons.snackbarItem $ message v.time
-      
-      at :: Milliseconds
-      at = unInstant $ fromDateTime utc
+  invalidType = Commons.toastItem "Error" "" "有効な日付ではありませんでした" 
 
-      duration :: Milliseconds
-      duration = wrap (unwrap state.nowTime - unwrap at)
+  ok v = Commons.snackbarItem $ message v.time
+  
+  at :: Milliseconds
+  at = unInstant $ fromDateTime utc
 
-      minute :: Int
-      minute = Int.floor (unwrap duration / (60.0 * 1000.0))
+  duration :: Milliseconds
+  duration = wrap (unwrap state.nowTime - unwrap at)
 
-      message :: String -> String
-      message time =
-        intercalate " "
-          [ "Measured at"
-          , time <> ","
-          , Int.toStringAs Int.decimal minute
-          , "mins ago."
-          ]
+  minute :: Int
+  minute = Int.floor (unwrap duration / (60.0 * 1000.0))
+
+  message :: String -> String
+  message time =
+    intercalate " "
+      [ "Measured at"
+      , time <> ","
+      , Int.toStringAs Int.decimal minute
+      , "mins ago."
+      ]
 
 -- |
 temperature :: Number ->  RadialGauge.Input
