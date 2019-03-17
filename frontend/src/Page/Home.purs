@@ -122,8 +122,8 @@ component =
         [ HH.div
           [ HP.class_ HB.row
           , style do
-              marginTop (px 30.0)
-              marginBottom (px 30.0)
+            marginTop (px 30.0)
+            marginBottom (px 30.0)
           ]
           [ gauge $ HH.slot' ChildPath.cp1 unit RadialGauge.component v.t absurd
           , gauge $ HH.slot' ChildPath.cp2 unit RadialGauge.component v.p absurd
