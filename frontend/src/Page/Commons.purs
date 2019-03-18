@@ -56,8 +56,7 @@ navbar navigateAction current =
   HH.nav
     [ HP.classes
       [ BS.navbar
-      --, BS.navbarExpandSm
-      , HC.ClassName "navbar-expand-sm"
+      , BS.navbarExpandSm
       , BS.fixedTop
       , BS.navbarDark
       , BS.bgDark
