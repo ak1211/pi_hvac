@@ -27,6 +27,7 @@ import Api as Api
 import AppM (class HasApiAccessible, class Navigate, getApiBaseURL, getApiTimeout, navigate)
 import CSS (em, margin, marginLeft, minHeight, padding, px, rem, width)
 import Control.Alt ((<|>))
+import Control.Coroutine as Co
 import Data.Array ((..), (:))
 import Data.Array as Array
 import Data.Bifunctor as Bifunctor
@@ -36,27 +37,38 @@ import Data.Formatter.Number as FN
 import Data.Int as Int
 import Data.Map (Map)
 import Data.Map as Map
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Newtype (unwrap)
 import Data.String as String
 import Data.Tuple (Tuple(..))
+import Effect (Effect)
 import Effect.Aff (delay, parallel, sequential)
 import Effect.Aff.Class (class MonadAff)
+import Effect.Class.Console (log)
 import Effect.Console (logShow)
+import Foreign (unsafeFromForeign)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.CSS (style)
 import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
+import Halogen.HTML.Properties (InputType(..))
 import Halogen.HTML.Properties as HP
 import Halogen.Themes.Bootstrap4 as HB
 import InfraRedCode (IRCodeEnvelope(..), IRCodeToken(..))
-import InfraRedCode as IRC
+import InfraRedCode as InfraRedCode
 import Page.Commons as Commons
 import Route (Route)
 import Route as Route
 import Text.Parsing.Parser (parseErrorMessage, runParser)
 import Utils (toArray2D)
+import Web.Event.Event (Event, EventType(..))
+import Web.Event.Event as Event
+import Web.Event.EventTarget (addEventListener, eventListener)
+import Web.File.File as File
+import Web.File.FileList as FileList
+import Web.File.FileReader as FileReader
+import Web.HTML.HTMLInputElement as InputElement
 
 type DetectedAddresses = Either String (Array Int)
 
@@ -69,11 +81,12 @@ type State =
 data Query a
   = NavigateTo Route a
   | Initialize a
-  | Detect a
-  | InfraredCodeDownload a
-  | InfraredCodeUpload a
-  | InfraredCodeTransmit a
+  | OnClickI2CDetect a
+  | OnClickIRCodeDownload a
+  | OnClickIRCodeUpload a
+  | OnClickIRCodeTransmit a
   | OnValueChangeButtonNumber String a
+  | OnChangeCSVFileSelect Event a
 
 -- | component
 component
@@ -99,6 +112,8 @@ component =
     , buttonNumber: 1
     }
 
+  csvFileInputLabel = H.RefLabel "CSVFileInput"
+
   eval :: Query ~> H.ComponentDSL State Query Void m
   eval = case _ of
     NavigateTo route next -> do
@@ -108,7 +123,7 @@ component =
     Initialize next -> do
       pure next
 
-    Detect next -> do
+    OnClickI2CDetect next -> do
       url <- getApiBaseURL
       millisec <- getApiTimeout
       val <- H.liftAff $
@@ -120,7 +135,7 @@ component =
       H.modify_ \st -> st { detectedAddresses = val }
       pure next
 
-    InfraredCodeDownload next -> do
+    OnClickIRCodeDownload next -> do
       url <- getApiBaseURL
       millisec <- getApiTimeout
       { buttonNumber } <- H.get
@@ -133,7 +148,7 @@ component =
       H.modify_ \st -> st { infraredValue = val }
       pure next
 
-    InfraredCodeUpload next -> do
+    OnClickIRCodeUpload next -> do
       url <- getApiBaseURL
       millisec <- getApiTimeout
       state <- H.get
@@ -151,7 +166,7 @@ component =
           H.liftEffect $ logShow res
       pure next
 
-    InfraredCodeTransmit next -> do
+    OnClickIRCodeTransmit next -> do
       url <- getApiBaseURL
       millisec <- getApiTimeout
       state <- H.get
@@ -175,6 +190,48 @@ component =
         Just n -> H.modify_ \st -> st { buttonNumber = n }
       pure next
 
+    OnChangeCSVFileSelect evt next -> do
+      element <- H.getHTMLElementRef csvFileInputLabel
+      H.liftEffect do
+        let maybeInput = InputElement.fromHTMLElement =<< element
+        maybeFiles <- maybe (pure Nothing) InputElement.files maybeInput
+        case maybeFiles of
+          Nothing ->
+            pure unit
+          
+          Just filelist -> do
+            let file = FileList.item 0 filelist
+            maybe (pure unit) readCSVFile file
+      pure next
+
+  -- |
+--  readCSVFile :: File -> Effect Unit
+  readCSVFile file = do
+    reader <- FileReader.fileReader
+    FileReader.readAsText (File.toBlob file) reader
+    el <- eventListener listener
+    addEventListener
+      (EventType "load")
+      el
+      false
+      (FileReader.toEventTarget reader)
+    logShow $ File.type_ file
+--    csv <- Co.runProcess $ Co.loop (wait reader)
+--    log csv
+    where
+      listener :: Event -> Effect (Maybe String)
+      listener evt = do
+        let maybeTarget = FileReader.fromEventTarget =<< Event.target evt
+        case maybeTarget of
+          Nothing ->
+            pure Nothing
+
+          Just fr -> do
+            v <- FileReader.result fr
+            log $ unsafeFromForeign v
+            pure $ Just $ unsafeFromForeign v
+--            H.subscribe $ HES.eventSource'
+
   --| render
   render :: State -> H.ComponentHTML Query
   render state =
@@ -188,12 +245,21 @@ component =
         , HH.div_
           [ HH.div
             [ HP.class_ HB.formGroup ]
+            [ HH.label_ [ HH.text "IR-code file input" ]
+            , HH.input
+              [ HP.ref csvFileInputLabel
+              , HP.class_ HB.formControlFile
+              , HP.type_ InputFile
+              , HE.onChange $ HE.input OnChangeCSVFileSelect
+              ]
+            ]
+          , HH.hr_
+          , HH.div_
             [ HH.div
               [ HP.class_ HB.row ]
               [ HH.div
                 [ HP.classes [ HB.col, HB.colLg2 ] ] 
                 [ HH.label_ [ HH.text "Button Number" ] ]
-              , HH.hr_
               , HH.div
                 [ HP.classes [ HB.col, HB.colLg2 ] ] 
                 [ HH.select
@@ -211,18 +277,13 @@ component =
                 ]
               ]
             ]
-          , downloadInfraredRemoconCode state
+          , renderInfraredRemoconCode state
           ]
-        , HH.h2 [ HP.class_ HB.h2 ] [ HH.text "Pulse milliseconds" ]
-        , HH.p_ $ infraredPulse state.infraredValue
-        , HH.h2 [ HP.class_ HB.h2 ] [ HH.text "Decoded infrared signal" ]
-        , HH.p_ $ infraredSignal state.infraredValue
         ]
       ]
 
-  infraredPulse (Left _) = [ HH.text " " ]
-  infraredPulse (Right (InfraRedValue ir)) =
-    case runParser ir.code IRC.irCodeParser of
+  infraredPulse (InfraRedValue ir) =
+    case runParser ir.code InfraRedCode.irCodeParser of
       Left err ->
         [ HH.text $ parseErrorMessage err ]
       Right tokens ->
@@ -242,12 +303,11 @@ component =
       either (const "N/A") identity
       $ FN.formatNumber "0.0"
       $ unwrap
-      $ IRC.toMilliseconds n
+      $ InfraRedCode.toMilliseconds n
 
-  infraredSignal (Left _) = [ HH.text " " ]
-  infraredSignal (Right (InfraRedValue ir)) =
-    Bifunctor.lmap parseErrorMessage (runParser ir.code IRC.irCodeParser)
-    >>= IRC.irCodeSemanticAnalysis
+  infraredSignal (InfraRedValue ir) =
+    Bifunctor.lmap parseErrorMessage (runParser ir.code InfraRedCode.irCodeParser)
+    >>= InfraRedCode.irCodeSemanticAnalysis
     # case _ of
       Left msg ->
         [ HH.text msg ]
@@ -299,7 +359,7 @@ component =
         , HB.btnOutlineSuccess
         , HB.justifyContentCenter
         ]
-      , HE.onClick $ HE.input_ Detect
+      , HE.onClick $ HE.input_ OnClickI2CDetect
       , style do
         marginLeft (px 31.0)
       ]
@@ -312,7 +372,7 @@ component =
         , HB.btnOutlineSuccess
         , HB.justifyContentCenter
         ]
-      , HE.onClick $ HE.input_ InfraredCodeDownload
+      , HE.onClick $ HE.input_ OnClickIRCodeDownload
       , style do
         margin (px 2.0) (px 2.0) (px 2.0) (px 2.0)
         width (rem 8.0)
@@ -326,7 +386,7 @@ component =
         , HB.btnOutlineDanger
         , HB.justifyContentCenter
         ]
-      , HE.onClick $ HE.input_ InfraredCodeUpload
+      , HE.onClick $ HE.input_ OnClickIRCodeUpload
       , style do
         margin (px 2.0) (px 2.0) (px 2.0) (px 2.0)
         width (rem 8.0)
@@ -346,7 +406,7 @@ component =
         , HB.btnOutlinePrimary
         , HB.justifyContentCenter
         ]
-      , HE.onClick $ HE.input_ InfraredCodeTransmit
+      , HE.onClick $ HE.input_ OnClickIRCodeTransmit
       , style do
         margin (px 2.0) (px 2.0) (px 2.0) (px 2.0)
         width (rem 8.0)
@@ -359,17 +419,29 @@ component =
     appendix false = 
       HP.attr (HC.AttrName "disabled") "disabled"
 
-  downloadInfraredRemoconCode state =
+  renderInfraredRemoconCode state =
     HH.div
       [ HP.class_ HB.formGroup ]
-      [ HH.p [ HP.class_ HB.h4 ] [ HH.text "Show IR code" ]
+      [ HH.h4 [ HP.class_ HB.h4 ] [ HH.text "Show IR code" ]
       , HH.p
         [ HP.classes [ HB.formControl, HC.ClassName "overflow-auto" ]
         , style do
           padding (px 10.0) (px 10.0) (px 10.0) (px 10.0)
           minHeight (em 5.0)
         ]
-        [ HH.text $ either identity (_.code <<< unwrap) $ state.infraredValue ]
+        [ HH.text $ either identity (_.code <<< unwrap) $ state.infraredValue
+        ]
+      , HH.p_
+        $ case state.infraredValue of
+          Left _ ->
+            []
+
+          Right val -> 
+            [ HH.h4 [ HP.class_ HB.h4 ] [ HH.text "Pulse milliseconds" ]
+            , HH.p_ $ infraredPulse val
+            , HH.h4 [ HP.class_ HB.h4 ] [ HH.text "Decoded infrared signal" ]
+            , HH.p_ $ infraredSignal val
+            ]
       ]
 
 -- |

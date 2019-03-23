@@ -123,7 +123,7 @@ document =
       , HH.p_
         [ HH.text "Copyright 2018 PureScript"
         , HH.br_
-        , HH.text "BSD 3-Clause License"
+        , HH.text "Licensed under the BSD 3-Clause License"
         , HH.br_
         , HH.a
           [ HP.href "https://github.com/purescript/purescript-assert" ]
@@ -147,7 +147,7 @@ document =
       , HH.p_
         [ HH.text "Copyright 2018 PureScript"
         , HH.br_
-        , HH.text "BSD 3-Clause License"
+        , HH.text "Licensed under the BSD 3-Clause License"
         , HH.br_
         , HH.a
           [ HP.href "https://github.com/purescript/purescript-console" ]
@@ -159,7 +159,7 @@ document =
       , HH.p_
         [ HH.text "Copyright 2018 PureScript"
         , HH.br_
-        , HH.text "BSD 3-Clause License"
+        , HH.text "Licensed under the BSD 3-Clause License"
         , HH.br_
         , HH.a
           [ HP.href "https://github.com/purescript/purescript-datetime" ]
@@ -171,7 +171,7 @@ document =
       , HH.p_
         [ HH.text "Copyright 2018 PureScript"
         , HH.br_
-        , HH.text "BSD 3-Clause License"
+        , HH.text "Licensed under the BSD 3-Clause License"
         , HH.br_
         , HH.a
           [ HP.href "https://github.com/purescipt/purescript-effect" ]
@@ -348,7 +348,7 @@ Their licenses are reproduced below:
       , HH.p_
         [ HH.text "Copyright 2018 PureScript"
         , HH.br_
-        , HH.text "BSD 3-Clause License"
+        , HH.text "Licensed under the BSD 3-Clause License"
         , HH.br_
         , HH.a
           [ HP.href "https://github.com/purescript/purescript-prelude" ]
@@ -362,6 +362,18 @@ Their licenses are reproduced below:
         , HH.br_
         , HH.a
           [ HP.href "https://github.com/slamdata/purescript-routing" ]
+          [ HH.text "see LICENSE file for Details." ]
+        ]
+      ]
+    , HH.li_
+      [ HH.text "purescript-web-file"
+      , HH.p_
+        [ HH.text "Copyright 2018 PureScript"
+        , HH.br_
+        , HH.text "Licensed under the MIT License"
+        , HH.br_
+        , HH.a
+          [ HP.href "https://github.com/purescript-web/purescript-web-file" ]
           [ HH.text "see LICENSE file for Details." ]
         ]
       ]
