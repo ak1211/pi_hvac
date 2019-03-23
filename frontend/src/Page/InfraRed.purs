@@ -25,22 +25,18 @@ import Prelude
 import Api (InfraRedValue(..))
 import Api as Api
 import AppM (class HasApiAccessible, class Navigate, getApiBaseURL, getApiTimeout, navigate)
-import CSS (em, margin, marginLeft, minHeight, padding, px, rem, width)
+import CSS (em, margin, minHeight, padding, px, rem, width)
 import Control.Alt ((<|>))
-import Control.Coroutine as Co
-import Data.Array ((..), (:))
+import Data.Array ((..))
 import Data.Array as Array
 import Data.Bifunctor as Bifunctor
 import Data.Either (Either(..), either, isRight)
 import Data.Foldable (intercalate)
 import Data.Formatter.Number as FN
 import Data.Int as Int
-import Data.Map (Map)
-import Data.Map as Map
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (unwrap)
 import Data.String as String
-import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Aff (delay, parallel, sequential)
 import Effect.Aff.Class (class MonadAff)
@@ -61,7 +57,6 @@ import Page.Commons as Commons
 import Route (Route)
 import Route as Route
 import Text.Parsing.Parser (parseErrorMessage, runParser)
-import Utils (toArray2D)
 import Web.Event.Event (Event, EventType(..))
 import Web.Event.Event as Event
 import Web.Event.EventTarget (addEventListener, eventListener)
@@ -73,15 +68,13 @@ import Web.HTML.HTMLInputElement as InputElement
 type DetectedAddresses = Either String (Array Int)
 
 type State =
-  { detectedAddresses :: DetectedAddresses
-  , infraredValue :: Either String Api.InfraRedValue
+  { infraredValue :: Either String Api.InfraRedValue
   , buttonNumber :: Int
   }
 
 data Query a
   = NavigateTo Route a
   | Initialize a
-  | OnClickI2CDetect a
   | OnClickIRCodeDownload a
   | OnClickIRCodeUpload a
   | OnClickIRCodeTransmit a
@@ -107,8 +100,7 @@ component =
   where
 
   initialState =
-    { detectedAddresses: Left "Click Search button to detect devices."
-    , infraredValue: Left "Click Download button to show."
+    { infraredValue: Left "Click Download button to show."
     , buttonNumber: 1
     }
 
@@ -121,18 +113,6 @@ component =
       pure next
 
     Initialize next -> do
-      pure next
-
-    OnClickI2CDetect next -> do
-      url <- getApiBaseURL
-      millisec <- getApiTimeout
-      val <- H.liftAff $
-              let request = Api.getApiV1I2cDevices url (Just 1)
-                  timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
-                  response r = Bifunctor.rmap (\(Api.I2cDevices ds) -> ds.data) r.body
-              in
-              sequential $ parallel (response <$> request) <|> parallel timeout
-      H.modify_ \st -> st { detectedAddresses = val }
       pure next
 
     OnClickIRCodeDownload next -> do
@@ -239,9 +219,7 @@ component =
       [ Commons.navbar NavigateTo Route.Infrared
       , HH.div
         [ HP.class_ HB.container ]
-        [ HH.h2 [ HP.class_ HB.h2 ] [ i2c, HH.text " devices", i2cDetectButton ]
-        , i2cDevices state.detectedAddresses
-        , HH.h2 [ HP.class_ HB.h2 ] [ HH.text "Infra-red remote control code" ]
+        [ HH.h2 [ HP.class_ HB.h2 ] [ HH.text "Infra-red remote control code" ]
         , HH.div_
           [ HH.div
             [ HP.class_ HB.formGroup ]
@@ -352,19 +330,6 @@ component =
                 | otherwise = "0x" <> hexs x
       hexs = String.toUpper <<< Int.toStringAs Int.hexadecimal
 
-  i2cDetectButton =
-    HH.button
-      [ HP.classes
-        [ HB.btn
-        , HB.btnOutlineSuccess
-        , HB.justifyContentCenter
-        ]
-      , HE.onClick $ HE.input_ OnClickI2CDetect
-      , style do
-        marginLeft (px 31.0)
-      ]
-      [ Commons.icon "fas fa-search" ]
-
   irDownloadButton =
     HH.button
       [ HP.classes
@@ -444,89 +409,3 @@ component =
             ]
       ]
 
--- |
-i2c :: forall p i. H.HTML p i
-i2c =
-  HH.span_ [ HH.text "I", HH.sup_ [ HH.text "2"], HH.text "C" ]
-
--- |
-i2cDevices :: forall p i. DetectedAddresses -> H.HTML p i
-i2cDevices (Left reason) =
-  HH.p
-    [ HP.classes [ HB.alert, HB.alertDanger ] ]
-    [ HH.text reason ]
-
-i2cDevices (Right detectedDeviceAddresses) =
-  HH.p
-    []
-    [ HH.table
-      [ HP.classes [ HB.table, HB.tableHover ]
-      ]
-      [ HH.caption_ [ HH.text "Hexadecimal addresses" ]
-      , tableHeading addressTableRangeHeading
-      , tableBody addressTableRangeRowHeading $ toArray2D 16 detectedDevAddresses
-      ]
-    ]
-  where
-
-  addressTableRange :: Array Int
-  addressTableRange = 0x00..0x7f
-
-  addressTableRangeHeading :: Array Int
-  addressTableRangeHeading =  0x0..0xf
-
-  addressTableRangeRowHeading :: Array Int
-  addressTableRangeRowHeading = (_ * 0x10) <$> 0x0..0xf
-
-  detectedDevAddresses :: Array String
-  detectedDevAddresses =
-    map f addressTableRange
-    where
-    f x =
-      fromMaybe (cellFiller x) $ Map.lookup x devices
-
-  cellFiller :: Int -> String
-  cellFiller addr | Array.any (_ == addr) $ 0x03..0x77 = "•"
-                  | otherwise = " "
-
-  devices :: Map Int String
-  devices =
-    Map.fromFoldable $ map f detectedDeviceAddresses
-    where
-    f :: Int -> Tuple Int String
-    f n = Tuple n (toHexS n)
-
--- |
-tableHeading :: forall p i. Array Int -> H.HTML p i
-tableHeading range =
-  HH.thead_ [ HH.tr_ $ hd : tl ]
-  where
-  hd = HH.th_ [ HH.text "#" ]
-  tl =
-    map f range
-    where
-    f = HH.th_ <<< Array.singleton <<< HH.text <<< toHexS
-
--- |
-tableBody :: forall p i. Array Int -> Array (Array String) -> H.HTML p i
-tableBody range array2D =
-  HH.tbody_ $ Array.zipWith tableRow range array2D
-
--- |
-tableRow :: forall p i. Int -> Array String -> H.HTML p i
-tableRow index columns =
-  HH.tr_  $ hd : tl
-  where
-  hd = HH.th_ [ HH.text $ toHexS index ]
-  tl =
-    map f columns
-    where
-    f = HH.td_ <<< Array.singleton <<< HH.text
-
--- |
-toHexS :: Int -> String
-toHexS = Int.toStringAs Int.hexadecimal
-
--- |
-fromHexS :: String -> Maybe Int
-fromHexS = Int.fromStringAs Int.hexadecimal
