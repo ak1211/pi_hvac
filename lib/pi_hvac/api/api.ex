@@ -25,6 +25,7 @@ defmodule PiHvac.Api do
   alias PiHvac.Repo
 
   alias PiHvac.Api.EnvMeasured
+  alias PiHvac.Api.IRDB
 
   @doc """
   Returns the list of envmeasured.
@@ -125,4 +126,101 @@ defmodule PiHvac.Api do
   def change_env_measured(%EnvMeasured{} = env_measured) do
     EnvMeasured.changeset(env_measured, %{})
   end
+
+
+  @doc """
+  Returns the list of irdb.
+
+  ## Examples
+
+      iex> list_irdb()
+      [%IRDB{}, ...]
+
+  """
+  def list_irdb() do
+    IRDB 
+    |> Repo.all
+  end
+
+  @doc """
+  Gets a single irdb.
+
+  Raises `Ecto.NoResultsError` if the irdb does not exist.
+
+  ## Examples
+
+      iex> get_irdb(123)
+      %IRDB{}
+
+      iex> get_irdb(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  def get_irdb(id), do: Repo.get!(IRDB, id)
+
+  @doc """
+  Creates a irdb
+
+  ## Examples
+
+      iex> create_irdb(%{field: value})
+      {:ok, %IRDB{}}
+
+      iex> create_irdb(%{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def create_irdb(attrs \\ %{}) do
+    %IRDB{}
+    |> IRDB.changeset(attrs)
+    |> Repo.insert()
+  end
+
+  @doc """
+  Updates a irdb.
+
+  ## Examples
+
+      iex> update_irdb(irdb, %{field: new_value})
+      {:ok, %IRDB{}}
+
+      iex> update_irdb(irdb, %{field: bad_value})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_irdb(%IRDB{} = irdb, attrs) do
+    irdb 
+    |> IRDB.changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a irdb.
+
+  ## Examples
+
+      iex> delete_irdb(irdb)
+      {:ok, %IRDB{}}
+
+      iex> delete_irdb(irdb)
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_irdb(%IRDB{} = irdb) do
+    Repo.delete(irdb)
+  end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for tracking irdb changes.
+
+  ## Examples
+
+      iex> change_irdb(irdb)
+      %Ecto.Changeset{source: %IRDB{}}
+
+  """
+  def change_irdb(%IRDB{} = irdb) do
+    IRDB.changeset(irdb, %{})
+  end
 end
+

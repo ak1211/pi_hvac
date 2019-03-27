@@ -114,7 +114,6 @@ defmodule ADRSIR do
     {:ok, state}
   end
 
-  @impl GenServer
   def handle_call(:kill, state) do
     {:stop, :normal, state}
   end

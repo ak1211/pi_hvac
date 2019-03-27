@@ -34,6 +34,7 @@ import Data.Int as Int
 import Data.Map (Map)
 import Data.Map as Map
 import Data.Maybe (Maybe(..), fromMaybe)
+import Data.MediaType (MediaType(..))
 import Data.Tuple (Tuple(..))
 import Effect.Aff (delay, parallel, sequential)
 import Effect.Aff.Class (class MonadAff)
@@ -41,7 +42,9 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.CSS (style)
 import Halogen.HTML.Events as HE
+import Halogen.HTML.Properties (FormMethod(..), InputType(..))
 import Halogen.HTML.Properties as HP
+import Halogen.Query as HQ
 import Halogen.Themes.Bootstrap4 as HB
 import Page.Commons as Commons
 import Route (Route)
@@ -51,7 +54,8 @@ import Utils (toArray2D)
 type DetectedAddresses = Either String (Array Int)
 
 type State =
-  { detectedAddresses :: DetectedAddresses
+  { urlApiV1IRCSV :: String
+  , detectedAddresses :: DetectedAddresses
   }
 
 data Query a
@@ -78,7 +82,8 @@ component =
   where
 
   initialState =
-    { detectedAddresses: Left "Click Search button to detect devices."
+    { urlApiV1IRCSV: ""
+    , detectedAddresses: Left "Click Search button to detect devices."
     }
 
   eval :: Query ~> H.ComponentDSL State Query Void m
@@ -88,6 +93,8 @@ component =
       pure next
 
     Initialize next -> do
+      url <- getApiBaseURL
+      H.modify_ _{ urlApiV1IRCSV = Api.urlApiV1IRCSV url }
       pure next
 
     OnClickI2CDetect next -> do
@@ -109,24 +116,27 @@ render state =
     [ Commons.navbar NavigateTo Route.Settings
     , HH.div
       [ HP.class_ HB.container ]
-      [ HH.h2 [ HP.class_ HB.h2 ] [ i2c, HH.text " devices", i2cDetectButton ]
+      [ HH.h2 [ HP.class_ HB.h2 ] [ i2c, HH.text " devices", i2cDetectButton OnClickI2CDetect ]
       , i2cDevices state.detectedAddresses
+      , HH.h2 [ HP.class_ HB.h2 ] [ HH.text "Upload to Infrared Code Database" ]
+      , uploadCsvFile state
       ]
     ]
-  where
-  i2cDetectButton =
-    HH.button
-      [ HP.classes
-        [ HB.btn
-        , HB.btnOutlineSuccess
-        , HB.justifyContentCenter
-        ]
-      , HE.onClick $ HE.input_ OnClickI2CDetect
-      , style do
-        marginLeft (px 31.0)
-      ]
-      [ Commons.icon "fas fa-search" ]
 
+-- |
+i2cDetectButton :: forall p f. HQ.Action f -> H.HTML p f
+i2cDetectButton action =
+  HH.button
+    [ HP.classes
+      [ HB.btn
+      , HB.btnOutlineSuccess
+      , HB.justifyContentCenter
+      ]
+    , HE.onClick $ HE.input_ action
+    , style do
+      marginLeft (px 31.0)
+    ]
+    [ Commons.icon "fas fa-search" ]
 
 -- |
 i2c :: forall p i. H.HTML p i
@@ -179,6 +189,35 @@ i2cDevices (Right detectedDeviceAddresses) =
     where
     f :: Int -> Tuple Int String
     f n = Tuple n (toHexS n)
+
+-- |
+uploadCsvFile :: forall p i. State -> H.HTML p i
+uploadCsvFile state =
+  HH.form
+    [ HP.method POST
+    , HP.action $ state.urlApiV1IRCSV
+    , HP.enctype $ MediaType "multipart/form-data"
+    ]
+    [ HH.div
+      [ HP.classes [ HB.formGroup ] ]
+      [ HH.label_
+        [ HH.text "Please select an infrared code CSV file." ]
+      , HH.input
+        [ HP.class_ $ HB.formControlFile
+        , HP.type_ InputFile
+        , HP.accept $ MediaType ".csv"
+        , HP.name "ircsv"
+        ]
+      ]
+    , HH.div
+      [ HP.classes [ HB.formGroup ] ]
+      [ HH.input
+        [ HP.classes [ HB.btn, HB.btnPrimary ]
+        , HP.type_ InputSubmit
+        , HP.value "Submit"
+        ]
+      ]
+    ]
 
 -- |
 tableHeading :: forall p i. Array Int -> H.HTML p i

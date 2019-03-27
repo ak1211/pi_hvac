@@ -67,7 +67,7 @@ defmodule PeriodicalMeasure do
     utc_now
     |> to_milliseconds
     |> reserve_next_schedule(state)
-    record = BME280.read(state.sensor)
+    record = BME280.read()
     %EnvMeasured{
       measured_at: DateTime.truncate(utc_now, :second),
       degc: record.degc,

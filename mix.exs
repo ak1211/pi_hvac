@@ -47,7 +47,8 @@ defmodule PiHvac.MixProject do
       {:elixir_ale, "~> 1.2"},
       {:timex, "~> 3.1"},
       {:dialyxir, "~> 0.5", only: [:dev], runtime: false},
-      {:decimal, "~> 1.0"}
+      {:decimal, "~> 1.0"},
+      {:csv, "~> 2.3"}
     ]
   end
 

@@ -19,14 +19,18 @@ module Api
   ( BaseURL(..)
   , MeasDateTime(..)
   , EnvMeasValue(..)
-  , EnvMeasValues(..)
+  , EnvMeasValues
   , I2cDevices(..)
   , InfraRedValue(..)
+  , IRDBValue(..)
+  , IRDBValues
   , getApiV1Measurements
   , getApiV1I2cDevices
   , getApiV1InfraRed
   , postApiV1InfraRed
   , postApiV1TransIR
+  , urlApiV1IRCSV
+  , getApiV1IRDB
   ) where
 
 import Prelude
@@ -271,3 +275,66 @@ postApiV1TransIR (BaseURL baseURL) ircode =
 
   packData :: InfraRedValue -> InfraRed
   packData x = InfraRed {data: x}
+
+--
+-- /api/v1/ir-csv
+--
+
+-- | エンドポイント(/api/v1/ir-csv)
+urlApiV1IRCSV:: BaseURL -> String
+urlApiV1IRCSV (BaseURL baseURL) = baseURL <> "/api/v1/ir-csv"
+
+--
+-- /api/v1/irdb
+--
+
+-- | 赤外線データーベース型
+newtype IRDBValue = IRDBValue
+  { id :: Int
+  , manuf :: String
+  , prod :: String
+  , key :: String
+  , code :: String
+  }
+
+-- | 赤外線データーベースAPI型インスタンス
+derive instance genericIRDBValue :: Generic IRDBValue _
+derive instance newtypeIRDBValue :: Newtype IRDBValue _
+derive instance eqIRDBValue :: Eq IRDBValue
+instance showIRDBValue :: Show IRDBValue where
+  show = genericShow
+instance decodeIRDBValue :: Decode IRDBValue where
+  decode = genericDecode $ defaultOptions {unwrapSingleConstructors = true}
+instance encodeIRDBValue :: Encode IRDBValue where
+  encode = genericEncode $ defaultOptions {unwrapSingleConstructors = true}
+
+-- | 赤外線データーベース型配列の別名
+type IRDBValues = Array IRDBValue
+
+-- | Phoenix Frameworkサーバーが送ってくるJSONは
+-- | JSONキー"data"に内容物が入っている
+newtype IRDB = IRDB
+  { data :: IRDBValues
+  }
+
+derive instance genericIRDB :: Generic IRDB _
+instance decodeIRDB :: Decode IRDB where
+  decode = genericDecode $ defaultOptions {unwrapSingleConstructors = true}
+instance encodeIRDB :: Encode IRDB where
+  encode = genericEncode $ defaultOptions {unwrapSingleConstructors = true}
+instance showIRDB :: Show IRDB where
+  show = genericShow
+
+-- | HTTPメソッドgetをエンドポイント(/api/v1/irdb)に送った結果を得る
+getApiV1IRDB :: BaseURL -> Aff (AX.Response (Either String IRDBValues))
+getApiV1IRDB (BaseURL baseURL) =
+  AX.get ResponseFormat.string url
+  <#> \res -> case res.body of
+        Left err -> res {body = Left $ AX.printResponseFormatError err}
+        Right ok -> res {body = Bifunctor.rmap pickupData $ decoder ok}
+  where
+
+  url =
+    baseURL <> "/api/v1/irdb"
+
+  pickupData (IRDB x) = x.data

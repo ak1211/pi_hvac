@@ -17,15 +17,15 @@
 
 module Page.InfraRed
   ( Query(..)
+  , SelectedTab(..)
   , component
   ) where
 
 import Prelude
 
-import Api (InfraRedValue(..))
 import Api as Api
 import AppM (class HasApiAccessible, class Navigate, getApiBaseURL, getApiTimeout, navigate)
-import CSS (em, margin, minHeight, padding, px, rem, width)
+import CSS (em, margin, marginBottom, marginLeft, marginTop, minHeight, padding, px, rem, width)
 import Control.Alt ((<|>))
 import Data.Array ((..))
 import Data.Array as Array
@@ -48,8 +48,8 @@ import Halogen.HTML as HH
 import Halogen.HTML.CSS (style)
 import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
-import Halogen.HTML.Properties (InputType(..))
 import Halogen.HTML.Properties as HP
+import Halogen.Query as HQ
 import Halogen.Themes.Bootstrap4 as HB
 import InfraRedCode (IRCodeEnvelope(..), IRCodeToken(..))
 import InfraRedCode as InfraRedCode
@@ -67,17 +67,24 @@ import Web.HTML.HTMLInputElement as InputElement
 
 type DetectedAddresses = Either String (Array Int)
 
+data SelectedTab = TabControlPanel | TabIrdbTable
+
 type State =
   { infraredValue :: Either String Api.InfraRedValue
-  , buttonNumber :: Int
+  , irdbValues    :: Either String Api.IRDBValues
+  , buttonNumber  :: Int
+  , selectedTab   :: SelectedTab
   }
 
 data Query a
   = NavigateTo Route a
   | Initialize a
+  | OnClickTab SelectedTab a
   | OnClickIRCodeDownload a
   | OnClickIRCodeUpload a
   | OnClickIRCodeTransmit a
+  | OnClickIrdbFetch a
+  | OnClickIrdbTable String a
   | OnValueChangeButtonNumber String a
   | OnChangeCSVFileSelect Event a
 
@@ -101,7 +108,9 @@ component =
 
   initialState =
     { infraredValue: Left "Click Download button to show."
+    , irdbValues: Left "Click Download button to show."
     , buttonNumber: 1
+    , selectedTab: TabControlPanel
     }
 
   csvFileInputLabel = H.RefLabel "CSVFileInput"
@@ -113,6 +122,10 @@ component =
       pure next
 
     Initialize next -> do
+      pure next
+
+    OnClickTab newTab next -> do
+      H.modify_ _ { selectedTab = newTab }
       pure next
 
     OnClickIRCodeDownload next -> do
@@ -162,6 +175,24 @@ component =
                 in
                 sequential $ parallel (response <$> request) <|> parallel timeout
           H.liftEffect $ logShow res
+      pure next
+
+    OnClickIrdbFetch next -> do
+      url <- getApiBaseURL
+      millisec <- getApiTimeout
+      val <- H.liftAff $
+            let request = Api.getApiV1IRDB url
+                timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
+                response r = r.body
+            in
+            sequential $ parallel (response <$> request) <|> parallel timeout
+      H.modify_ \st -> st { irdbValues = val }
+      pure next
+
+    OnClickIrdbTable code next -> do
+      { buttonNumber } <- H.get
+      let irval = Api.InfraRedValue {button_number: buttonNumber, code: code}
+      H.modify_ _ { infraredValue = Right irval, selectedTab = TabControlPanel }
       pure next
 
     OnValueChangeButtonNumber val next -> do
@@ -219,193 +250,314 @@ component =
       [ Commons.navbar NavigateTo Route.Infrared
       , HH.div
         [ HP.class_ HB.container ]
-        [ HH.h2 [ HP.class_ HB.h2 ] [ HH.text "Infra-red remote control code" ]
-        , HH.div_
-          [ HH.div
-            [ HP.class_ HB.formGroup ]
-            [ HH.label_ [ HH.text "IR-code file input" ]
-            , HH.input
-              [ HP.ref csvFileInputLabel
-              , HP.class_ HB.formControlFile
-              , HP.type_ InputFile
-              , HE.onChange $ HE.input OnChangeCSVFileSelect
-              ]
-            ]
-          , HH.hr_
-          , HH.div_
-            [ HH.div
-              [ HP.class_ HB.row ]
-              [ HH.div
-                [ HP.classes [ HB.col, HB.colLg2 ] ] 
-                [ HH.label_ [ HH.text "Button Number" ] ]
-              , HH.div
-                [ HP.classes [ HB.col, HB.colLg2 ] ] 
-                [ HH.select
-                  [ HP.class_ HB.formControl
-                  , HE.onValueChange $ HE.input OnValueChangeButtonNumber
-                  ]
-                  $ map (HH.option_ <<< Array.singleton <<< HH.text <<< Int.toStringAs Int.decimal)
-                  $ 1..10
-                ]
-              , HH.div
-                [ HP.class_ HB.col ]
-                [ irDownloadButton
-                , irUploadButton $ isRight state.infraredValue 
-                , irTransmitButton $ isRight state.infraredValue
-                ]
-              ]
-            ]
-          , renderInfraredRemoconCode state
-          ]
+        [ renderTab state
+        , case state.selectedTab of
+            TabControlPanel ->
+              renderControlPanel state
+
+            TabIrdbTable ->
+              renderIrdbTable state
         ]
       ]
 
-  infraredPulse (InfraRedValue ir) =
-    case runParser ir.code InfraRedCode.irCodeParser of
-      Left err ->
-        [ HH.text $ parseErrorMessage err ]
-      Right tokens ->
-        intercalate [HH.text ", "] $ map toText tokens
-    where
-
-    toText (Pulse p) =
-      [ HH.span [HP.class_ HB.textPrimary] [HH.text $ strMillisec p.on <> "on"]
-      , HH.text ", "
-      , HH.span [HP.class_ HB.textSuccess] [HH.text $ strMillisec p.off <> "off"]
+  renderTab state =
+    HH.ul
+      [ HP.classes
+        [ HB.nav
+        , HB.navTabs
+        , HB.navPills
+        , HB.navJustified
+        , HB.justifyContentCenter
+        ]
+      , style do
+        marginTop (px 12.0)
+        marginBottom (px 36.0)
       ]
-    toText (Leftover n) =
-      [ HH.span [HP.class_ HB.textDanger] [HH.text $ strMillisec n <> "leftover"] ]
+      case state.selectedTab of
+        TabControlPanel ->
+          [ tabControlPanel [HB.active], tabIrdbTable [] ]
 
-    strMillisec :: Int -> String
-    strMillisec n =
-      either (const "N/A") identity
-      $ FN.formatNumber "0.0"
-      $ unwrap
-      $ InfraRedCode.toMilliseconds n
+        TabIrdbTable ->
+          [ tabControlPanel [], tabIrdbTable [HB.active] ]
+    where
+    tabControlPanel =
+      item TabControlPanel "Control panel"
 
-  infraredSignal (InfraRedValue ir) =
-    Bifunctor.lmap parseErrorMessage (runParser ir.code InfraRedCode.irCodeParser)
-    >>= InfraRedCode.irCodeSemanticAnalysis
-    # case _ of
-      Left msg ->
-        [ HH.text msg ]
+    tabIrdbTable =
+      item TabIrdbTable "Infrared database"
 
-      Right (NEC irValue) ->
-        [ HH.dl_
-          [ HH.dt_ [ HH.text "format" ]
-          , HH.dd_ [ HH.text "NEC" ]
-          , HH.dt_ [ HH.text "customer" ]
-          , HH.dd_ [ HH.text $ showHex irValue.customer ]
-          , HH.dt_ [ HH.text "data" ]
-          , HH.dd_ [ HH.text $ showHex irValue.data ]
-          , HH.dt_ [ HH.text "invarted-data" ]
-          , HH.dd_ [ HH.text $ showHex irValue.invData ]
+    item newTab caption appendix =
+      HH.li
+        [ HP.class_ HB.navItem
+        ]
+        [ HH.a
+          [ HP.classes $ [HB.navLink] <> appendix
+          , HE.onClick $ HE.input_ (OnClickTab newTab)
+          ]
+          [ HH.text caption
           ]
         ]
 
-      Right (AEHA irValue) ->
-        [ HH.dl_
-          [ HH.dt_ [ HH.text "format" ]
-          , HH.dd_ [ HH.text "AEHA" ]
-          , HH.dt_ [ HH.text "customer" ]
-          , HH.dd_ [ HH.text $ showHex irValue.customer ]
-          , HH.dt_ [ HH.text "parity" ]
-          , HH.dd_ [ HH.text $ showHex irValue.parity ]
-          , HH.dt_ [ HH.text "data0" ]
-          , HH.dd_ [ HH.text $ showHex irValue.data0 ]
-          , HH.dt_ [ HH.text "data" ]
-          , HH.dd_
-            $ intercalate
-                [ HH.text ", " ]
-                $ map (Array.singleton <<< HH.text <<< showHex) irValue.data
+  renderControlPanel state =
+    HH.div_
+      [ HH.div
+        [ HP.class_ HB.row ]
+        [ HH.div
+          [ HP.classes [ HB.col, HB.colLg2 ] ] 
+          [ HH.label_ [ HH.text "Button Number" ] ]
+        , HH.div
+          [ HP.classes [ HB.col, HB.colLg2 ] ] 
+          [ HH.select
+            [ HP.class_ HB.formControl
+            , HE.onValueChange $ HE.input OnValueChangeButtonNumber
+            ]
+            $ map (HH.option_ <<< Array.singleton <<< HH.text <<< Int.toStringAs Int.decimal)
+            $ 1..10
+          ]
+        , HH.div
+          [ HP.class_ HB.col ]
+          [ irDownloadButton OnClickIRCodeDownload
+          , irUploadButton OnClickIRCodeUpload $ isRight state.infraredValue 
+          , irTransmitButton OnClickIRCodeTransmit $ isRight state.infraredValue
           ]
         ]
-
-      Right (IRCodeEnvelope irValue) ->
-        [ HH.text "unknown format"
-        , HH.p_ [ HH.text $ show irValue ]
-        ]
-      where
-      showHex x | x < 16 = "0x0" <> hexs x
-                | otherwise = "0x" <> hexs x
-      hexs = String.toUpper <<< Int.toStringAs Int.hexadecimal
-
-  irDownloadButton =
-    HH.button
-      [ HP.classes
-        [ HB.btn
-        , HB.btnOutlineSuccess
-        , HB.justifyContentCenter
-        ]
-      , HE.onClick $ HE.input_ OnClickIRCodeDownload
-      , style do
-        margin (px 2.0) (px 2.0) (px 2.0) (px 2.0)
-        width (rem 8.0)
+      , renderInfraredRemoconCode state
       ]
-      [ HH.text "Download" ]
 
-  irUploadButton isActive =
-    HH.button
-      [ HP.classes
-        [ HB.btn
-        , HB.btnOutlineDanger
-        , HB.justifyContentCenter
+  renderIrdbTable state =
+    HH.div_
+      [ HH.h2_ [ HH.text "Infrared code database", irdbFetchButton OnClickIrdbFetch ]
+      , HH.div_
+        [ HH.div
+          [ HP.class_ HB.formGroup ]
+--            [ HH.label_ [ HH.text "IR-code file input" ]
+--            , HH.input
+--              [ HP.ref csvFileInputLabel
+--              , HP.class_ HB.formControlFile
+--              , HP.type_ InputFile
+--              , HE.onChange $ HE.input OnChangeCSVFileSelect
+--              ]
+          [ irdbTable OnClickIrdbTable state.irdbValues
+          ]
         ]
-      , HE.onClick $ HE.input_ OnClickIRCodeUpload
-      , style do
-        margin (px 2.0) (px 2.0) (px 2.0) (px 2.0)
-        width (rem 8.0)
-      , appendix isActive
+    ]
+
+-- |
+infraredPulse :: forall p i. Api.InfraRedValue -> Array (H.HTML p i)
+infraredPulse (Api.InfraRedValue ir) =
+  case runParser ir.code InfraRedCode.irCodeParser of
+    Left err ->
+      [ HH.text $ parseErrorMessage err ]
+    Right tokens ->
+      intercalate [HH.text ", "] $ map toText tokens
+  where
+
+  toText (Pulse p) =
+    [ HH.span [HP.class_ HB.textPrimary] [HH.text $ strMillisec p.on <> "on"]
+    , HH.text ", "
+    , HH.span [HP.class_ HB.textSuccess] [HH.text $ strMillisec p.off <> "off"]
+    ]
+  toText (Leftover n) =
+    [ HH.span [HP.class_ HB.textDanger] [HH.text $ strMillisec n <> "leftover"] ]
+
+  strMillisec :: Int -> String
+  strMillisec n =
+    either (const "N/A") identity
+    $ FN.formatNumber "0.0"
+    $ unwrap
+    $ InfraRedCode.toMilliseconds n
+
+-- |
+infraredSignal :: forall p i. Api.InfraRedValue -> Array (H.HTML p i)
+infraredSignal (Api.InfraRedValue ir) =
+  Bifunctor.lmap parseErrorMessage (runParser ir.code InfraRedCode.irCodeParser)
+  >>= InfraRedCode.irCodeSemanticAnalysis
+  # case _ of
+    Left msg ->
+      [ HH.text msg ]
+
+    Right (NEC irValue) ->
+      [ HH.dl_
+        [ HH.dt_ [ HH.text "format" ]
+        , HH.dd_ [ HH.text "NEC" ]
+        , HH.dt_ [ HH.text "customer" ]
+        , HH.dd_ [ HH.text $ showHex irValue.customer ]
+        , HH.dt_ [ HH.text "data" ]
+        , HH.dd_ [ HH.text $ showHex irValue.data ]
+        , HH.dt_ [ HH.text "invarted-data" ]
+        , HH.dd_ [ HH.text $ showHex irValue.invData ]
+        ]
       ]
-      [ HH.text "Upload" ]
+
+    Right (AEHA irValue) ->
+      [ HH.dl_
+        [ HH.dt_ [ HH.text "format" ]
+        , HH.dd_ [ HH.text "AEHA" ]
+        , HH.dt_ [ HH.text "customer" ]
+        , HH.dd_ [ HH.text $ showHex irValue.customer ]
+        , HH.dt_ [ HH.text "parity" ]
+        , HH.dd_ [ HH.text $ showHex irValue.parity ]
+        , HH.dt_ [ HH.text "data0" ]
+        , HH.dd_ [ HH.text $ showHex irValue.data0 ]
+        , HH.dt_ [ HH.text "data" ]
+        , HH.dd_
+          $ intercalate
+              [ HH.text ", " ]
+              $ map (Array.singleton <<< HH.text <<< showHex) irValue.data
+        ]
+      ]
+
+    Right (IRCodeEnvelope irValue) ->
+      [ HH.text "unknown format"
+      , HH.p_ [ HH.text $ show irValue ]
+      ]
     where
-    appendix true = 
-      HP.attr (HC.AttrName "active") "active"
-    appendix false = 
-      HP.attr (HC.AttrName "disabled") "disabled"
+    showHex x | x < 16 = "0x0" <> hexs x
+              | otherwise = "0x" <> hexs x
+    hexs = String.toUpper <<< Int.toStringAs Int.hexadecimal
 
-  irTransmitButton isActive =
-    HH.button
-      [ HP.classes
-        [ HB.btn
-        , HB.btnOutlinePrimary
-        , HB.justifyContentCenter
-        ]
-      , HE.onClick $ HE.input_ OnClickIRCodeTransmit
+-- |
+irDownloadButton :: forall p f. HQ.Action f -> H.HTML p f
+irDownloadButton action =
+  HH.button
+    [ HP.classes
+      [ HB.btn
+      , HB.btnOutlineSuccess
+      , HB.justifyContentCenter
+      ]
+    , HE.onClick $ HE.input_ action
+    , style do
+      margin (px 2.0) (px 2.0) (px 2.0) (px 2.0)
+      width (rem 8.0)
+    ]
+    [ HH.text "Download" ]
+
+-- |
+irUploadButton :: forall p f. HQ.Action f -> Boolean -> H.HTML p f
+irUploadButton action isActive =
+  HH.button
+    [ HP.classes
+      [ HB.btn
+      , HB.btnOutlineDanger
+      , HB.justifyContentCenter
+      ]
+    , HE.onClick $ HE.input_ action
+    , style do
+      margin (px 2.0) (px 2.0) (px 2.0) (px 2.0)
+      width (rem 8.0)
+    , appendix isActive
+    ]
+    [ HH.text "Upload" ]
+  where
+  appendix true = 
+    HP.attr (HC.AttrName "active") "active"
+  appendix false = 
+    HP.attr (HC.AttrName "disabled") "disabled"
+
+-- |
+irTransmitButton :: forall p f. HQ.Action f -> Boolean -> H.HTML p f
+irTransmitButton action isActive =
+  HH.button
+    [ HP.classes
+      [ HB.btn
+      , HB.btnOutlinePrimary
+      , HB.justifyContentCenter
+      ]
+    , HE.onClick $ HE.input_ action
+    , style do
+      margin (px 2.0) (px 2.0) (px 2.0) (px 2.0)
+      width (rem 8.0)
+    , appendix isActive
+    ]
+    [ HH.text "Transmit" ]
+  where
+  appendix true = 
+    HP.attr (HC.AttrName "active") "active"
+  appendix false = 
+    HP.attr (HC.AttrName "disabled") "disabled"
+
+-- |
+renderInfraredRemoconCode :: forall p i. State -> H.HTML p i
+renderInfraredRemoconCode state =
+  HH.div
+    [ HP.class_ HB.formGroup ]
+    [ HH.h5_ [ HH.text "Infrared remote control code" ]
+    , HH.p
+      [ HP.classes [ HB.formControl, HC.ClassName "overflow-auto" ]
       , style do
-        margin (px 2.0) (px 2.0) (px 2.0) (px 2.0)
-        width (rem 8.0)
-      , appendix isActive
+        padding (px 10.0) (px 10.0) (px 10.0) (px 10.0)
+        minHeight (em 5.0)
       ]
-      [ HH.text "Transmit" ]
-    where
-    appendix true = 
-      HP.attr (HC.AttrName "active") "active"
-    appendix false = 
-      HP.attr (HC.AttrName "disabled") "disabled"
-
-  renderInfraredRemoconCode state =
-    HH.div
-      [ HP.class_ HB.formGroup ]
-      [ HH.h4 [ HP.class_ HB.h4 ] [ HH.text "Show IR code" ]
-      , HH.p
-        [ HP.classes [ HB.formControl, HC.ClassName "overflow-auto" ]
-        , style do
-          padding (px 10.0) (px 10.0) (px 10.0) (px 10.0)
-          minHeight (em 5.0)
-        ]
-        [ HH.text $ either identity (_.code <<< unwrap) $ state.infraredValue
-        ]
-      , HH.p_
-        $ case state.infraredValue of
-          Left _ ->
-            []
-
-          Right val -> 
-            [ HH.h4 [ HP.class_ HB.h4 ] [ HH.text "Pulse milliseconds" ]
-            , HH.p_ $ infraredPulse val
-            , HH.h4 [ HP.class_ HB.h4 ] [ HH.text "Decoded infrared signal" ]
-            , HH.p_ $ infraredSignal val
-            ]
+      [ HH.text $ either identity (_.code <<< unwrap) $ state.infraredValue
       ]
+    , HH.p_
+      $ case state.infraredValue of
+        Left _ ->
+          []
 
+        Right val -> 
+          [ HH.h5_ [ HH.text "Pulse milliseconds" ]
+          , HH.p_ $ infraredPulse val
+          , HH.h5_ [ HH.text "Decoded infrared signal" ]
+          , HH.p_ $ infraredSignal val
+          ]
+    ]
+
+-- |
+irdbFetchButton :: forall p f. HQ.Action f -> H.HTML p f
+irdbFetchButton action =
+  HH.button
+    [ HP.classes
+      [ HB.btn
+      , HB.btnOutlinePrimary
+      , HB.justifyContentCenter
+      ]
+    , HE.onClick $ HE.input_ action
+    , style do
+      marginLeft (px 31.0)
+    ]
+    [ Commons.icon "fas fa-download" ]
+
+irdbTable :: forall p f. (String -> HQ.Action f) -> Either String Api.IRDBValues -> H.HTML p f
+irdbTable _ (Left reason) =
+  HH.p
+    [ HP.classes [ HB.alert, HB.alertDanger ] ]
+    [ HH.text reason ]
+
+irdbTable action (Right values) =
+  HH.p_
+    [ HH.table
+      [ HP.classes [ HB.table, HB.tableHover ]
+      ]
+      [ tableHeading
+      , tableBody action values
+      ]
+    ]
+
+-- |
+tableHeading :: forall p i. H.HTML p i
+tableHeading =
+  HH.thead_ [ HH.tr_ items ]
+  where
+  items =
+    map
+      (HH.th_ <<< Array.singleton <<< HH.text)
+      [ "id", "manufacturer", "product", "key", "code" ]
+
+-- |
+tableBody :: forall p f. (String -> HQ.Action f) -> Api.IRDBValues -> H.HTML p f
+tableBody action values =
+  HH.tbody_ $ map (tableRow action) values
+
+-- |
+tableRow :: forall p f. (String -> HQ.Action f) -> Api.IRDBValue -> H.HTML p f
+tableRow action (Api.IRDBValue val) =
+  HH.tr
+    [ HE.onClick $ HE.input_ (action val.code)
+    ]
+    [ HH.th_ [ HH.text $ Int.toStringAs Int.decimal val.id ]
+    , HH.td_ [ HH.text val.manuf ]
+    , HH.td_ [ HH.text val.prod ]
+    , HH.td_ [ HH.text val.key ]
+    , HH.td_ [ HH.text $ String.take 8 val.code ]
+    ]
