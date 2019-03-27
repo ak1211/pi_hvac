@@ -62,7 +62,7 @@ defmodule BME280 do
     GenServer.start_link(__MODULE__, i2c, name: __MODULE__)
   end
 
-  def read(pid) do
+  def read() do
     GenServer.call(__MODULE__, :read)
   end
 

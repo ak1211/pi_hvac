@@ -4,7 +4,7 @@ defmodule PiHvacWeb.V1.TransIRController do
 
   action_fallback PiHvacWeb.FallbackController
 
-  def create(conn, %{"data" => data}) do
+  def transmit(conn, %{"data" => data}) do
     with  %{"code" => ir_code} <- data
     do
       case ADRSIR.trans_command(ir_code) do

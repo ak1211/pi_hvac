@@ -31,6 +31,12 @@ defmodule PiHvacWeb.Router do
     plug :accepts, ["json"]
   end
 
+  pipeline :apiIRCSV do
+    plug Plug.Parsers,
+      parsers: [:multipart],
+      json_decoder: Jason
+  end
+
   scope "/", PiHvacWeb do
     pipe_through :browser
 
@@ -46,7 +52,17 @@ defmodule PiHvacWeb.Router do
       resources "/measurements", EnvMeasuredController, except: [:new, :edit, :create, :update, :delete]
       resources "/i2c-devices", I2cDevicesController, except: [:new, :show, :edit, :create, :update, :delete]
       resources "/infra-red", InfraRedController, except: [:index, :new, :edit, :update, :delete]
-      post "/trans-ir", TransIRController, :create
+      resources "/irdb", IRDBController, except: [:create]
+      post "/trans-ir", TransIRController, :transmit
     end
   end
+
+  scope "/api", PiHvacWeb do
+    pipe_through :apiIRCSV
+
+    scope "/v1", V1, as: :v1 do
+      post "/ir-csv", IRCSVController, :fileupload
+    end
+  end
+
 end
