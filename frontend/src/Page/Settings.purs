@@ -94,7 +94,7 @@ component =
 
     Initialize next -> do
       url <- getApiBaseURL
-      H.modify_ _{ urlApiV1IRCSV = Api.urlApiV1IRCSV url }
+      H.modify_ _{ urlApiV1IRCSV = Api.urlApiV1Ircsv url }
       pure next
 
     OnClickI2CDetect next -> do

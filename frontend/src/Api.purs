@@ -24,13 +24,15 @@ module Api
   , InfraRedValue(..)
   , IRDBValue(..)
   , IRDBValues
+  , Manufacturers(..)
   , getApiV1Measurements
   , getApiV1I2cDevices
   , getApiV1InfraRed
   , postApiV1InfraRed
   , postApiV1TransIR
-  , urlApiV1IRCSV
-  , getApiV1IRDB
+  , urlApiV1Ircsv
+  , getApiV1Irdb
+  , getApiV1IrdbManufacturers
   ) where
 
 import Prelude
@@ -281,8 +283,8 @@ postApiV1TransIR (BaseURL baseURL) ircode =
 --
 
 -- | エンドポイント(/api/v1/ir-csv)
-urlApiV1IRCSV:: BaseURL -> String
-urlApiV1IRCSV (BaseURL baseURL) = baseURL <> "/api/v1/ir-csv"
+urlApiV1Ircsv :: BaseURL -> String
+urlApiV1Ircsv (BaseURL baseURL) = baseURL <> "/api/v1/ir-csv"
 
 --
 -- /api/v1/irdb
@@ -326,8 +328,8 @@ instance showIRDB :: Show IRDB where
   show = genericShow
 
 -- | HTTPメソッドgetをエンドポイント(/api/v1/irdb)に送った結果を得る
-getApiV1IRDB :: BaseURL -> Aff (AX.Response (Either String IRDBValues))
-getApiV1IRDB (BaseURL baseURL) =
+getApiV1Irdb :: BaseURL -> Maybe String -> Aff (AX.Response (Either String IRDBValues))
+getApiV1Irdb (BaseURL baseURL) maybeManufacture =
   AX.get ResponseFormat.string url
   <#> \res -> case res.body of
         Left err -> res {body = Left $ AX.printResponseFormatError err}
@@ -335,6 +337,39 @@ getApiV1IRDB (BaseURL baseURL) =
   where
 
   url =
-    baseURL <> "/api/v1/irdb"
+    baseURL <> "/api/v1/irdb" <> case maybeManufacture of
+      Just v -> "?manufacturer=" <> v
+      Nothing -> ""
+
 
   pickupData (IRDB x) = x.data
+
+--
+-- /api/v1/irdb/manufacturer
+--
+
+-- |
+newtype Manufacturers = Manufacturers
+  { manufacturers :: Array String
+  }
+
+-- |
+derive instance genericManufacturers :: Generic Manufacturers _
+derive instance newtypeManufacturers :: Newtype Manufacturers _
+derive instance eqManufacturers :: Eq Manufacturers
+instance showManufacturers :: Show Manufacturers where
+  show = genericShow
+instance decodeManufacturers :: Decode Manufacturers where
+  decode = genericDecode $ defaultOptions {unwrapSingleConstructors = true}
+
+-- | HTTPメソッドgetをエンドポイント(/api/v1/irdb/manufacturers)に送った結果を得る
+getApiV1IrdbManufacturers :: BaseURL -> Aff (AX.Response (Either String Manufacturers))
+getApiV1IrdbManufacturers (BaseURL baseURL) =
+  AX.get ResponseFormat.string url
+  <#> \res -> case res.body of
+        Left err -> res {body = Left $ AX.printResponseFormatError err}
+        Right ok -> res {body = decoder ok}
+  where
+
+  url =
+    baseURL <> "/api/v1/irdb/manufacturers"

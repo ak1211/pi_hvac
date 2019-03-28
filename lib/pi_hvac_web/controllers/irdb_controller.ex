@@ -7,8 +7,8 @@ defmodule PiHvacWeb.V1.IRDBController do
 
   action_fallback PiHvacWeb.FallbackController
 
-  def index(conn, _params) do
-    irdb = Api.list_irdb()
+  def index(conn, params) do
+    irdb = Api.list_irdb(Map.get(params, "manufacturer"))
     render(conn, "index.json", irdb: irdb)
   end
 
@@ -41,4 +41,10 @@ defmodule PiHvacWeb.V1.IRDBController do
       send_resp(conn, :no_content, "")
     end
   end
+
+  def manufacturers(conn, _params) do
+    irdb = Api.list_irdb_manufacturer()
+    render(conn, "manufacturers.json", irdb: irdb)
+  end
+
 end
