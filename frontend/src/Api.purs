@@ -341,7 +341,6 @@ getApiV1Irdb (BaseURL baseURL) maybeManufacture =
       Just v -> "?manufacturer=" <> v
       Nothing -> ""
 
-
   pickupData (IRDB x) = x.data
 
 --

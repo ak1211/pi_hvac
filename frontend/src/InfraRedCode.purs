@@ -78,12 +78,11 @@ data IRLeader
 
 -- | IRLeader data constructor
 mkIRLeader :: OnOffCount -> IRLeader 
-mkIRLeader onoffcount =
-  case onoffcount of
-    p | aeha p    -> ProtoAeha p
-      | nec p     -> ProtoNec p
-      | sony p    -> ProtoSony p
-      | otherwise -> ProtoUnknown p
+mkIRLeader = case _ of
+  p | aeha p    -> ProtoAeha p
+    | nec p     -> ProtoNec p
+    | sony p    -> ProtoSony p
+    | otherwise -> ProtoUnknown p
   where
   -- | H-level width, typical 3.4ms
   -- | L-level width, typical 1.7ms
@@ -266,13 +265,13 @@ analysisPhase1 tokens =
         case Tuple (Array.take 2 xs) (Array.drop 2 xs) of
 
           Tuple [a, b] [] ->
-            Tuple (Pulse {on: a, off: b}) Nothing
+            Tuple (Pulse {off: a, on: b}) Nothing
 
           Tuple [a, b] [stopbit] ->   -- ストップビットは無視する
-            Tuple (Pulse {on: a, off: b}) Nothing
+            Tuple (Pulse {off: a, on: b}) Nothing
 
           Tuple [a, b] vs ->
-            Tuple (Pulse {on: a, off: b}) (Just vs)
+            Tuple (Pulse {off: a, on: b}) (Just vs)
 
           Tuple [a] _ ->
             Tuple (Leftover a) Nothing
