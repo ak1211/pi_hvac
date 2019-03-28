@@ -220,10 +220,10 @@ analysisPhase1 tokens =
   demodulation :: IRLeader -> Array IRCodeToken -> Array (Maybe IRSignal)
   demodulation leader xs =
     case leader of
-      ProtoAeha _ -> map necStylePPM xs
-      ProtoNec _ -> map necStylePPM xs
-      ProtoSony p -> map sonyStylePPM $ realignment p xs
-      ProtoUnknown _ -> map necStylePPM xs
+      ProtoAeha _ -> map pulsePositionModulation xs
+      ProtoNec _ -> map pulsePositionModulation xs
+      ProtoSony p -> map pulsePositionModulation $ realignment p xs
+      ProtoUnknown _ -> map pulsePositionModulation xs
 
   equal' :: OnOffCount -> Boolean
   equal' x
@@ -232,14 +232,8 @@ analysisPhase1 tokens =
     | x.off > x.on = (x.off - x.on) < (x.on / 2)
     | otherwise = false
 
-  necStylePPM :: IRCodeToken -> Maybe IRSignal
-  necStylePPM = case _ of
-    (Pulse p) | equal' p  -> Just Negate
-              | otherwise -> Just Assert
-    (Leftover _) -> Nothing
-
-  sonyStylePPM :: IRCodeToken -> Maybe IRSignal
-  sonyStylePPM = case _ of
+  pulsePositionModulation :: IRCodeToken -> Maybe IRSignal
+  pulsePositionModulation = case _ of
     (Pulse p) | equal' p  -> Just Negate
               | otherwise -> Just Assert
     (Leftover _) -> Nothing
