@@ -10,6 +10,10 @@ defmodule PiHvacWeb.V1.IRDBView do
     %{data: render_one(irdb, IRDBView, "irdb.json")}
   end
 
+  def render("manufacturers.json", %{irdb: irdb}) do
+    %{manufacturers: Enum.map(irdb, fn x -> x.manufacturer end)}
+  end
+
   def render("irdb.json", %{irdb: irdb}) do
     %{id: irdb.id,
       manuf: irdb.manufacturer,
@@ -17,4 +21,5 @@ defmodule PiHvacWeb.V1.IRDBView do
       key: irdb.key,
       code: irdb.code}
   end
+
 end

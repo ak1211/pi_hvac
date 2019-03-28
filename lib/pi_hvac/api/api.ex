@@ -137,9 +137,15 @@ defmodule PiHvac.Api do
       [%IRDB{}, ...]
 
   """
-  def list_irdb() do
-    IRDB 
-    |> Repo.all
+  def list_irdb(manufacturer) do
+    if is_nil(manufacturer) do
+      IRDB
+      |> Repo.all
+    else
+      IRDB
+      |> where(manufacturer: ^manufacturer)
+      |> Repo.all
+    end
   end
 
   @doc """
@@ -222,5 +228,22 @@ defmodule PiHvac.Api do
   def change_irdb(%IRDB{} = irdb) do
     IRDB.changeset(irdb, %{})
   end
+
+  @doc """
+  Returns the list of irdb manufacturer.
+
+  ## Examples
+
+      iex> list_irdb_manufacturer()
+      [%IRDB{}, ...]
+
+  """
+  def list_irdb_manufacturer() do
+    IRDB
+    |> select([x], %{manufacturer: x.manufacturer})
+    |> distinct([x], x.manufacturer)
+    |> Repo.all
+  end
+
 end
 
