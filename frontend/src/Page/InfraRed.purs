@@ -25,18 +25,19 @@ import Prelude
 
 import Api as Api
 import AppM (class HasApiAccessible, class Navigate, getApiBaseURL, getApiTimeout, navigate)
-import CSS (em, margin, marginBottom, marginLeft, marginTop, minHeight, padding, px, rem, width)
+import CSS (em, margin, marginBottom, marginTop, minHeight, padding, px, rem, width)
 import Control.Alt ((<|>))
 import Data.Array ((..))
 import Data.Array as Array
 import Data.Bifunctor as Bifunctor
-import Data.Either (Either(..), either, isRight)
+import Data.Either (Either(..), either, isLeft, isRight)
 import Data.Foldable (intercalate)
 import Data.Formatter.Number as FN
 import Data.Int as Int
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (unwrap)
 import Data.String as String
+import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Aff (delay, parallel, sequential)
 import Effect.Aff.Class (class MonadAff)
@@ -70,10 +71,12 @@ type DetectedAddresses = Either String (Array Int)
 data SelectedTab = TabControlPanel | TabIrdbTable
 
 type State =
-  { infraredValue :: Either String Api.InfraRedValue
-  , irdbValues    :: Either String Api.IRDBValues
-  , buttonNumber  :: Int
-  , selectedTab   :: SelectedTab
+  { infraredValue     :: Either String Api.InfraRedValue
+  , irdbValues        :: Either String Api.IRDBValues
+  , irdbManufacturers :: Either String Api.Manufacturers
+  , manufacturer      :: Maybe String
+  , buttonNumber      :: Int
+  , selectedTab       :: SelectedTab
   }
 
 data Query a
@@ -83,9 +86,9 @@ data Query a
   | OnClickIRCodeDownload a
   | OnClickIRCodeUpload a
   | OnClickIRCodeTransmit a
-  | OnClickIrdbFetch a
   | OnClickIrdbTable String a
   | OnValueChangeButtonNumber String a
+  | OnValueChangeManufacturer String a
   | OnChangeCSVFileSelect Event a
 
 -- | component
@@ -109,6 +112,8 @@ component =
   initialState =
     { infraredValue: Left "Click Download button to show."
     , irdbValues: Left "Click Download button to show."
+    , irdbManufacturers: Left "empty"
+    , manufacturer: Nothing
     , buttonNumber: 1
     , selectedTab: TabControlPanel
     }
@@ -125,6 +130,26 @@ component =
       pure next
 
     OnClickTab newTab next -> do
+      { irdbManufacturers } <- H.get
+      case newTab of
+        TabIrdbTable | isLeft irdbManufacturers -> do
+          url <- getApiBaseURL
+          millisec <- getApiTimeout
+          val <- H.liftAff $
+                let request = Api.getApiV1IrdbManufacturers url
+                    timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
+                    response r = r.body
+                in
+                sequential $ parallel (response <$> request) <|> parallel timeout
+          H.modify_ _{irdbManufacturers = val}
+          --
+          let manuf = (Array.head <<< _.manufacturers <<< unwrap) =<< either (const Nothing) Just val
+          H.modify_ _{manufacturer = manuf}
+          fetchIrdb
+
+        _ ->
+          pure unit
+
       H.modify_ _ { selectedTab = newTab }
       pure next
 
@@ -177,18 +202,6 @@ component =
           H.liftEffect $ logShow res
       pure next
 
-    OnClickIrdbFetch next -> do
-      url <- getApiBaseURL
-      millisec <- getApiTimeout
-      val <- H.liftAff $
-            let request = Api.getApiV1IRDB url
-                timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
-                response r = r.body
-            in
-            sequential $ parallel (response <$> request) <|> parallel timeout
-      H.modify_ \st -> st { irdbValues = val }
-      pure next
-
     OnClickIrdbTable code next -> do
       { buttonNumber } <- H.get
       let irval = Api.InfraRedValue {button_number: buttonNumber, code: code}
@@ -199,6 +212,11 @@ component =
       case Int.fromString val of
         Nothing -> pure unit
         Just n -> H.modify_ \st -> st { buttonNumber = n }
+      pure next
+
+    OnValueChangeManufacturer manuf next -> do
+      H.modify_ _{manufacturer = Just manuf}
+      fetchIrdb
       pure next
 
     OnChangeCSVFileSelect evt next -> do
@@ -214,6 +232,19 @@ component =
             let file = FileList.item 0 filelist
             maybe (pure unit) readCSVFile file
       pure next
+    where
+
+      fetchIrdb = do
+        url <- getApiBaseURL
+        millisec <- getApiTimeout
+        { manufacturer } <- H.get
+        val <- H.liftAff $
+              let request = Api.getApiV1Irdb url manufacturer
+                  timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
+                  response r = r.body
+              in
+              sequential $ parallel (response <$> request) <|> parallel timeout
+        H.modify_ \st -> st { irdbValues = val }
 
   -- |
 --  readCSVFile :: File -> Effect Unit
@@ -326,7 +357,15 @@ component =
 
   renderIrdbTable state =
     HH.div_
-      [ HH.h2_ [ HH.text "Infrared code database", irdbFetchButton OnClickIrdbFetch ]
+      [ case state.irdbManufacturers of
+          Left reason ->
+            HH.p
+              [ HP.classes [ HB.alert, HB.alertDanger ] ]
+              [ HH.text reason ]
+
+          Right manuf ->
+            dropdown manuf
+      , HH.h2_ [ HH.text "Infrared code database" ]
       , HH.div_
         [ HH.div
           [ HP.class_ HB.formGroup ]
@@ -340,7 +379,29 @@ component =
           [ irdbTable OnClickIrdbTable state.irdbValues
           ]
         ]
-    ]
+      ]
+    where
+    dropdown (Api.Manufacturers x) =
+      HH.div
+        [ HP.class_ HB.row ]
+        [ HH.div
+          [ HP.classes [ HB.col, HB.colLg2 ] ] 
+          [ HH.label_ [ HH.text "manufacturer" ] ]
+        , HH.div
+          [ HP.classes [ HB.col, HB.colLg2 ] ] 
+          [ HH.select
+            [ HP.class_ HB.formControl
+            , HE.onValueChange $ HE.input OnValueChangeManufacturer
+            ]
+            $ map item x.manufacturers
+          ]
+        ]
+      where
+      item name =
+        if state.manufacturer == Just name then
+          HH.option [HP.selected true] [HH.text name]
+        else
+          HH.option [] [HH.text name]
 
 -- |
 infraredPulse :: forall p i. Api.InfraRedValue -> Array (H.HTML p i)
@@ -404,6 +465,20 @@ infraredSignal (Api.InfraRedValue ir) =
           $ intercalate
               [ HH.text ", " ]
               $ map (Array.singleton <<< HH.text <<< showHex) irValue.data
+        ]
+      ]
+
+    Right (SONY irValue) ->
+      [ HH.dl_
+        [ HH.dt_ [ HH.text "format" ]
+        , HH.dd_ [ HH.text "SONY" ]
+        , HH.dt_ [ HH.text "command" ]
+        , HH.dd_ [ HH.text $ showHex irValue.command ]
+        , HH.dt_ [ HH.text "address" ]
+        , HH.dd_
+          $ intercalate
+              [ HH.text ", " ]
+              $ map (Array.singleton <<< HH.text <<< showHex) irValue.addresses
         ]
       ]
 
@@ -504,26 +579,13 @@ renderInfraredRemoconCode state =
     ]
 
 -- |
-irdbFetchButton :: forall p f. HQ.Action f -> H.HTML p f
-irdbFetchButton action =
-  HH.button
-    [ HP.classes
-      [ HB.btn
-      , HB.btnOutlinePrimary
-      , HB.justifyContentCenter
-      ]
-    , HE.onClick $ HE.input_ action
-    , style do
-      marginLeft (px 31.0)
-    ]
-    [ Commons.icon "fas fa-download" ]
-
 irdbTable :: forall p f. (String -> HQ.Action f) -> Either String Api.IRDBValues -> H.HTML p f
 irdbTable _ (Left reason) =
   HH.p
     [ HP.classes [ HB.alert, HB.alertDanger ] ]
     [ HH.text reason ]
 
+-- |
 irdbTable action (Right values) =
   HH.p_
     [ HH.table

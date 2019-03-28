@@ -22,12 +22,14 @@ module InfraRedCode
   , irCodeSemanticAnalysis
   , analysisPhase1
   , analysisPhase2
+  , mkIRLeader
   , OnOffCount
   , IRCodeToken(..)
   , CodeBodyAEHA
   , CodeBodyNEC
+  , CodeBodySONY
   , IRCodeEnvelope(..)
-  , IRLeader(..)
+  , IRLeader
   , IRSignal(..)
   , IRSignals
   ) where
@@ -36,7 +38,7 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.MonadZero (guard)
-import Data.Array ((..))
+import Data.Array ((..), (:))
 import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
@@ -44,11 +46,12 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), fromJust, maybe)
 import Data.Maybe as Maybe
-import Data.Newtype (class Newtype, unwrap, wrap)
+import Data.Newtype (wrap)
 import Data.String.CodeUnits (fromCharArray)
 import Data.Time.Duration (Milliseconds(..))
 import Data.Tuple (Tuple(..))
 import Data.Tuple as Tuple
+import Data.Unfoldable1 (unfoldr1)
 import Partial.Unsafe (unsafePartial)
 import Text.Parsing.Parser (Parser)
 import Text.Parsing.Parser.Combinators (try, (<?>))
@@ -67,9 +70,46 @@ instance showIRCodeToken :: Show IRCodeToken where
   show = genericShow
 
 -- |
-newtype IRLeader = IRLeader OnOffCount
+data IRLeader
+  = ProtoAeha OnOffCount 
+  | ProtoNec OnOffCount 
+  | ProtoSony OnOffCount 
+  | ProtoUnknown OnOffCount 
 
-derive instance newtypeIRLeader :: Newtype IRLeader _
+-- | IRLeader data constructor
+mkIRLeader :: OnOffCount -> IRLeader 
+mkIRLeader onoffcount =
+  case onoffcount of
+    p | aeha p    -> ProtoAeha p
+      | nec p     -> ProtoNec p
+      | sony p    -> ProtoSony p
+      | otherwise -> ProtoUnknown p
+  where
+  -- | H-level width, typical 3.4ms
+  -- | L-level width, typical 1.7ms
+  aeha :: OnOffCount -> Boolean
+  aeha pulse =
+    let on_   = fromMilliseconds (wrap 3.2) .. fromMilliseconds (wrap 3.6)
+        off_  = fromMilliseconds (wrap 1.5) .. fromMilliseconds (wrap 1.9)
+    in
+    (Array.any (_ == pulse.on) on_) && (Array.any (_ == pulse.off) off_)
+
+  -- | H-level width, typical 9.0ms
+  -- | L-level width, typical 4.5ms
+  nec :: OnOffCount -> Boolean
+  nec pulse =
+    let on_   = fromMilliseconds (wrap 8.8) .. fromMilliseconds (wrap 9.2)
+        off_  = fromMilliseconds (wrap 4.3) .. fromMilliseconds (wrap 4.7)
+    in
+    (Array.any (_ == pulse.on) on_) && (Array.any (_ == pulse.off) off_)
+
+  -- | H-level width, typical 2.4ms
+  sony :: OnOffCount -> Boolean
+  sony pulse =
+    let on_ = fromMilliseconds (wrap 2.2) .. fromMilliseconds (wrap 2.6)
+    in
+    Array.any (_ == pulse.on) on_
+
 derive instance genericIRLeader :: Generic IRLeader _
 derive instance eqIRLeader :: Eq IRLeader
 instance showIRLeader :: Show IRLeader where
@@ -93,7 +133,14 @@ type CodeBodyAEHA = {customer :: Int, parity :: Int, data0 :: Int, data :: Array
 type CodeBodyNEC = {customer :: Int, data :: Int, invData :: Int}
 
 -- |
-data IRCodeEnvelope = AEHA CodeBodyAEHA | NEC CodeBodyNEC | IRCodeEnvelope IRSignals
+type CodeBodySONY = {command:: Int, addresses :: Array Int}
+
+-- |
+data IRCodeEnvelope
+  = AEHA CodeBodyAEHA
+  | NEC CodeBodyNEC
+  | SONY CodeBodySONY
+  | IRCodeEnvelope IRSignals
 
 derive instance genericIRCodeEnvelope :: Generic IRCodeEnvelope _
 derive instance eqIRCodeEnvelope :: Eq IRCodeEnvelope
@@ -164,35 +211,84 @@ analysisPhase1 tokens =
 
   go :: IRCodeToken -> Array IRCodeToken -> Maybe (Tuple IRLeader IRSignals)
   go (Leftover _) _ = Nothing
-  go (Pulse p) ps = do
-    let sigs = map decodePPM ps
-    guard $ Array.all Maybe.isJust sigs
-    pure $ Tuple (wrap p) (Array.catMaybes sigs)
+  go (Pulse p) ps =
+    let leader = mkIRLeader p
+        maybeSigs = demodulation leader ps
+    in do
+    guard $ Array.all Maybe.isJust maybeSigs
+    pure $ Tuple leader (Array.catMaybes maybeSigs)
 
-  decodePPM :: IRCodeToken -> Maybe IRSignal
-  decodePPM = case _ of
-    (Pulse p) | 2*p.on <= p.off -> Just Assert
-              | otherwise       -> Just Negate
+  demodulation :: IRLeader -> Array IRCodeToken -> Array (Maybe IRSignal)
+  demodulation leader xs =
+    case leader of
+      ProtoAeha _ -> map necStylePPM xs
+      ProtoNec _ -> map necStylePPM xs
+      ProtoSony p -> map sonyStylePPM $ realignment p xs
+      ProtoUnknown _ -> map necStylePPM xs
+
+  equal' :: Int -> Int -> Boolean
+  equal' on off =
+    if on < off then
+      (off - on) < (on / 2)
+    else
+      (on - off) < (on / 2)
+
+  necStylePPM :: IRCodeToken -> Maybe IRSignal
+  necStylePPM = case _ of
+    (Pulse p) | equal' p.on p.off -> Just Negate
+              | otherwise         -> Just Assert
     (Leftover _) -> Nothing
+
+  sonyStylePPM :: IRCodeToken -> Maybe IRSignal
+  sonyStylePPM = case _ of
+    (Pulse p) | equal' p.on p.off -> Just Assert
+              | otherwise         -> Just Negate
+    (Leftover _) -> Nothing
+
+  realignment :: OnOffCount -> Array IRCodeToken -> Array IRCodeToken
+  realignment onoffcount irtokens =
+    let counts = onoffcount.off : Array.concatMap flat irtokens
+    in
+    combine counts
+    where
+
+    flat :: IRCodeToken -> Array Int
+    flat (Pulse v) = [v.on, v.off]
+    flat (Leftover v) = [v]
+
+    combine :: Array Int -> Array IRCodeToken
+    combine =
+      unfoldr1 pair
+      where
+
+      pair :: Array Int -> Tuple IRCodeToken (Maybe (Array Int))
+      pair xs =
+        case Tuple (Array.take 2 xs) (Array.drop 2 xs) of
+
+          Tuple [a, b] [] ->
+            Tuple (Pulse {on: a, off: b}) Nothing
+
+          Tuple [a, b] [stopbit] ->   -- ストップビットは無視する
+            Tuple (Pulse {on: a, off: b}) Nothing
+
+          Tuple [a, b] vs ->
+            Tuple (Pulse {on: a, off: b}) (Just vs)
+
+          Tuple [a] _ ->
+            Tuple (Leftover a) Nothing
+
+          _ ->
+            Tuple (Leftover 0) Nothing
 
 -- |
 analysisPhase2 :: Tuple IRLeader IRSignals -> Either String IRCodeEnvelope
 analysisPhase2 input =
-  case unwrap $ Tuple.fst input of
-    p | whenAEHA p  -> aeha
-      | whenNEC p   -> nec
-      | otherwise   -> other
+  case Tuple.fst input of
+    ProtoAeha _     -> aeha
+    ProtoNec _      -> nec 
+    ProtoSony _     -> sony
+    ProtoUnknown _  -> other
   where
-
-  -- | typical 3.4ms
-  whenAEHA pulse =
-    Array.any (_ == pulse.on)
-    $ fromMilliseconds (wrap 2.8) .. fromMilliseconds (wrap 4.0)
-
-  -- | typical 9.0ms
-  whenNEC pulse =
-    Array.any (_ == pulse.on)
-    $ fromMilliseconds (wrap 8.5) .. fromMilliseconds (wrap 9.5)
 
   take :: Int -> Int -> String -> Either String IRSignals
   take begin length errmsg =
@@ -233,6 +329,14 @@ analysisPhase2 input =
     , data: deserialize sData
     , invData: deserialize sInvData
     } # (Right <<< NEC)
+
+  sony :: Either String IRCodeEnvelope
+  sony = do
+    sCommand <- take 0 7 "fail to read: command code (SONY)"
+    let octet = toArray2D 8 $ takeEnd 8
+    { command: deserialize sCommand
+    , addresses: map deserialize octet
+    } # (Right <<< SONY)
 
   other :: Either String IRCodeEnvelope
   other =
