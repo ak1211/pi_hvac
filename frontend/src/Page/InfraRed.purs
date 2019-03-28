@@ -37,7 +37,6 @@ import Data.Int as Int
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (unwrap)
 import Data.String as String
-import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Aff (delay, parallel, sequential)
 import Effect.Aff.Class (class MonadAff)

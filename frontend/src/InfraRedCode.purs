@@ -225,23 +225,23 @@ analysisPhase1 tokens =
       ProtoSony p -> map sonyStylePPM $ realignment p xs
       ProtoUnknown _ -> map necStylePPM xs
 
-  equal' :: Int -> Int -> Boolean
-  equal' on off =
-    if on < off then
-      (off - on) < (on / 2)
-    else
-      (on - off) < (on / 2)
+  equal' :: OnOffCount -> Boolean
+  equal' x
+    | x.on == x.off = true
+    | x.on > x.off = (x.on - x.off) < (x.off / 2)
+    | x.off > x.on = (x.off - x.on) < (x.on / 2)
+    | otherwise = false
 
   necStylePPM :: IRCodeToken -> Maybe IRSignal
   necStylePPM = case _ of
-    (Pulse p) | equal' p.on p.off -> Just Negate
-              | otherwise         -> Just Assert
+    (Pulse p) | equal' p  -> Just Negate
+              | otherwise -> Just Assert
     (Leftover _) -> Nothing
 
   sonyStylePPM :: IRCodeToken -> Maybe IRSignal
   sonyStylePPM = case _ of
-    (Pulse p) | equal' p.on p.off -> Just Assert
-              | otherwise         -> Just Negate
+    (Pulse p) | equal' p  -> Just Negate
+              | otherwise -> Just Assert
     (Leftover _) -> Nothing
 
   realignment :: OnOffCount -> Array IRCodeToken -> Array IRCodeToken
