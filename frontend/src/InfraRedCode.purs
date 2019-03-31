@@ -22,6 +22,7 @@ module InfraRedCode
   , irCodeSemanticAnalysis
   , semanticAnalysisPhase1
   , semanticAnalysisPhase2
+  , semanticAnalysisPhase3
   , mkIRLeader
   , InfraredHexString
   , OnOffCount
@@ -50,8 +51,10 @@ import Data.Maybe as Maybe
 import Data.Newtype (wrap)
 import Data.String.CodeUnits (fromCharArray)
 import Data.Time.Duration (Milliseconds(..))
+import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Data.Tuple as Tuple
+import Data.Unfoldable1 (unfoldr1)
 import Partial.Unsafe (unsafePartial)
 import Text.Parsing.Parser (Parser)
 import Text.Parsing.Parser.Combinators (try, (<?>))
@@ -197,13 +200,42 @@ irCodeParser =
     pure $ fromCharArray [ a, b ]
 
 -- |
-irCodeSemanticAnalysis :: Array IRCodeToken -> Either String IRCodeEnvelope
+irCodeSemanticAnalysis :: Array IRCodeToken -> Either String (Array IRCodeEnvelope)
 irCodeSemanticAnalysis =
-  semanticAnalysisPhase2 <=< semanticAnalysisPhase1
+  traverse (semanticAnalysisPhase3 <=< semanticAnalysisPhase2) <=< semanticAnalysisPhase1 
 
--- |
-semanticAnalysisPhase1 :: Array IRCodeToken -> Either String (Tuple IRLeader IRSignals)
+-- | 入力を各フレームに分ける
+semanticAnalysisPhase1 :: Array IRCodeToken -> Either String (Array (Array OnOffCount))
 semanticAnalysisPhase1 tokens =
+  if Array.all isPulse tokens then
+    Right $ unfoldr1 chop $ Array.catMaybes $ map toOnOffCount tokens
+  else
+    Left "Broken code, on-off pair mismatched"
+  where
+
+  toOnOffCount :: IRCodeToken -> Maybe OnOffCount
+  toOnOffCount = case _ of
+    Pulse p     -> Just p
+    Leftover _  -> Nothing
+
+  isPulse :: IRCodeToken -> Boolean
+  isPulse = case _ of
+    Pulse p     -> true
+    Leftover _  -> false
+
+  chop :: Array OnOffCount -> Tuple (Array OnOffCount) (Maybe (Array OnOffCount))
+  chop xs = 
+    let x = Array.span (\p -> p.off < threshold) xs
+    in
+    case Array.drop 1 x.rest of
+      [] -> Tuple (x.init <> Array.take 1 x.rest) Nothing
+      a -> Tuple (x.init <> Array.take 1 x.rest) (Just a)
+
+  threshold = fromMilliseconds (wrap 8.0)
+
+-- | 入力フレームをリーダ部とビット配列にする
+semanticAnalysisPhase2 :: Array OnOffCount -> Either String (Tuple IRLeader IRSignals)
+semanticAnalysisPhase2 tokens =
   case Array.uncons tokens of
     Just {head: x, tail: xs} ->
       maybe (Left "broken code") Right $ go x xs
@@ -211,18 +243,13 @@ semanticAnalysisPhase1 tokens =
       Left "Unexpected end of input"
   where
 
-  go :: IRCodeToken -> Array IRCodeToken -> Maybe (Tuple IRLeader IRSignals)
-  go (Leftover _) _ = Nothing
-  go (Pulse p) ps =
+  go :: OnOffCount -> Array OnOffCount -> Maybe (Tuple IRLeader IRSignals)
+  go p ps =
     let leader = mkIRLeader p
-        maybeSigs = demodulation leader ps
+        maybeSigs = map pulsePositionModulation ps
     in do
     guard $ Array.all Maybe.isJust maybeSigs
     pure $ Tuple leader (Array.catMaybes maybeSigs)
-
-  demodulation :: IRLeader -> Array IRCodeToken -> Array (Maybe IRSignal)
-  demodulation _ xs =
-    map pulsePositionModulation xs
 
   equal' :: OnOffCount -> Boolean
   equal' x
@@ -231,15 +258,13 @@ semanticAnalysisPhase1 tokens =
     | x.off > x.on = (x.off - x.on) < (x.on / 2)
     | otherwise = false
 
-  pulsePositionModulation :: IRCodeToken -> Maybe IRSignal
-  pulsePositionModulation = case _ of
-    (Pulse p) | equal' p  -> Just Negate
-              | otherwise -> Just Assert
-    (Leftover _) -> Nothing
+  pulsePositionModulation :: OnOffCount -> Maybe IRSignal
+  pulsePositionModulation p | equal' p  = Just Negate
+                            | otherwise = Just Assert
 
--- |
-semanticAnalysisPhase2 :: Tuple IRLeader IRSignals -> Either String IRCodeEnvelope
-semanticAnalysisPhase2 input =
+-- | 入力リーダ部とビット配列から赤外線信号にする
+semanticAnalysisPhase3 :: Tuple IRLeader IRSignals -> Either String IRCodeEnvelope
+semanticAnalysisPhase3 input =
   case Tuple.fst input of
     ProtoAeha _     -> aeha
     ProtoNec _      -> nec 

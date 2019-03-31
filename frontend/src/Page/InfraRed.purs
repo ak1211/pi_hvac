@@ -41,6 +41,7 @@ import Data.Int as Int
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (unwrap)
 import Data.String as String
+import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Aff (delay, parallel, sequential)
@@ -536,35 +537,39 @@ infraredBinary :: forall p i. InfraredHexString -> Array (H.HTML p i)
 infraredBinary code =
   Bifunctor.lmap parseErrorMessage (runParser code InfraRedCode.irCodeParser)
   >>= InfraRedCode.semanticAnalysisPhase1
+  >>= traverse InfraRedCode.semanticAnalysisPhase2
   # case _ of
     Left msg ->
       [ HH.text msg ]
-    Right (Tuple leader vs) ->
-      case leader of
-          ProtoAeha _     ->
-            [ HH.text "AEHA"
-            , HH.br_
-            , row $ toArray2D 8 vs
-            ]
-          ProtoNec _      ->
-            [ HH.text "NEC"
-            , HH.br_
-            , row $ toArray2D 8 vs
-            ]
-          ProtoSony _  ->
-            let bit7 = Array.take 7 vs
-                left = Array.drop 7 vs
-            in
-            [ HH.text "SONY"
-            , HH.br_
-            , row (bit7 : toArray2D 8 left)
-            ]
-          ProtoUnknown _     ->
-            [ HH.text "Unknown"
-            , HH.br_
-            , row $ toArray2D 8 vs
-            ]
+    Right xs ->
+      intercalate [HH.hr_] $ map display xs
   where
+
+  display (Tuple leader vs) = case leader of
+    ProtoAeha _     ->
+      [ HH.text "AEHA"
+      , HH.br_
+      , row $ toArray2D 8 vs
+      ]
+    ProtoNec _      ->
+      [ HH.text "NEC"
+      , HH.br_
+      , row $ toArray2D 8 vs
+      ]
+    ProtoSony _  ->
+      let bit7 = Array.take 7 vs
+          left = Array.drop 7 vs
+      in
+      [ HH.text "SONY"
+      , HH.br_
+      , row (bit7 : toArray2D 8 left)
+      ]
+    ProtoUnknown _     ->
+      [ HH.text "Unknown"
+      , HH.br_
+      , row $ toArray2D 8 vs
+      ]
+
   row xxs =
     HH.div [HP.class_ BS.row] $ map col xxs
 
@@ -579,8 +584,12 @@ infraredSignal code =
   # case _ of
     Left msg ->
       [ HH.text msg ]
+    Right xs ->
+      intercalate [HH.hr_] $ map display xs
 
-    Right (NEC irValue) ->
+  where
+  display = case _ of
+    NEC irValue ->
       [ HH.dl_
         [ HH.dt_ [ HH.text "protocol" ]
         , HH.dd_ [ HH.text "NEC" ]
@@ -593,7 +602,7 @@ infraredSignal code =
         ]
       ]
 
-    Right (AEHA irValue) ->
+    AEHA irValue ->
       [ HH.dl_
         [ HH.dt_ [ HH.text "protocol" ]
         , HH.dd_ [ HH.text "AEHA" ]
@@ -608,7 +617,7 @@ infraredSignal code =
         ]
       ]
 
-    Right (SONY irValue) ->
+    SONY irValue ->
       [ HH.dl_
         [ HH.dt_ [ HH.text "protocol" ]
         , HH.dd_ [ HH.text "SONY" ]
@@ -619,16 +628,16 @@ infraredSignal code =
         ]
       ]
 
-    Right (IRCodeEnvelope irValue) ->
+    IRCodeEnvelope irValue ->
       [ HH.text "unknown protocol"
       , HH.p_ [ HH.text $ show irValue ]
       ]
-    where
-    row xs =
-      HH.div [HP.class_ BS.row] $ map col xs
 
-    col x =
-      HH.div [HP.class_ BS.col1] [HH.text $ showHexAndDec x]
+  row xs =
+    HH.div [HP.class_ BS.row] $ map col xs
+
+  col x =
+    HH.div [HP.class_ BS.col1] [HH.text $ showHexAndDec x]
 
 
 -- |
@@ -837,8 +846,11 @@ irdbTable rowClick codeClick = case _ of
     >>= InfraRedCode.irCodeSemanticAnalysis
     # case _ of
       Left msg -> msg
+      Right xs -> String.joinWith ", " $ map display xs
+    where
 
-      Right (NEC irValue) ->
+    display = case _ of
+      NEC irValue ->
         String.joinWith " "
           [ "NEC"
           , showHex irValue.customer
@@ -846,7 +858,7 @@ irdbTable rowClick codeClick = case _ of
           , showHex irValue.invData
           ]
 
-      Right (AEHA irValue) ->
+      AEHA irValue ->
         String.joinWith " " $ Array.concat
           [ [ "AEHA"
             , showHex irValue.customer
@@ -856,7 +868,7 @@ irdbTable rowClick codeClick = case _ of
           , map showHex irValue.data
           ]
 
-      Right (SONY irValue) ->
+      SONY irValue ->
         String.joinWith " " $ Array.concat
           [ [ "SONY"
             , showHex irValue.command
@@ -864,7 +876,7 @@ irdbTable rowClick codeClick = case _ of
           , map showHex irValue.addresses
           ]
 
-      Right (IRCodeEnvelope irValue) ->
+      IRCodeEnvelope irValue ->
         String.joinWith " " $ Array.concat
           [ [ "Unkown"
             , show irValue

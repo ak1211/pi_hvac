@@ -3,12 +3,12 @@ module Test.Main where
 import Prelude
 
 import Data.Either (Either(..))
-import Data.Newtype (unwrap)
+import Data.Newtype (unwrap, wrap)
 import Data.String as String
 import Data.Time.Duration (Milliseconds(..))
 import Effect (Effect)
 import Effect.Console (log, logShow)
-import InfraRedCode (IRCodeEnvelope(..), IRCodeToken(..), fromMilliseconds, irCodeParser, irCodeSemanticAnalysis, semanticAnalysisPhase1, semanticAnalysisPhase2, toMilliseconds)
+import InfraRedCode (IRCodeEnvelope(..), IRCodeToken(..), fromMilliseconds, irCodeParser, irCodeSemanticAnalysis, semanticAnalysisPhase1, toMilliseconds)
 import Test.Assert (assert')
 import Text.Parsing.Parser (Parser, parseErrorMessage, parseErrorPosition, runParser)
 import Text.Parsing.Parser.Pos (Position(..))
@@ -247,13 +247,31 @@ main = do
   parseTest "100020003000" [Pulse {on: 0x10, off: 0x20}, Leftover 0x30] irCodeParser
   parseTest "1000200030004000" [Pulse {on: 0x10, off: 0x20}, Pulse {on: 0x30, off: 0x40}] irCodeParser
   --
+  log ""
+  log "analysis test"
+  --
+  let tokens =  [ Pulse {on: 30, off: 60}
+                , Pulse {on: 30, off: 30}
+                , Pulse {on: 30, off: fromMilliseconds (wrap 10.0)}
+                , Pulse {on: 30, off: 30}
+                , Pulse {on: 30, off: 60}
+                ]
+  case semanticAnalysisPhase1 tokens of
+    Left a -> log a
+    Right value -> 
+      let expected =  [ [{ off: 60, on: 30 }, { off: 30, on: 30 }, { off: 384, on: 30 }]
+                      , [{ off: 30, on: 30 }, { off: 60, on: 30 }]
+                      ]
+      in
+      assert' ("expected: " <> show expected) (expected == value)
+  --
   parseTest inputIRCode expectIRCode irCodeParser
   --
   parseTest inputIRCode2 expectIRCode2 irCodeParser
   case runParser inputIRCode2 irCodeParser of
     Left a -> log $ parseErrorMessage a
     Right a -> 
-      let expected = expectIRCodeFormat2 
+      let expected = [expectIRCodeFormat2]
           value = irCodeSemanticAnalysis a
       in
       assert' ("expected: " <> show expected) (Right expected == value)
@@ -262,7 +280,7 @@ main = do
   case runParser inputIRCode3 irCodeParser of
     Left a -> log $ parseErrorMessage a
     Right a -> 
-      let expected = expectIRCodeFormat3 
-          value = semanticAnalysisPhase2 =<< semanticAnalysisPhase1 a
+      let expected = [expectIRCodeFormat3]
+          value = irCodeSemanticAnalysis a
       in
       assert' ("expected: " <> show expected) (Right expected == value)
