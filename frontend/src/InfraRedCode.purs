@@ -238,18 +238,11 @@ semanticAnalysisPhase2 :: Array OnOffCount -> Either String (Tuple IRLeader IRSi
 semanticAnalysisPhase2 tokens =
   case Array.uncons tokens of
     Just {head: x, tail: xs} ->
-      maybe (Left "broken code") Right $ go x xs
+      Right $ Tuple (mkIRLeader x) (map pulsePositionModulation xs)
+
     Nothing ->
       Left "Unexpected end of input"
   where
-
-  go :: OnOffCount -> Array OnOffCount -> Maybe (Tuple IRLeader IRSignals)
-  go p ps =
-    let leader = mkIRLeader p
-        maybeSigs = map pulsePositionModulation ps
-    in do
-    guard $ Array.all Maybe.isJust maybeSigs
-    pure $ Tuple leader (Array.catMaybes maybeSigs)
 
   equal' :: OnOffCount -> Boolean
   equal' x
@@ -258,9 +251,9 @@ semanticAnalysisPhase2 tokens =
     | x.off > x.on = (x.off - x.on) < (x.on / 2)
     | otherwise = false
 
-  pulsePositionModulation :: OnOffCount -> Maybe IRSignal
-  pulsePositionModulation p | equal' p  = Just Negate
-                            | otherwise = Just Assert
+  pulsePositionModulation :: OnOffCount -> IRSignal
+  pulsePositionModulation p | equal' p  = Negate
+                            | otherwise = Assert
 
 -- | 入力リーダ部とビット配列から赤外線信号にする
 semanticAnalysisPhase3 :: Tuple IRLeader IRSignals -> Either String IRCodeEnvelope
