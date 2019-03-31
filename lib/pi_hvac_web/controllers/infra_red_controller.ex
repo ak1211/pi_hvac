@@ -4,9 +4,8 @@ defmodule PiHvacWeb.V1.InfraRedController do
 
   action_fallback PiHvacWeb.FallbackController
 
-  def create(conn, %{"data" => data}) do
-    with  %{"code" => ir_code, "button_number" => bn} <- data,
-          true <- Enum.member?(1..10, bn)
+  def create(conn, %{"code" => ir_code, "button_number" => bn}) do
+    with true <- Enum.member?(1..10, bn)
     do
       Logger.debug("\"#{ir_code}\", set to #{bn}")
       # 基板上のボタン番号は1から10まで、メモリ番号は0から9まで

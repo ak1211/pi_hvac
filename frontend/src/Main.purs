@@ -17,6 +17,8 @@
 
 module Main (main) where
 
+import Prelude
+
 import Api as Api
 import AppM (class HasApiAccessible, class Navigate, runAppM)
 import Data.Either.Nested (Either5)
@@ -36,7 +38,6 @@ import Page.Home as PgHome
 import Page.InfraRed as PgInfraRed
 import Page.Plotdata as PgPlotdata
 import Page.Settings as PgSettings
-import Prelude
 import Route (Route)
 import Route as Route
 import Routing.PushState (PushStateInterface)
@@ -82,8 +83,8 @@ rootComponent = H.parentComponent
     Route.Plotdata _ ->
       HH.slot' ChildPath.cp2 unit PgPlotdata.component state.route absurd
       
-    Route.Infrared ->
-      HH.slot' ChildPath.cp3 unit PgInfraRed.component unit absurd
+    Route.Infrared _ ->
+      HH.slot' ChildPath.cp3 unit PgInfraRed.component state.route absurd
 
     Route.Settings ->
       HH.slot' ChildPath.cp4 unit PgSettings.component unit absurd

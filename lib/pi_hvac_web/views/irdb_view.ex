@@ -2,8 +2,12 @@ defmodule PiHvacWeb.V1.IRDBView do
   use PiHvacWeb, :view
   alias PiHvacWeb.V1.IRDBView
 
-  def render("index.json", %{irdb: irdb}) do
-    %{data: render_many(irdb, IRDBView, "irdb.json")}
+  def render("index.json", %{irdb: irdb, counts: counts, limits: limits, page: page, pages: pages}) do
+    %{counts: counts,
+      limits: limits,
+      page: page,
+      pages: pages,
+      data: render_many(irdb, IRDBView, "irdb.json")}
   end
 
   def render("show.json", %{irdb: irdb}) do
@@ -12,6 +16,10 @@ defmodule PiHvacWeb.V1.IRDBView do
 
   def render("manufacturers.json", %{irdb: irdb}) do
     %{manufacturers: Enum.map(irdb, fn x -> x.manufacturer end)}
+  end
+
+  def render("products.json", %{irdb: irdb}) do
+    %{products: Enum.map(irdb, fn x -> x.product end)}
   end
 
   def render("irdb.json", %{irdb: irdb}) do

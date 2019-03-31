@@ -17,6 +17,9 @@
 
 module Page.Commons
   ( showToast
+  , enablePopover
+  , disablePopover
+  , disposePopover
   , navbar
   , icon
   , getContext2dById
@@ -45,10 +48,25 @@ import Route as Route
 
 -- |
 foreign import showToastJs :: Effect Unit
+foreign import enablePopoverJs :: Effect Unit
+foreign import disablePopoverJs :: Effect Unit
+foreign import disposePopoverJs :: Effect Unit
 
 -- |
 showToast :: Effect Unit
 showToast = showToastJs
+
+-- |
+enablePopover :: Effect Unit
+enablePopover = enablePopoverJs
+
+-- |
+disablePopover :: Effect Unit
+disablePopover = disablePopoverJs
+
+-- |
+disposePopover :: Effect Unit
+disposePopover = disposePopoverJs
 
 -- | page navbar
 navbar :: forall p f. (Route -> HQ.Action f) -> Route -> H.HTML p f
@@ -89,7 +107,7 @@ navbar navigateAction current =
         ]
         [ navItem Route.Home
         , navItem (Route.Plotdata Nothing)
-        , navItem Route.Infrared
+        , navItem (Route.Infrared Nothing)
         , navItem Route.Settings
         , navItem Route.About
         ] 

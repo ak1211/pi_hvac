@@ -101,9 +101,10 @@ component =
       url <- getApiBaseURL
       millisec <- getApiTimeout
       val <- H.liftAff $
-              let request = Api.getApiV1I2cDevices url (Just 1)
+              let param = {baseurl: url, busnumber: Just 1}
+                  request = Api.getApiV1I2cDevices param
                   timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
-                  response r = Bifunctor.rmap (\(Api.I2cDevices ds) -> ds.data) r.body
+                  response r = Bifunctor.rmap (\(Api.RespGetI2cDevices ds) -> ds.data) r.body
               in
               sequential $ parallel (response <$> request) <|> parallel timeout
       H.modify_ \st -> st { detectedAddresses = val }

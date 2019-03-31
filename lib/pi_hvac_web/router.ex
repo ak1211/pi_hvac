@@ -54,6 +54,7 @@ defmodule PiHvacWeb.Router do
       resources "/infra-red", InfraRedController, except: [:index, :new, :edit, :update, :delete]
       post "/trans-ir", TransIRController, :transmit
       get "/irdb/manufacturers", IRDBController, :manufacturers
+      get "/irdb/products", IRDBController, :products
       resources "/irdb", IRDBController, except: [:create]
     end
   end

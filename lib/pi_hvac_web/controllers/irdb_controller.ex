@@ -4,12 +4,57 @@ defmodule PiHvacWeb.V1.IRDBController do
   require CSV
   alias PiHvac.Api
   alias PiHvac.Api.IRDB
+  alias PiHvac.Api.ListIrdbOptions
 
   action_fallback PiHvacWeb.FallbackController
 
+  defp toNumber(a) do
+    a
+    |> Kernel.||("")
+    |> Integer.parse
+    |> case do
+      {v, _} -> v
+      _ -> nil
+    end
+  end
+
   def index(conn, params) do
-    irdb = Api.list_irdb(Map.get(params, "manufacturer"))
-    render(conn, "index.json", irdb: irdb)
+    # default params
+    default =
+      %{:limits       => 100,
+        :page         => 1,
+        :manufacturer => nil,
+        :product      => nil
+      }
+    # shadowing 'params'
+    params =
+      %{:limits       => params |> Map.get("limits") |> toNumber,
+        :page         => params |> Map.get("page") |> toNumber,
+        :manufacturer => params |> Map.get("manufacturer"),
+        :product      => params |> Map.get("product")}
+    |> Enum.reject(fn {_key, val} -> is_nil(val) end)
+    |> Map.new
+    |> fn a -> Map.merge(default, a) end.()
+    #
+    opts = %ListIrdbOptions{
+      limits:       params.limits,
+      offset:       params.limits * (params.page - 1),
+      manufacturer: params.manufacturer,
+      product:      params.product
+    }
+    counts = Api.counts_irdb(opts)
+    #
+    opts
+    |> Api.list_irdb
+    |> fn v ->
+      %{irdb: v,
+        limits: params.limits,
+        counts: counts,
+        page: params.page,
+        pages: ceil(counts / params.limits)
+      }
+    end.()
+    |> (&render(conn, "index.json", &1)).()
   end
 
   def create(conn, %{"irdb" => irdb_params}) do
@@ -45,6 +90,11 @@ defmodule PiHvacWeb.V1.IRDBController do
   def manufacturers(conn, _params) do
     irdb = Api.list_irdb_manufacturer()
     render(conn, "manufacturers.json", irdb: irdb)
+  end
+
+  def products(conn, _params) do
+    irdb = Api.list_irdb_product()
+    render(conn, "products.json", irdb: irdb)
   end
 
 end

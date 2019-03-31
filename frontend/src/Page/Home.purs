@@ -51,7 +51,7 @@ import Route (Route)
 import Route as Route
 import Utils as Utils
 
-type NonEmptyValues = NEA.NonEmptyArray Api.EnvMeasValue
+type NonEmptyValues = NEA.NonEmptyArray Api.MeasEnvironment
 
 type State =
   { measValues :: Either String NonEmptyValues
@@ -100,7 +100,8 @@ component =
       url <- getApiBaseURL
       millisec <- getApiTimeout
       val <- H.liftAff $
-              let request = Api.getApiV1Measurements url Nothing
+              let param = {baseurl: url, limits: Nothing}
+                  request = Api.getApiV1Measurements param
                   timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
                   nonEmptyVal = maybe initialMeasValues Right <<< NEA.fromArray
                   response r = nonEmptyVal =<< r.body

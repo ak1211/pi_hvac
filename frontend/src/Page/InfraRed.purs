@@ -30,9 +30,13 @@ import Control.Alt ((<|>))
 import Data.Array ((..))
 import Data.Array as Array
 import Data.Bifunctor as Bifunctor
-import Data.Either (Either(..), either, isLeft, isRight)
+import Data.Either (Either(..), either, isRight)
+import Data.Enum (class BoundedEnum, class Enum, fromEnum, toEnum)
 import Data.Foldable (intercalate)
 import Data.Formatter.Number as FN
+import Data.Generic.Rep (class Generic)
+import Data.Generic.Rep.Bounded (genericBottom, genericTop)
+import Data.Generic.Rep.Enum (genericCardinality, genericFromEnum, genericPred, genericSucc, genericToEnum)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (unwrap)
@@ -50,8 +54,9 @@ import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Query as HQ
+import Halogen.Themes.Bootstrap4 as BS
 import Halogen.Themes.Bootstrap4 as HB
-import InfraRedCode (IRCodeEnvelope(..), IRCodeToken(..))
+import InfraRedCode (IRCodeEnvelope(..), IRCodeToken(..), InfraredHexString)
 import InfraRedCode as InfraRedCode
 import Page.Commons as Commons
 import Route (Route)
@@ -65,27 +70,42 @@ import Web.File.FileList as FileList
 import Web.File.FileReader as FileReader
 import Web.HTML.HTMLInputElement as InputElement
 
-type DetectedAddresses = Either String (Array Int)
-
+-- |
 data SelectedTab = TabControlPanel | TabIrdbTable
+derive instance genericSelectedTab :: Generic SelectedTab _
+derive instance eqSelectedTab :: Eq SelectedTab
+derive instance ordSelectedTab :: Ord SelectedTab
+instance enumSelectedTab :: Enum SelectedTab where
+  succ = genericSucc
+  pred = genericPred
+instance boundedSelectedTab :: Bounded SelectedTab where
+  top = genericTop
+  bottom = genericBottom
+instance boundedEnumSelectedTab :: BoundedEnum SelectedTab where
+  cardinality = genericCardinality
+  toEnum = genericToEnum
+  fromEnum = genericFromEnum
 
+-- |
 type State =
-  { infraredValue     :: Either String Api.InfraRedValue
-  , irdbValues        :: Either String Api.IRDBValues
-  , irdbManufacturers :: Either String Api.Manufacturers
-  , manufacturer      :: Maybe String
+  { queryParams       :: Route.InfraredQueryParams
+  , infraredValue     :: Either String Api.DatumInfraRed
+  , irdb              :: Either String Api.RespGetIrdb
+  , irdbManufacturers :: Either String Api.RespGetIrdbManufacturers
   , buttonNumber      :: Int
-  , selectedTab       :: SelectedTab
   }
 
+-- |
 data Query a
   = NavigateTo Route a
   | Initialize a
-  | OnClickTab SelectedTab a
+  | ChangedRoute Route a
   | OnClickIRCodeDownload a
   | OnClickIRCodeUpload a
   | OnClickIRCodeTransmit a
+  | OnClickIrdbPagination Int a
   | OnClickIrdbTable String a
+  | OnClickIrdbTableCode String a
   | OnValueChangeButtonNumber String a
   | OnValueChangeManufacturer String a
   | OnChangeCSVFileSelect Event a
@@ -96,25 +116,43 @@ component
    . MonadAff m
   => Navigate m
   => HasApiAccessible m
-  => H.Component HH.HTML Query Unit Void m
+  => H.Component HH.HTML Query Route Void m
 component =
   H.lifecycleComponent
-    { initialState: const initialState
+    { initialState: initialState
     , render
     , eval
     , initializer: Just (H.action Initialize)
     , finalizer: Nothing
-    , receiver: const Nothing
+    , receiver: HE.input ChangedRoute
     }
   where
 
-  initialState =
-    { infraredValue: Left "Click Download button to show."
-    , irdbValues: Left "Click Download button to show."
+  initialQueryParams :: Route.InfraredQueryParams
+  initialQueryParams =
+    { tab: Just $ fromEnum TabControlPanel
+    , manuf: Just 0
+    , page: Just 1
+    }
+
+  initialState route =
+    let qry = case route of
+                Route.Infrared Nothing ->
+                  initialQueryParams
+
+                Route.Infrared (Just a) ->
+                  { tab: a.tab <|> initialQueryParams.tab
+                  , manuf: a.manuf <|> initialQueryParams.manuf
+                  , page: a.page <|> initialQueryParams.page
+                  }
+
+                _ -> initialQueryParams
+    in
+    { queryParams: qry
+    , infraredValue: Left "Click Download button to show."
+    , irdb: Left "Click Download button to show."
     , irdbManufacturers: Left "empty"
-    , manufacturer: Nothing
     , buttonNumber: 1
-    , selectedTab: TabControlPanel
     }
 
   csvFileInputLabel = H.RefLabel "CSVFileInput"
@@ -122,34 +160,48 @@ component =
   eval :: Query ~> H.ComponentDSL State Query Void m
   eval = case _ of
     NavigateTo route next -> do
+      H.liftEffect Commons.disposePopover
       navigate route
       pure next
 
     Initialize next -> do
+      {queryParams} <- H.get
+      let newRoute = Route.Infrared (Just queryParams)
+      void $ eval (ChangedRoute newRoute next)
       pure next
 
-    OnClickTab newTab next -> do
-      { irdbManufacturers } <- H.get
-      case newTab of
-        TabIrdbTable | isLeft irdbManufacturers -> do
+    ChangedRoute route next -> do
+      H.liftEffect Commons.disposePopover
+      curState <- H.get
+      --
+      let state = case route of
+                    Route.Infrared Nothing ->
+                      curState { queryParams = initialQueryParams}
+
+                    Route.Infrared (Just qry) ->
+                      curState { queryParams = qry }
+
+                    _ -> curState
+      --
+      case toEnum =<< state.queryParams.tab of
+        Just TabIrdbTable -> do
           url <- getApiBaseURL
           millisec <- getApiTimeout
           val <- H.liftAff $
-                let request = Api.getApiV1IrdbManufacturers url
+                let param = {baseurl: url}
+                    request = Api.getApiV1IrdbManufacturers param
                     timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
                     response r = r.body
                 in
                 sequential $ parallel (response <$> request) <|> parallel timeout
-          H.modify_ _{irdbManufacturers = val}
+          H.put state { irdbManufacturers = val
+                      }
           --
-          let manuf = (Array.head <<< _.manufacturers <<< unwrap) =<< either (const Nothing) Just val
-          H.modify_ _{manufacturer = manuf}
           fetchIrdb
 
         _ ->
-          pure unit
-
-      H.modify_ _ { selectedTab = newTab }
+          H.put state
+      H.liftEffect Commons.enablePopover
       pure next
 
     OnClickIRCodeDownload next -> do
@@ -157,7 +209,8 @@ component =
       millisec <- getApiTimeout
       { buttonNumber } <- H.get
       val <- H.liftAff $
-            let request = Api.getApiV1InfraRed url buttonNumber
+            let param = {baseurl: url, buttonNumber: buttonNumber}
+                request = Api.getApiV1InfraRed param
                 timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
                 response r = r.body
             in
@@ -175,7 +228,8 @@ component =
 
         Right ircode -> do
           res <- H.liftAff $
-              let request = Api.postApiV1InfraRed url ircode
+              let param = {baseurl: url, datum: ircode}
+                  request = Api.postApiV1InfraRed param
                   timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
                   response r = r.body
               in
@@ -193,7 +247,8 @@ component =
 
         Right ircode -> do
           res <- H.liftAff $
-                let request = Api.postApiV1TransIR url ircode
+                let param = {baseurl: url, datum: ircode}
+                    request = Api.postApiV1TransIR param
                     timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
                     response r = r.body
                 in
@@ -201,21 +256,53 @@ component =
           H.liftEffect $ logShow res
       pure next
 
-    OnClickIrdbTable code next -> do
-      { buttonNumber } <- H.get
-      let irval = Api.InfraRedValue {button_number: buttonNumber, code: code}
-      H.modify_ _ { infraredValue = Right irval, selectedTab = TabControlPanel }
+    OnClickIrdbPagination page next -> do
+      H.liftEffect Commons.disposePopover
+      state <- H.get
+      let qp = state.queryParams {page = Just page}
+      H.modify_ _ {queryParams = qp}
+      fetchIrdb
+      navigate $ Route.Infrared (Just qp)
+      H.liftEffect Commons.enablePopover
       pure next
 
-    OnValueChangeButtonNumber val next -> do
-      case Int.fromString val of
+    OnClickIrdbTable code next -> do
+      H.liftEffect Commons.disposePopover
+      state <- H.get
+      let irval = Api.DatumInfraRed {button_number: state.buttonNumber, code: code}
+          newTab = Just $ fromEnum TabControlPanel
+          qp = state.queryParams {tab = newTab}
+      H.modify_ _ {infraredValue = Right irval, queryParams = qp}
+      navigate $ Route.Infrared (Just qp)
+      pure next
+
+    OnClickIrdbTableCode code next -> do
+      case runParser code InfraRedCode.irCodeParser of
+        Left err ->
+          H.liftEffect $ logShow $ parseErrorMessage err
+        Right tokens ->
+          H.liftEffect $ logShow tokens
+      pure next
+
+    OnValueChangeButtonNumber text next -> do
+      case Int.fromString text of
         Nothing -> pure unit
         Just n -> H.modify_ \st -> st { buttonNumber = n }
       pure next
 
-    OnValueChangeManufacturer manuf next -> do
-      H.modify_ _{manufacturer = Just manuf}
+    OnValueChangeManufacturer text next -> do
+      H.liftEffect Commons.disposePopover
+      state <- H.get
+      let maybeManuf = either
+                        (const Nothing)
+                        (\(Api.RespGetIrdbManufacturers x) -> Just x.manufacturers)
+                        state.irdbManufacturers
+          maybeIndex = Array.elemIndex text =<< maybeManuf
+      let newQry = state.queryParams {manuf = maybeIndex, page = Just 1}
+      H.modify_ _ {queryParams = newQry}
       fetchIrdb
+      navigate $ Route.Infrared (Just newQry)
+      H.liftEffect Commons.enablePopover
       pure next
 
     OnChangeCSVFileSelect evt next -> do
@@ -236,14 +323,25 @@ component =
       fetchIrdb = do
         url <- getApiBaseURL
         millisec <- getApiTimeout
-        { manufacturer } <- H.get
-        val <- H.liftAff $
-              let request = Api.getApiV1Irdb url manufacturer
-                  timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
-                  response r = r.body
-              in
-              sequential $ parallel (response <$> request) <|> parallel timeout
-        H.modify_ \st -> st { irdbValues = val }
+        state <- H.get
+        case state.irdbManufacturers of
+          Left _ ->
+            pure unit
+
+          Right (Api.RespGetIrdbManufacturers xs) -> do
+            val <- H.liftAff $
+                  let param = { baseurl: url
+                              , manufacturer: Array.index xs.manufacturers =<< state.queryParams.manuf
+                              , product: Nothing
+                              , limits: Just 10
+                              , page: state.queryParams.page
+                              }
+                      request = Api.getApiV1Irdb param
+                      timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
+                      response r = r.body
+                  in
+                  sequential $ parallel (response <$> request) <|> parallel timeout
+            H.modify_ \st -> st { irdb = val }
 
   -- |
 --  readCSVFile :: File -> Effect Unit
@@ -277,16 +375,14 @@ component =
   render :: State -> H.ComponentHTML Query
   render state =
     HH.div_
-      [ Commons.navbar NavigateTo Route.Infrared
+      [ Commons.navbar NavigateTo (Route.Infrared Nothing)
       , HH.div
         [ HP.class_ HB.container ]
         [ renderTab state
-        , case state.selectedTab of
-            TabControlPanel ->
-              renderControlPanel state
-
-            TabIrdbTable ->
-              renderIrdbTable state
+        , case toEnum =<< state.queryParams.tab of
+            Nothing               -> renderControlPanel state
+            Just TabControlPanel  -> renderControlPanel state
+            Just TabIrdbTable     -> renderIrdbTable state
         ]
       ]
 
@@ -303,12 +399,16 @@ component =
         marginTop (px 12.0)
         marginBottom (px 36.0)
       ]
-      case state.selectedTab of
-        TabControlPanel ->
-          [ tabControlPanel [HB.active], tabIrdbTable [] ]
+      case toEnum =<< state.queryParams.tab of
+        Nothing ->
+          [ tabControlPanel [HB.active] , tabIrdbTable [] ]
 
-        TabIrdbTable ->
+        Just TabControlPanel ->
+          [ tabControlPanel [HB.active] , tabIrdbTable [] ]
+
+        Just TabIrdbTable ->
           [ tabControlPanel [], tabIrdbTable [HB.active] ]
+
     where
     tabControlPanel =
       item TabControlPanel "Control panel"
@@ -317,12 +417,14 @@ component =
       item TabIrdbTable "Infrared database"
 
     item newTab caption appendix =
+      let qp = state.queryParams { tab = Just $ fromEnum newTab }
+      in
       HH.li
         [ HP.class_ HB.navItem
         ]
         [ HH.a
           [ HP.classes $ [HB.navLink] <> appendix
-          , HE.onClick $ HE.input_ (OnClickTab newTab)
+          , HE.onClick $ HE.input_ (NavigateTo $ Route.Infrared $ Just qp)
           ]
           [ HH.text caption
           ]
@@ -375,12 +477,13 @@ component =
 --              , HP.type_ InputFile
 --              , HE.onChange $ HE.input OnChangeCSVFileSelect
 --              ]
-          [ irdbTable OnClickIrdbTable state.irdbValues
+          [ irdbPagination OnClickIrdbPagination state
+          , irdbTable OnClickIrdbTable OnClickIrdbTableCode state.irdb
           ]
         ]
       ]
     where
-    dropdown (Api.Manufacturers x) =
+    dropdown (Api.RespGetIrdbManufacturers x) =
       HH.div
         [ HP.class_ HB.row ]
         [ HH.div
@@ -392,20 +495,19 @@ component =
             [ HP.class_ HB.formControl
             , HE.onValueChange $ HE.input OnValueChangeManufacturer
             ]
-            $ map item x.manufacturers
+            $ Array.zipWith item (0 .. Array.length x.manufacturers) x.manufacturers
           ]
         ]
       where
-      item name =
-        if state.manufacturer == Just name then
-          HH.option [HP.selected true] [HH.text name]
-        else
-          HH.option [] [HH.text name]
+      item number name =
+        case state.queryParams.manuf of
+          Just manuf | manuf == number  -> HH.option [HP.selected true] [HH.text name]
+          _                             -> HH.option [] [HH.text name]
 
 -- |
-infraredPulse :: forall p i. Api.InfraRedValue -> Array (H.HTML p i)
-infraredPulse (Api.InfraRedValue ir) =
-  case runParser ir.code InfraRedCode.irCodeParser of
+infraredPulse :: forall p i. InfraredHexString -> Array (H.HTML p i)
+infraredPulse code =
+  case runParser code InfraRedCode.irCodeParser of
     Left err ->
       [ HH.text $ parseErrorMessage err ]
     Right tokens ->
@@ -428,9 +530,9 @@ infraredPulse (Api.InfraRedValue ir) =
     $ InfraRedCode.toMilliseconds n
 
 -- |
-infraredSignal :: forall p i. Api.InfraRedValue -> Array (H.HTML p i)
-infraredSignal (Api.InfraRedValue ir) =
-  Bifunctor.lmap parseErrorMessage (runParser ir.code InfraRedCode.irCodeParser)
+infraredSignal :: forall p i. InfraredHexString -> Array (H.HTML p i)
+infraredSignal code =
+  Bifunctor.lmap parseErrorMessage (runParser code InfraRedCode.irCodeParser)
   >>= InfraRedCode.irCodeSemanticAnalysis
   # case _ of
     Left msg ->
@@ -438,7 +540,7 @@ infraredSignal (Api.InfraRedValue ir) =
 
     Right (NEC irValue) ->
       [ HH.dl_
-        [ HH.dt_ [ HH.text "format" ]
+        [ HH.dt_ [ HH.text "protocol" ]
         , HH.dd_ [ HH.text "NEC" ]
         , HH.dt_ [ HH.text "customer" ]
         , HH.dd_ [ HH.text $ showHex irValue.customer ]
@@ -451,7 +553,7 @@ infraredSignal (Api.InfraRedValue ir) =
 
     Right (AEHA irValue) ->
       [ HH.dl_
-        [ HH.dt_ [ HH.text "format" ]
+        [ HH.dt_ [ HH.text "protocol" ]
         , HH.dd_ [ HH.text "AEHA" ]
         , HH.dt_ [ HH.text "customer" ]
         , HH.dd_ [ HH.text $ showHex irValue.customer ]
@@ -469,7 +571,7 @@ infraredSignal (Api.InfraRedValue ir) =
 
     Right (SONY irValue) ->
       [ HH.dl_
-        [ HH.dt_ [ HH.text "format" ]
+        [ HH.dt_ [ HH.text "protocol" ]
         , HH.dd_ [ HH.text "SONY" ]
         , HH.dt_ [ HH.text "command" ]
         , HH.dd_ [ HH.text $ showHex irValue.command ]
@@ -482,13 +584,17 @@ infraredSignal (Api.InfraRedValue ir) =
       ]
 
     Right (IRCodeEnvelope irValue) ->
-      [ HH.text "unknown format"
+      [ HH.text "unknown protocol"
       , HH.p_ [ HH.text $ show irValue ]
       ]
-    where
-    showHex x | x < 16 = "0x0" <> hexs x
-              | otherwise = "0x" <> hexs x
-    hexs = String.toUpper <<< Int.toStringAs Int.hexadecimal
+
+-- |
+showHex :: Int -> String
+showHex = case _ of
+  x | x < 16    -> "0x0" <> hexs x
+    | otherwise -> "0x" <> hexs x
+  where
+  hexs = String.toUpper <<< Int.toStringAs Int.hexadecimal
 
 -- |
 irDownloadButton :: forall p f. HQ.Action f -> H.HTML p f
@@ -569,56 +675,149 @@ renderInfraredRemoconCode state =
         Left _ ->
           []
 
-        Right val -> 
+        Right (Api.DatumInfraRed ir) -> 
           [ HH.h5_ [ HH.text "Pulse milliseconds" ]
-          , HH.p_ $ infraredPulse val
+          , HH.p_ $ infraredPulse ir.code
           , HH.h5_ [ HH.text "Decoded infrared signal" ]
-          , HH.p_ $ infraredSignal val
+          , HH.p_ $ infraredSignal ir.code
           ]
     ]
-
 -- |
-irdbTable :: forall p f. (String -> HQ.Action f) -> Either String Api.IRDBValues -> H.HTML p f
-irdbTable _ (Left reason) =
-  HH.p
-    [ HP.classes [ HB.alert, HB.alertDanger ] ]
-    [ HH.text reason ]
+irdbPagination
+  :: forall p f
+   . (Int -> HQ.Action f)
+  -> State
+  -> H.HTML p f
+irdbPagination click state = case state.irdb of
+  Left _ ->
+    HH.div_ []
 
--- |
-irdbTable action (Right values) =
-  HH.p_
-    [ HH.table
-      [ HP.classes [ HB.table, HB.tableHover ]
+  Right (Api.RespGetIrdb irdb) -> do
+    HH.nav
+      [ HP.attr (HC.AttrName "area-label") "Pagination"
       ]
-      [ tableHeading
-      , tableBody action values
+      [ HH.ul
+        [ HP.classes [BS.pagination, BS.row, BS.noGutters]
+        ]
+        $ map (item irdb) (1 .. irdb.pages)
       ]
-    ]
-
--- |
-tableHeading :: forall p i. H.HTML p i
-tableHeading =
-  HH.thead_ [ HH.tr_ items ]
   where
-  items =
-    map
-      (HH.th_ <<< Array.singleton <<< HH.text)
-      [ "id", "manufacturer", "product", "key", "code" ]
+  item irdb number =
+    HH.li
+    [ HP.classes $ classes irdb number ]
+    [ HH.a
+      [ HP.class_ BS.pageLink
+      , HE.onClick $ HE.input_ (click number)
+      ]
+      $ text irdb number
+    ]
+
+  classes irdb n =
+    if n == irdb.page then
+      [ BS.pageItem, BS.colAuto, BS.active ]
+    else
+      [ BS.pageItem, BS.colAuto ]
+
+  text irdb n =
+    if n == irdb.page then
+      [ HH.text $ Int.toStringAs Int.decimal n
+      , HH.span [HP.class_ BS.srOnly] [HH.text "(current)"]
+      ]
+    else
+      [ HH.text $ Int.toStringAs Int.decimal n ]
 
 -- |
-tableBody :: forall p f. (String -> HQ.Action f) -> Api.IRDBValues -> H.HTML p f
-tableBody action values =
-  HH.tbody_ $ map (tableRow action) values
+irdbTable
+  :: forall p f
+   . (String -> HQ.Action f)
+  -> (String -> HQ.Action f)
+  -> Either String Api.RespGetIrdb
+  -> H.HTML p f
+irdbTable rowClick codeClick = case _ of
+  Left reason ->
+    HH.p
+      [ HP.classes [ HB.alert, HB.alertDanger ] ]
+      [ HH.text reason ]
 
--- |
-tableRow :: forall p f. (String -> HQ.Action f) -> Api.IRDBValue -> H.HTML p f
-tableRow action (Api.IRDBValue val) =
-  HH.tr
-    [ HE.onClick $ HE.input_ (action val.code)
-    ]
-    [ HH.th_ [ HH.text $ Int.toStringAs Int.decimal val.id ]
-    , HH.td_ [ HH.text val.manuf ]
-    , HH.td_ [ HH.text val.prod ]
-    , HH.td_ [ HH.text val.key ]
-    , HH.td_ [ HH.text $ String.take 8 val.code ]
-    ]
+  Right (Api.RespGetIrdb irdb) ->
+    HH.p_
+      [ HH.table
+        [ HP.classes [ HB.table, HB.tableHover ]
+        ]
+        [ tableHeading
+        , tableBody irdb.data
+        ]
+      ]
+  where
+
+  tableHeading =
+    HH.thead_ [ HH.tr_ items ]
+    where
+    items =
+      map
+        (HH.th_ <<< Array.singleton <<< HH.text)
+        [ "id", "manufacturer", "product", "key", "code" ]
+
+  tableBody values =
+    HH.tbody_ $ map tableRow values
+
+  tableRow (Api.DatumIrdb val) =
+    let clk = HE.onClick $ HE.input_ (rowClick val.code)
+    in
+    HH.tr_
+      [ HH.th [HE.onClick $ HE.input_ (rowClick val.code)] [HH.text $ Int.toStringAs Int.decimal val.id]
+      , HH.td [clk] [HH.text val.manuf]
+      , HH.td [clk] [HH.text val.prod]
+      , HH.td [clk] [HH.text val.key]
+      , HH.td_
+        [ HH.button
+          [ HP.classes [ HB.btn, HB.btnSecondary, HB.justifyContentCenter ]
+          , HP.attr (HC.AttrName "data-container") "body"
+          , HP.attr (HC.AttrName "data-toggle") "popover"
+          , HP.attr (HC.AttrName "data-placement") "left"
+          , HP.attr (HC.AttrName "data-content") $ semantic val.code
+          ]
+          [ HH.text $ String.take 8 val.code, HH.text "..."
+          ]
+        ]
+      ]
+
+  semantic x =
+    Bifunctor.lmap parseErrorMessage (runParser x InfraRedCode.irCodeParser)
+    >>= InfraRedCode.irCodeSemanticAnalysis
+    # case _ of
+      Left msg -> msg
+
+      Right (NEC irValue) ->
+        String.joinWith " "
+          [ "NEC"
+          , showHex irValue.customer
+          , showHex irValue.data
+          , showHex irValue.invData
+          ]
+
+      Right (AEHA irValue) ->
+        String.joinWith " " $ Array.concat
+          [ [ "AEHA"
+            , showHex irValue.customer
+            , showHex irValue.parity
+            , showHex irValue.data0
+            ]
+          , map showHex irValue.data
+          ]
+
+      Right (SONY irValue) ->
+        String.joinWith " " $ Array.concat
+          [ [ "SONY"
+            , showHex irValue.command
+            ]
+          , map showHex irValue.addresses
+          ]
+
+      Right (IRCodeEnvelope irValue) ->
+        String.joinWith " " $ Array.concat
+          [ [ "Unkown"
+            , show irValue
+            ]
+          ]
+  

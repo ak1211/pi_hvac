@@ -23,6 +23,7 @@ module InfraRedCode
   , analysisPhase1
   , analysisPhase2
   , mkIRLeader
+  , InfraredHexString
   , OnOffCount
   , IRCodeToken(..)
   , CodeBodyAEHA
@@ -57,6 +58,9 @@ import Text.Parsing.Parser (Parser)
 import Text.Parsing.Parser.Combinators (try, (<?>))
 import Text.Parsing.Parser.Token (hexDigit)
 import Utils (toArray2D)
+
+-- | 赤外線コード型
+type InfraredHexString = String
 
 -- | count is based on 38khz carrier
 type OnOffCount = {on :: Int, off :: Int}

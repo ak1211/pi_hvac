@@ -27,6 +27,10 @@ defmodule PiHvac.Api do
   alias PiHvac.Api.EnvMeasured
   alias PiHvac.Api.IRDB
 
+  defmodule ListIrdbOptions do
+    defstruct [:limits, :offset, :manufacturer, :product]
+  end
+
   @doc """
   Returns the list of envmeasured.
 
@@ -137,15 +141,46 @@ defmodule PiHvac.Api do
       [%IRDB{}, ...]
 
   """
-  def list_irdb(manufacturer) do
-    if is_nil(manufacturer) do
-      IRDB
-      |> Repo.all
-    else
-      IRDB
-      |> where(manufacturer: ^manufacturer)
-      |> Repo.all
+  def list_irdb(%{:limits       => limits,
+                  :offset       => offset,
+                  :manufacturer => manuf,
+                  :product      => prod}) do
+    IRDB
+    |> case do
+      v when not is_nil(manuf) -> where(v, manufacturer: ^manuf)
+      v -> v
     end
+    |> case do
+      v when not is_nil(prod) -> where(v, product: ^prod)
+      v -> v
+    end
+    |> case do
+      v when not is_nil(limits) -> limit(v, ^limits)
+      v -> v
+    end
+    |> case do
+      v when not is_nil(offset) -> offset(v, ^offset)
+      v -> v
+    end
+    |> Repo.all
+  end
+
+  @doc """
+  Returns the counts of irdb.
+  """
+  def counts_irdb(%{:manufacturer => manuf,
+                    :product => prod}) do
+    IRDB
+    |> case do
+      v when not is_nil(manuf) -> where(v, manufacturer: ^manuf)
+      v -> v
+    end
+    |> case do
+      v when not is_nil(prod) -> where(v, product: ^prod)
+      v -> v
+    end
+    |> select(count())
+    |> Repo.one
   end
 
   @doc """
@@ -242,6 +277,22 @@ defmodule PiHvac.Api do
     IRDB
     |> select([x], %{manufacturer: x.manufacturer})
     |> distinct([x], x.manufacturer)
+    |> Repo.all
+  end
+
+  @doc """
+  Returns the list of irdb product.
+
+  ## Examples
+
+      iex> list_irdb_product()
+      [%IRDB{}, ...]
+
+  """
+  def list_irdb_product() do
+    IRDB
+    |> select([x], %{product: x.product})
+    |> distinct([x], x.product)
     |> Repo.all
   end
 

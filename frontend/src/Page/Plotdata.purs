@@ -50,8 +50,8 @@ import Route as Route
 import Utils as Utils
 
 type State =
-  { measValues :: Api.EnvMeasValues
-  , recordsLimit :: RecordsLimit
+  { measValues    :: Api.RespGetMeasurements
+  , recordsLimit  :: RecordsLimit
   }
 
 data Query a
@@ -162,9 +162,9 @@ component =
     OnValueChangeRecordsLimit strLimit next -> do
       maybe (pure unit) modifyRecordsLimit $ Int.fromString strLimit
       { recordsLimit } <- H.get
-      let limit = Just $ unwrap recordsLimit
       url <- getApiBaseURL
-      res <- H.liftAff $ Api.getApiV1Measurements url limit
+      let param = {baseurl: url, limits: Just $ unwrap recordsLimit}
+      res <- H.liftAff $ Api.getApiV1Measurements param
       case res.body of
         Left a ->
           H.liftEffect $ logShow a
@@ -203,7 +203,7 @@ card id_ class_ header body =
     ]
 
 -- |
-chartLabels :: Api.EnvMeasValues -> Array String
+chartLabels :: Api.RespGetMeasurements -> Array String
 chartLabels values =
   map (maybe "N/A" showDateTime <<< localDateTime <<< measDateTime) values
   where
@@ -212,7 +212,7 @@ chartLabels values =
   measDateTime    = _.measured_at <<< unwrap
 
 -- |
-chartDatasets :: Api.EnvMeasValues -> {degc :: ChartDatasets, hpa :: ChartDatasets, rh :: ChartDatasets}
+chartDatasets :: Api.RespGetMeasurements -> {degc :: ChartDatasets, hpa :: ChartDatasets, rh :: ChartDatasets}
 chartDatasets values =
   let
     labels = chartLabels values
@@ -240,9 +240,8 @@ chartDatasets values =
   , rh: { labels: labels, datasets: [ dRh ] }
   }
 
-
 --| temp / press / hum table
-measurementalTable :: forall p i. Api.EnvMeasValues -> H.HTML p i
+measurementalTable :: forall p i. Api.RespGetMeasurements -> H.HTML p i
 measurementalTable measValues =
   HH.table [ HP.class_ HB.table ]
     [ HH.thead_ heading
@@ -260,7 +259,7 @@ measurementalTable measValues =
       ]
     ]
   
-  tableRow (Api.EnvMeasValue v) =
+  tableRow (Api.MeasEnvironment v) =
     let datetime = Utils.asiaTokyoDateTime $ unwrap v.measured_at
     in
     HH.tr_ 
