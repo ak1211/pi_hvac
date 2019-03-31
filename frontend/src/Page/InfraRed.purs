@@ -27,7 +27,7 @@ import Api as Api
 import AppM (class HasApiAccessible, class Navigate, getApiBaseURL, getApiTimeout, navigate)
 import CSS (em, margin, marginBottom, marginTop, minHeight, padding, px, rem, width)
 import Control.Alt ((<|>))
-import Data.Array ((..))
+import Data.Array ((:), (..))
 import Data.Array as Array
 import Data.Bifunctor as Bifunctor
 import Data.Either (Either(..), either, isRight)
@@ -38,7 +38,6 @@ import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Bounded (genericBottom, genericTop)
 import Data.Generic.Rep.Enum (genericCardinality, genericFromEnum, genericPred, genericSucc, genericToEnum)
 import Data.Int as Int
-import Data.Lens (_1)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (unwrap)
 import Data.String as String
@@ -541,14 +540,30 @@ infraredBinary code =
     Left msg ->
       [ HH.text msg ]
     Right (Tuple leader vs) ->
-      [ case leader of
-          ProtoAeha _     -> HH.text "AEHA"
-          ProtoNec _      -> HH.text "NEC"
-          ProtoSony _     -> HH.text "SONY" 
-          ProtoUnknown _  -> HH.text "Unknown" 
-      , HH.br_
-      , row $ toArray2D 8 vs
-      ]
+      case leader of
+          ProtoAeha _     ->
+            [ HH.text "AEHA"
+            , HH.br_
+            , row $ toArray2D 8 vs
+            ]
+          ProtoNec _      ->
+            [ HH.text "NEC"
+            , HH.br_
+            , row $ toArray2D 8 vs
+            ]
+          ProtoSony _  ->
+            let bit7 = Array.take 7 vs
+                left = Array.drop 7 vs
+            in
+            [ HH.text "SONY"
+            , HH.br_
+            , row (bit7 : toArray2D 8 left)
+            ]
+          ProtoUnknown _     ->
+            [ HH.text "Unknown"
+            , HH.br_
+            , row $ toArray2D 8 vs
+            ]
   where
   row xxs =
     HH.div [HP.class_ BS.row] $ map col xxs
@@ -589,10 +604,7 @@ infraredSignal code =
         , HH.dt_ [ HH.text "data0" ]
         , HH.dd_ [ HH.text $ showHexAndDec irValue.data0 ]
         , HH.dt_ [ HH.text "data" ]
-        , HH.dd_
-          $ intercalate
-              [ HH.text ", " ]
-              $ map (Array.singleton <<< HH.text <<< showHexAndDec) irValue.data
+        , HH.dd_ [ row irValue.data ]
         ]
       ]
 
@@ -603,10 +615,7 @@ infraredSignal code =
         , HH.dt_ [ HH.text "command" ]
         , HH.dd_ [ HH.text $ showHexAndDec irValue.command ]
         , HH.dt_ [ HH.text "address" ]
-        , HH.dd_
-          $ intercalate
-              [ HH.text ", " ]
-              $ map (Array.singleton <<< HH.text <<< showHexAndDec) irValue.addresses
+        , HH.dd_ [ row irValue.addresses ]
         ]
       ]
 
@@ -614,6 +623,13 @@ infraredSignal code =
       [ HH.text "unknown protocol"
       , HH.p_ [ HH.text $ show irValue ]
       ]
+    where
+    row xs =
+      HH.div [HP.class_ BS.row] $ map col xs
+
+    col x =
+      HH.div [HP.class_ BS.col1] [HH.text $ showHexAndDec x]
+
 
 -- |
 showHex :: Int -> String
@@ -626,7 +642,7 @@ showHex = case _ of
 -- |
 showHexAndDec :: Int -> String
 showHexAndDec n =
-  showHex n <> " (" <> Int.toStringAs Int.decimal n <> ")"
+  showHex n <> "(" <> Int.toStringAs Int.decimal n <> ")"
 
 -- |
 irDownloadButton :: forall p f. HQ.Action f -> H.HTML p f

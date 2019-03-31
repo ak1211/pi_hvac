@@ -8,7 +8,7 @@ import Data.String as String
 import Data.Time.Duration (Milliseconds(..))
 import Effect (Effect)
 import Effect.Console (log, logShow)
-import InfraRedCode (IRCodeEnvelope(..), IRCodeToken(..), analysisPhase1, analysisPhase2, fromMilliseconds, irCodeParser, irCodeSemanticAnalysis, toMilliseconds)
+import InfraRedCode (IRCodeEnvelope(..), IRCodeToken(..), fromMilliseconds, irCodeParser, irCodeSemanticAnalysis, semanticAnalysisPhase1, semanticAnalysisPhase2, toMilliseconds)
 import Test.Assert (assert')
 import Text.Parsing.Parser (Parser, parseErrorMessage, parseErrorPosition, runParser)
 import Text.Parsing.Parser.Pos (Position(..))
@@ -263,6 +263,6 @@ main = do
     Left a -> log $ parseErrorMessage a
     Right a -> 
       let expected = expectIRCodeFormat3 
-          value = analysisPhase2 =<< analysisPhase1 a
+          value = semanticAnalysisPhase2 =<< semanticAnalysisPhase1 a
       in
       assert' ("expected: " <> show expected) (Right expected == value)
