@@ -20,8 +20,8 @@ module InfraRedCode
   , toMilliseconds
   , irCodeParser
   , irCodeSemanticAnalysis
-  , analysisPhase1
-  , analysisPhase2
+  , semanticAnalysisPhase1
+  , semanticAnalysisPhase2
   , mkIRLeader
   , InfraredHexString
   , OnOffCount
@@ -30,7 +30,7 @@ module InfraRedCode
   , CodeBodyNEC
   , CodeBodySONY
   , IRCodeEnvelope(..)
-  , IRLeader
+  , IRLeader(..)
   , IRSignal(..)
   , IRSignals
   ) where
@@ -39,7 +39,7 @@ import Prelude
 
 import Control.Alt ((<|>))
 import Control.MonadZero (guard)
-import Data.Array ((..), (:))
+import Data.Array ((..))
 import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
@@ -52,7 +52,6 @@ import Data.String.CodeUnits (fromCharArray)
 import Data.Time.Duration (Milliseconds(..))
 import Data.Tuple (Tuple(..))
 import Data.Tuple as Tuple
-import Data.Unfoldable1 (unfoldr1)
 import Partial.Unsafe (unsafePartial)
 import Text.Parsing.Parser (Parser)
 import Text.Parsing.Parser.Combinators (try, (<?>))
@@ -200,11 +199,11 @@ irCodeParser =
 -- |
 irCodeSemanticAnalysis :: Array IRCodeToken -> Either String IRCodeEnvelope
 irCodeSemanticAnalysis =
-  analysisPhase2 <=< analysisPhase1
+  semanticAnalysisPhase2 <=< semanticAnalysisPhase1
 
 -- |
-analysisPhase1 :: Array IRCodeToken -> Either String (Tuple IRLeader IRSignals)
-analysisPhase1 tokens =
+semanticAnalysisPhase1 :: Array IRCodeToken -> Either String (Tuple IRLeader IRSignals)
+semanticAnalysisPhase1 tokens =
   case Array.uncons tokens of
     Just {head: x, tail: xs} ->
       maybe (Left "broken code") Right $ go x xs
@@ -222,12 +221,8 @@ analysisPhase1 tokens =
     pure $ Tuple leader (Array.catMaybes maybeSigs)
 
   demodulation :: IRLeader -> Array IRCodeToken -> Array (Maybe IRSignal)
-  demodulation leader xs =
-    case leader of
-      ProtoAeha _ -> map pulsePositionModulation xs
-      ProtoNec _ -> map pulsePositionModulation xs
-      ProtoSony p -> map pulsePositionModulation $ realignment p xs
-      ProtoUnknown _ -> map pulsePositionModulation xs
+  demodulation _ xs =
+    map pulsePositionModulation xs
 
   equal' :: OnOffCount -> Boolean
   equal' x
@@ -242,44 +237,9 @@ analysisPhase1 tokens =
               | otherwise -> Just Assert
     (Leftover _) -> Nothing
 
-  realignment :: OnOffCount -> Array IRCodeToken -> Array IRCodeToken
-  realignment onoffcount irtokens =
-    let counts = onoffcount.off : Array.concatMap flat irtokens
-    in
-    combine counts
-    where
-
-    flat :: IRCodeToken -> Array Int
-    flat (Pulse v) = [v.on, v.off]
-    flat (Leftover v) = [v]
-
-    combine :: Array Int -> Array IRCodeToken
-    combine =
-      unfoldr1 pair
-      where
-
-      pair :: Array Int -> Tuple IRCodeToken (Maybe (Array Int))
-      pair xs =
-        case Tuple (Array.take 2 xs) (Array.drop 2 xs) of
-
-          Tuple [a, b] [] ->
-            Tuple (Pulse {off: a, on: b}) Nothing
-
-          Tuple [a, b] [stopbit] ->   -- ストップビットは無視する
-            Tuple (Pulse {off: a, on: b}) Nothing
-
-          Tuple [a, b] vs ->
-            Tuple (Pulse {off: a, on: b}) (Just vs)
-
-          Tuple [a] _ ->
-            Tuple (Leftover a) Nothing
-
-          _ ->
-            Tuple (Leftover 0) Nothing
-
 -- |
-analysisPhase2 :: Tuple IRLeader IRSignals -> Either String IRCodeEnvelope
-analysisPhase2 input =
+semanticAnalysisPhase2 :: Tuple IRLeader IRSignals -> Either String IRCodeEnvelope
+semanticAnalysisPhase2 input =
   case Tuple.fst input of
     ProtoAeha _     -> aeha
     ProtoNec _      -> nec 
@@ -310,10 +270,10 @@ analysisPhase2 input =
     stopBit   <- maybe (Left "fail to read: stop bit (AEHA)") Right
                   $ guard (sData.last == Assert)
     let octet = toArray2D 8 $ sData.init
-    { customer: deserialize sCustomer
-    , parity: deserialize sParity
-    , data0: deserialize sData0
-    , data: map deserialize octet
+    { customer: deserializeLsbFirst sCustomer
+    , parity: deserializeLsbFirst sParity
+    , data0: deserializeLsbFirst sData0
+    , data: map deserializeLsbFirst octet
     } # (Right <<< AEHA)
 
   nec :: Either String IRCodeEnvelope
@@ -322,17 +282,17 @@ analysisPhase2 input =
     sData     <- take 16 8 "fail to read: data code (NEC)"
     sInvData  <- take 24 8 "fail to read: inv-data code (NEC)"
     stopBit   <- take 32 1 "fail to read: stop bit (NEC)"
-    { customer: deserialize sCustomer
-    , data: deserialize sData
-    , invData: deserialize sInvData
+    { customer: deserializeLsbFirst sCustomer
+    , data: deserializeLsbFirst sData
+    , invData: deserializeLsbFirst sInvData
     } # (Right <<< NEC)
 
   sony :: Either String IRCodeEnvelope
   sony = do
-    sCommand <- take 0 7 "fail to read: command code (SONY)"
-    let octet = toArray2D 8 $ takeEnd 8
-    { command: deserialize sCommand
-    , addresses: map deserialize octet
+    sCommand <- take 0 6 "fail to read: command code (SONY)"
+    let octet = toArray2D 8 $ takeEnd 7
+    { command: deserializeLsbFirst sCommand
+    , addresses: map deserializeLsbFirst octet
     } # (Right <<< SONY)
 
   other :: Either String IRCodeEnvelope
@@ -340,8 +300,8 @@ analysisPhase2 input =
     Right $ IRCodeEnvelope (Tuple.snd input)
 
 -- |
-deserialize :: IRSignals -> Int
-deserialize =
+deserializeLsbFirst :: IRSignals -> Int
+deserializeLsbFirst =
   Array.foldl f 0 <<< Array.reverse
   where
   f :: Int -> IRSignal -> Int

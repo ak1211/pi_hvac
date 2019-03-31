@@ -38,9 +38,11 @@ import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Bounded (genericBottom, genericTop)
 import Data.Generic.Rep.Enum (genericCardinality, genericFromEnum, genericPred, genericSucc, genericToEnum)
 import Data.Int as Int
+import Data.Lens (_1)
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (unwrap)
 import Data.String as String
+import Data.Tuple (Tuple(..))
 import Effect (Effect)
 import Effect.Aff (delay, parallel, sequential)
 import Effect.Aff.Class (class MonadAff)
@@ -56,12 +58,13 @@ import Halogen.HTML.Properties as HP
 import Halogen.Query as HQ
 import Halogen.Themes.Bootstrap4 as BS
 import Halogen.Themes.Bootstrap4 as HB
-import InfraRedCode (IRCodeEnvelope(..), IRCodeToken(..), InfraredHexString)
+import InfraRedCode (IRCodeEnvelope(..), IRCodeToken(..), IRLeader(..), InfraredHexString)
 import InfraRedCode as InfraRedCode
 import Page.Commons as Commons
 import Route (Route)
 import Route as Route
 import Text.Parsing.Parser (parseErrorMessage, runParser)
+import Utils (toArray2D)
 import Web.Event.Event (Event, EventType(..))
 import Web.Event.Event as Event
 import Web.Event.EventTarget (addEventListener, eventListener)
@@ -530,6 +533,30 @@ infraredPulse code =
     $ InfraRedCode.toMilliseconds n
 
 -- |
+infraredBinary :: forall p i. InfraredHexString -> Array (H.HTML p i)
+infraredBinary code =
+  Bifunctor.lmap parseErrorMessage (runParser code InfraRedCode.irCodeParser)
+  >>= InfraRedCode.semanticAnalysisPhase1
+  # case _ of
+    Left msg ->
+      [ HH.text msg ]
+    Right (Tuple leader vs) ->
+      [ case leader of
+          ProtoAeha _     -> HH.text "AEHA"
+          ProtoNec _      -> HH.text "NEC"
+          ProtoSony _     -> HH.text "SONY" 
+          ProtoUnknown _  -> HH.text "Unknown" 
+      , HH.br_
+      , row $ toArray2D 8 vs
+      ]
+  where
+  row xxs =
+    HH.div [HP.class_ BS.row] $ map col xxs
+
+  col xs =
+    HH.div [HP.class_ BS.col1] $ map (HH.text <<< show) xs
+
+-- |
 infraredSignal :: forall p i. InfraredHexString -> Array (H.HTML p i)
 infraredSignal code =
   Bifunctor.lmap parseErrorMessage (runParser code InfraRedCode.irCodeParser)
@@ -543,11 +570,11 @@ infraredSignal code =
         [ HH.dt_ [ HH.text "protocol" ]
         , HH.dd_ [ HH.text "NEC" ]
         , HH.dt_ [ HH.text "customer" ]
-        , HH.dd_ [ HH.text $ showHex irValue.customer ]
+        , HH.dd_ [ HH.text $ showHexAndDec irValue.customer ]
         , HH.dt_ [ HH.text "data" ]
-        , HH.dd_ [ HH.text $ showHex irValue.data ]
+        , HH.dd_ [ HH.text $ showHexAndDec irValue.data ]
         , HH.dt_ [ HH.text "invarted-data" ]
-        , HH.dd_ [ HH.text $ showHex irValue.invData ]
+        , HH.dd_ [ HH.text $ showHexAndDec irValue.invData ]
         ]
       ]
 
@@ -556,16 +583,16 @@ infraredSignal code =
         [ HH.dt_ [ HH.text "protocol" ]
         , HH.dd_ [ HH.text "AEHA" ]
         , HH.dt_ [ HH.text "customer" ]
-        , HH.dd_ [ HH.text $ showHex irValue.customer ]
+        , HH.dd_ [ HH.text $ showHexAndDec irValue.customer ]
         , HH.dt_ [ HH.text "parity" ]
-        , HH.dd_ [ HH.text $ showHex irValue.parity ]
+        , HH.dd_ [ HH.text $ showHexAndDec irValue.parity ]
         , HH.dt_ [ HH.text "data0" ]
-        , HH.dd_ [ HH.text $ showHex irValue.data0 ]
+        , HH.dd_ [ HH.text $ showHexAndDec irValue.data0 ]
         , HH.dt_ [ HH.text "data" ]
         , HH.dd_
           $ intercalate
               [ HH.text ", " ]
-              $ map (Array.singleton <<< HH.text <<< showHex) irValue.data
+              $ map (Array.singleton <<< HH.text <<< showHexAndDec) irValue.data
         ]
       ]
 
@@ -574,12 +601,12 @@ infraredSignal code =
         [ HH.dt_ [ HH.text "protocol" ]
         , HH.dd_ [ HH.text "SONY" ]
         , HH.dt_ [ HH.text "command" ]
-        , HH.dd_ [ HH.text $ showHex irValue.command ]
+        , HH.dd_ [ HH.text $ showHexAndDec irValue.command ]
         , HH.dt_ [ HH.text "address" ]
         , HH.dd_
           $ intercalate
               [ HH.text ", " ]
-              $ map (Array.singleton <<< HH.text <<< showHex) irValue.addresses
+              $ map (Array.singleton <<< HH.text <<< showHexAndDec) irValue.addresses
         ]
       ]
 
@@ -595,6 +622,11 @@ showHex = case _ of
     | otherwise -> "0x" <> hexs x
   where
   hexs = String.toUpper <<< Int.toStringAs Int.hexadecimal
+
+-- |
+showHexAndDec :: Int -> String
+showHexAndDec n =
+  showHex n <> " (" <> Int.toStringAs Int.decimal n <> ")"
 
 -- |
 irDownloadButton :: forall p f. HQ.Action f -> H.HTML p f
@@ -678,6 +710,8 @@ renderInfraredRemoconCode state =
         Right (Api.DatumInfraRed ir) -> 
           [ HH.h5_ [ HH.text "Pulse milliseconds" ]
           , HH.p_ $ infraredPulse ir.code
+          , HH.h5_ [ HH.text "Decoded binaries" ]
+          , HH.p_ $ infraredBinary ir.code
           , HH.h5_ [ HH.text "Decoded infrared signal" ]
           , HH.p_ $ infraredSignal ir.code
           ]
