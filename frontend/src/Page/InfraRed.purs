@@ -624,7 +624,7 @@ infraredSignal code =
         , HH.dt_ [ HH.text "command" ]
         , HH.dd_ [ HH.text $ showHexAndDec irValue.command ]
         , HH.dt_ [ HH.text "address" ]
-        , HH.dd_ [ row irValue.addresses ]
+        , HH.dd_ [ HH.text $ showHexAndDec irValue.address ]
         ]
       ]
 
@@ -869,11 +869,10 @@ irdbTable rowClick codeClick = case _ of
           ]
 
       SONY irValue ->
-        String.joinWith " " $ Array.concat
-          [ [ "SONY"
-            , showHex irValue.command
-            ]
-          , map showHex irValue.addresses
+        String.joinWith " "
+          [ "SONY"
+          , showHex irValue.command
+          , showHex irValue.address
           ]
 
       IRCodeEnvelope irValue ->

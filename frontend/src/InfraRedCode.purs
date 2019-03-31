@@ -47,7 +47,6 @@ import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), fromJust, maybe)
-import Data.Maybe as Maybe
 import Data.Newtype (wrap)
 import Data.String.CodeUnits (fromCharArray)
 import Data.Time.Duration (Milliseconds(..))
@@ -138,7 +137,7 @@ type CodeBodyAEHA = {customer :: Int, parity :: Int, data0 :: Int, data :: Array
 type CodeBodyNEC = {customer :: Int, data :: Int, invData :: Int}
 
 -- |
-type CodeBodySONY = {command:: Int, addresses :: Array Int}
+type CodeBodySONY = {command:: Int, address :: Int}
 
 -- |
 data IRCodeEnvelope
@@ -308,9 +307,9 @@ semanticAnalysisPhase3 input =
   sony :: Either String IRCodeEnvelope
   sony = do
     sCommand <- take 0 6 "fail to read: command code (SONY)"
-    let octet = toArray2D 8 $ takeEnd 7
+    let sAddress = takeEnd 7
     { command: deserializeLsbFirst sCommand
-    , addresses: map deserializeLsbFirst octet
+    , address: deserializeLsbFirst sAddress
     } # (Right <<< SONY)
 
   other :: Either String IRCodeEnvelope
