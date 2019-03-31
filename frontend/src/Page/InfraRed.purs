@@ -586,8 +586,8 @@ infraredSignal code =
       [ HH.text msg ]
     Right xs ->
       intercalate [HH.hr_] $ map display xs
-
   where
+
   display = case _ of
     NEC irValue ->
       [ HH.dl_
@@ -638,7 +638,6 @@ infraredSignal code =
 
   col x =
     HH.div [HP.class_ BS.col1] [HH.text $ showHexAndDec x]
-
 
 -- |
 showHex :: Int -> String
@@ -741,6 +740,7 @@ renderInfraredRemoconCode state =
           , HH.p_ $ infraredSignal ir.code
           ]
     ]
+
 -- |
 irdbPagination
   :: forall p f
@@ -761,6 +761,7 @@ irdbPagination click state = case state.irdb of
         $ map (item irdb) (1 .. irdb.pages)
       ]
   where
+
   item irdb number =
     HH.li
     [ HP.classes $ classes irdb number ]
@@ -834,51 +835,52 @@ irdbTable rowClick codeClick = case _ of
           , HP.attr (HC.AttrName "data-container") "body"
           , HP.attr (HC.AttrName "data-toggle") "popover"
           , HP.attr (HC.AttrName "data-placement") "left"
-          , HP.attr (HC.AttrName "data-content") $ semantic val.code
+          , HP.attr (HC.AttrName "data-content") $ infraredSemantics val.code
           ]
           [ HH.text $ String.take 8 val.code, HH.text "..."
           ]
         ]
       ]
 
-  semantic x =
-    Bifunctor.lmap parseErrorMessage (runParser x InfraRedCode.irCodeParser)
-    >>= InfraRedCode.irCodeSemanticAnalysis
-    # case _ of
-      Left msg -> msg
-      Right xs -> String.joinWith ", " $ map display xs
-    where
+-- |
+infraredSemantics :: String -> String
+infraredSemantics x =
+  Bifunctor.lmap parseErrorMessage (runParser x InfraRedCode.irCodeParser)
+  >>= InfraRedCode.irCodeSemanticAnalysis
+  # case _ of
+    Left msg -> msg
+    Right xs -> String.joinWith ", " $ map display xs
+  where
 
-    display = case _ of
-      NEC irValue ->
-        String.joinWith " "
-          [ "NEC"
+  display = case _ of
+    NEC irValue ->
+      String.joinWith " "
+        [ "NEC"
+        , showHex irValue.customer
+        , showHex irValue.data
+        , showHex irValue.invData
+        ]
+
+    AEHA irValue ->
+      String.joinWith " " $ Array.concat
+        [ [ "AEHA"
           , showHex irValue.customer
-          , showHex irValue.data
-          , showHex irValue.invData
+          , showHex irValue.parity
+          , showHex irValue.data0
           ]
+        , map showHex irValue.data
+        ]
 
-      AEHA irValue ->
-        String.joinWith " " $ Array.concat
-          [ [ "AEHA"
-            , showHex irValue.customer
-            , showHex irValue.parity
-            , showHex irValue.data0
-            ]
-          , map showHex irValue.data
-          ]
+    SONY irValue ->
+      String.joinWith " "
+        [ "SONY"
+        , showHex irValue.command
+        , showHex irValue.address
+        ]
 
-      SONY irValue ->
-        String.joinWith " "
-          [ "SONY"
-          , showHex irValue.command
-          , showHex irValue.address
+    IRCodeEnvelope irValue ->
+      String.joinWith " " $ Array.concat
+        [ [ "Unkown"
+          , show irValue
           ]
-
-      IRCodeEnvelope irValue ->
-        String.joinWith " " $ Array.concat
-          [ [ "Unkown"
-            , show irValue
-            ]
-          ]
-  
+        ]
