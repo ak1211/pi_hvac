@@ -387,6 +387,7 @@ component =
             Just TabControlPanel  -> renderControlPanel state
             Just TabIrdbTable     -> renderIrdbTable state
         ]
+      , Commons.footer
       ]
 
   renderTab state =

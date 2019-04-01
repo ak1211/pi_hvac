@@ -158,6 +158,7 @@ component =
         , card "humi" [{-HB.show-}] "相対湿度" [ HH.slot' ChildPath.cp3 unit LineChart.component humChartData absurd ]
         , card "meas" [] "測定値" [measurementalTable state.measValues]
         ]
+      , Commons.footer
       ]
 
   eval :: Query ~> H.ParentDSL State Query ChildQuery ChildSlot Void m
