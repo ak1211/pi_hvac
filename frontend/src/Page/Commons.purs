@@ -43,8 +43,6 @@ import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Query as HQ
-import Halogen.Themes.Bootstrap4 as BS
-import Halogen.Themes.Bootstrap4 as BS
 import Halogen.Themes.Bootstrap4 as HB
 import Route (Route)
 import Route as Route
@@ -76,18 +74,18 @@ navbar :: forall p f. (Route -> HQ.Action f) -> Route -> H.HTML p f
 navbar navigateAction current =
   HH.nav
     [ HP.classes
-      [ BS.navbar
-      , BS.navbarExpandSm
-      , BS.fixedTop
-      , BS.navbarDark
-      , BS.bgDark
+      [ HB.navbar
+      , HB.navbarExpandSm
+      , HB.fixedTop
+      , HB.navbarDark
+      , HB.bgDark
       ]
     ]
     -- navbar brand
-    [ HH.div [ HP.class_ BS.navbarBrand ] [ HH.text "PiHVAC" ]
+    [ HH.div [ HP.class_ HB.navbarBrand ] [ HH.text "PiHVAC" ]
     -- navbar toggler
     , HH.button
-      [ HP.class_ BS.navbarToggler
+      [ HP.class_ HB.navbarToggler
       , HP.type_ HP.ButtonButton
       , HP.attr (HC.AttrName "data-toggle") "collapse"
       , HP.attr (HC.AttrName "data-target") "#navbarNav"
@@ -95,18 +93,18 @@ navbar navigateAction current =
       , HP.attr (HC.AttrName "aria-expanded") "false"
       , HP.attr (HC.AttrName "aria-label") "Toggle navigation"
       ]
-      [ HH.span [ HP.class_ BS.navbarTogglerIcon ] []
+      [ HH.span [ HP.class_ HB.navbarTogglerIcon ] []
       ]
     -- navbar item
     , HH.div
       [ HP.classes
-        [ BS.collapse
-        , BS.navbarCollapse
+        [ HB.collapse
+        , HB.navbarCollapse
         ]
       , HP.id_ "navbarNav"
       ]
       [ HH.ul
-        [ HP.class_ BS.navbarNav
+        [ HP.class_ HB.navbarNav
         ]
         [ navItem Route.Home
         , navItem (Route.Plotdata Nothing)
@@ -119,9 +117,9 @@ navbar navigateAction current =
     {-}
     , HH.button
       [ HP.classes
-        [ BS.btn
-        , BS.btnOutlineWarning
-        , BS.justifyContentEnd
+        [ HB.btn
+        , HB.btnOutlineWarning
+        , HB.justifyContentEnd
         ]
       , HE.onClick $ HE.input_ $ navigateAction Route.Settings
       ]
@@ -132,21 +130,21 @@ navbar navigateAction current =
 
     navItem route =
       let clss =  if route == current
-                  then [ BS.navItem, BS.active ]
-                  else [ BS.navItem ]
+                  then [ HB.navItem, HB.active ]
+                  else [ HB.navItem ]
       in
       HH.li
         [ HP.classes $ Array.concat
-          [ [BS.navItem]
-          , if route == current then [BS.active] else []
+          [ [HB.navItem]
+          , if route == current then [HB.active] else []
           ]
         ]
         [ HH.button
           (if route == current then
-            [ HP.classes [ BS.btn, BS.navLink ]
+            [ HP.classes [ HB.btn, HB.navLink ]
             ]
             else
-            [ HP.classes [ BS.btn, BS.navLink ]
+            [ HP.classes [ HB.btn, HB.navLink ]
             , HE.onClick $ HE.input_ $ navigateAction route
             ]
           )
@@ -165,9 +163,9 @@ icon iconName =
 footer :: forall p i. H.HTML p i
 footer =
   HH.footer
-    [ HP.classes [ BS.fixedBottom, BS.bgLight ] ]
+    [ HP.classes [ HB.fixedBottom, HB.bgLight ] ]
     [ HH.p
-      [ HP.classes [ BS.p2, BS.textCenter, BS.bgLight, BS.textDark ] ]
+      [ HP.classes [ HB.p2, HB.textCenter, HB.bgLight, HB.textDark ] ]
       [ HH.text "PiHVAC ©2019 Akihiro Yamamoto." ]
     ]
 

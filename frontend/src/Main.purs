@@ -35,7 +35,7 @@ import Halogen.HTML as HH
 import Halogen.VDom.Driver (runUI)
 import Page.About as PgAbout
 import Page.Home as PgHome
-import Page.InfraRed as PgInfraRed
+import Page.Infrared as PgInfrared
 import Page.Plotdata as PgPlotdata
 import Page.Settings as PgSettings
 import Route (Route)
@@ -46,7 +46,7 @@ import Web.HTML (window)
 import Web.HTML.Location (origin)
 import Web.HTML.Window (location)
 
-type ChildQuery = Coproduct5 PgHome.Query PgPlotdata.Query PgInfraRed.Query PgSettings.Query PgAbout.Query
+type ChildQuery = Coproduct5 PgHome.Query PgPlotdata.Query PgInfrared.Query PgSettings.Query PgAbout.Query
 type ChildSlot = Either5 Unit Unit Unit Unit Unit
 
 type State =
@@ -84,7 +84,7 @@ rootComponent = H.parentComponent
       HH.slot' ChildPath.cp2 unit PgPlotdata.component state.route absurd
       
     Route.Infrared _ ->
-      HH.slot' ChildPath.cp3 unit PgInfraRed.component state.route absurd
+      HH.slot' ChildPath.cp3 unit PgInfrared.component state.route absurd
 
     Route.Settings ->
       HH.slot' ChildPath.cp4 unit PgSettings.component unit absurd

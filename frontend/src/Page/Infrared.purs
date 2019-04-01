@@ -15,7 +15,7 @@
  limitations under the License.
 -}
 
-module Page.InfraRed
+module Page.Infrared
   ( Query(..)
   , SelectedTab(..)
   , component
@@ -56,10 +56,9 @@ import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Query as HQ
-import Halogen.Themes.Bootstrap4 as BS
 import Halogen.Themes.Bootstrap4 as HB
-import InfraRedCode (IRCodeEnvelope(..), IRCodeToken(..), IRLeader(..), InfraredHexString)
-import InfraRedCode as InfraRedCode
+import InfraredCode (InfraredCodeSemantics(..), InfraredCode(..), InfraredLeader(..), InfraredHexString)
+import InfraredCode as IR
 import Page.Commons as Commons
 import Route (Route)
 import Route as Route
@@ -280,7 +279,7 @@ component =
       pure next
 
     OnClickIrdbTableCode code next -> do
-      case runParser code InfraRedCode.irCodeParser of
+      case runParser code IR.irHexStringDisassembler of
         Left err ->
           H.liftEffect $ logShow $ parseErrorMessage err
         Right tokens ->
@@ -511,7 +510,7 @@ component =
 -- |
 infraredPulse :: forall p i. InfraredHexString -> Array (H.HTML p i)
 infraredPulse code =
-  case runParser code InfraRedCode.irCodeParser of
+  case runParser code IR.irHexStringDisassembler of
     Left err ->
       [ HH.text $ parseErrorMessage err ]
     Right tokens ->
@@ -531,14 +530,14 @@ infraredPulse code =
     either (const "N/A") identity
     $ FN.formatNumber "0.0"
     $ unwrap
-    $ InfraRedCode.toMilliseconds n
+    $ IR.toMilliseconds n
 
 -- |
 infraredBinary :: forall p i. InfraredHexString -> Array (H.HTML p i)
 infraredBinary code =
-  Bifunctor.lmap parseErrorMessage (runParser code InfraRedCode.irCodeParser)
-  >>= InfraRedCode.semanticAnalysisPhase1
-  >>= traverse InfraRedCode.semanticAnalysisPhase2
+  Bifunctor.lmap parseErrorMessage (runParser code IR.irHexStringDisassembler)
+  >>= IR.semanticAnalysisPhase1
+  >>= traverse IR.semanticAnalysisPhase2
   # case _ of
     Left msg ->
       [ HH.text msg ]
@@ -572,16 +571,16 @@ infraredBinary code =
       ]
 
   row xxs =
-    HH.div [HP.class_ BS.row] $ map col xxs
+    HH.div [HP.class_ HB.row] $ map col xxs
 
   col xs =
-    HH.div [HP.class_ BS.col1] $ map (HH.text <<< show) xs
+    HH.div [HP.class_ HB.col1] $ map (HH.text <<< show) xs
 
 -- |
 infraredSignal :: forall p i. InfraredHexString -> Array (H.HTML p i)
 infraredSignal code =
-  Bifunctor.lmap parseErrorMessage (runParser code InfraRedCode.irCodeParser)
-  >>= InfraRedCode.irCodeSemanticAnalysis
+  Bifunctor.lmap parseErrorMessage (runParser code IR.irHexStringDisassembler)
+  >>= IR.irCodeSemanticAnalysis
   # case _ of
     Left msg ->
       [ HH.text msg ]
@@ -629,16 +628,16 @@ infraredSignal code =
         ]
       ]
 
-    IRCodeEnvelope irValue ->
+    Unknown irValue ->
       [ HH.text "unknown protocol"
       , HH.p_ [ HH.text $ show irValue ]
       ]
 
   row xs =
-    HH.div [HP.class_ BS.row] $ map col xs
+    HH.div [HP.class_ HB.row] $ map col xs
 
   col x =
-    HH.div [HP.class_ BS.col1] [HH.text $ showHexAndDec x]
+    HH.div [HP.class_ HB.col1] [HH.text $ showHexAndDec x]
 
 -- |
 showHex :: Int -> String
@@ -757,7 +756,7 @@ irdbPagination click state = case state.irdb of
       [ HP.attr (HC.AttrName "area-label") "Pagination"
       ]
       [ HH.ul
-        [ HP.classes [BS.pagination, BS.row, BS.noGutters]
+        [ HP.classes [HB.pagination, HB.row, HB.noGutters]
         ]
         $ map (item irdb) (1 .. irdb.pages)
       ]
@@ -767,7 +766,7 @@ irdbPagination click state = case state.irdb of
     HH.li
     [ HP.classes $ classes irdb number ]
     [ HH.a
-      [ HP.class_ BS.pageLink
+      [ HP.class_ HB.pageLink
       , HE.onClick $ HE.input_ (click number)
       ]
       $ text irdb number
@@ -775,14 +774,14 @@ irdbPagination click state = case state.irdb of
 
   classes irdb n =
     if n == irdb.page then
-      [ BS.pageItem, BS.colAuto, BS.active ]
+      [ HB.pageItem, HB.colAuto, HB.active ]
     else
-      [ BS.pageItem, BS.colAuto ]
+      [ HB.pageItem, HB.colAuto ]
 
   text irdb n =
     if n == irdb.page then
       [ HH.text $ Int.toStringAs Int.decimal n
-      , HH.span [HP.class_ BS.srOnly] [HH.text "(current)"]
+      , HH.span [HP.class_ HB.srOnly] [HH.text "(current)"]
       ]
     else
       [ HH.text $ Int.toStringAs Int.decimal n ]
@@ -846,8 +845,8 @@ irdbTable rowClick codeClick = case _ of
 -- |
 infraredSemantics :: String -> String
 infraredSemantics x =
-  Bifunctor.lmap parseErrorMessage (runParser x InfraRedCode.irCodeParser)
-  >>= InfraRedCode.irCodeSemanticAnalysis
+  Bifunctor.lmap parseErrorMessage (runParser x IR.irHexStringDisassembler)
+  >>= IR.irCodeSemanticAnalysis
   # case _ of
     Left msg -> msg
     Right xs -> String.joinWith ", " $ map display xs
@@ -879,7 +878,7 @@ infraredSemantics x =
         , showHex irValue.address
         ]
 
-    IRCodeEnvelope irValue ->
+    Unknown irValue ->
       String.joinWith " " $ Array.concat
         [ [ "Unkown"
           , show irValue

@@ -99,7 +99,7 @@ routeToString :: Route -> String
 routeToString = case _ of
   Home -> "Home"
   Plotdata _ -> "Plotdata"
-  Infrared _ -> "Infra-red"
+  Infrared _ -> "Infrared"
   Settings -> "Settings"
   About -> "About"
 
@@ -110,7 +110,7 @@ routeToPathQuery route =
     Home -> ""
     Plotdata Nothing -> "plotdata"
     Plotdata (Just qryparam) ->
-      "plotdata" <>  (
+      "plotdata" <> (
         [ ("limits=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.limits
         ]
         # Array.catMaybes
@@ -119,9 +119,9 @@ routeToPathQuery route =
           "" -> ""
           str -> "?" <> str
       )
-    Infrared Nothing -> "infra-red"
+    Infrared Nothing -> "infrared"
     Infrared (Just qryparam) -> 
-      "infra-red" <> (
+      "infrared" <> (
         [ ("tab=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.tab
         , ("manuf=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.manuf
         , ("page=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.page

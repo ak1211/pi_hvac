@@ -8,12 +8,12 @@ import Data.String as String
 import Data.Time.Duration (Milliseconds(..))
 import Effect (Effect)
 import Effect.Console (log, logShow)
-import InfraRedCode (IRCodeEnvelope(..), IRCodeToken(..), fromMilliseconds, irCodeParser, irCodeSemanticAnalysis, semanticAnalysisPhase1, toMilliseconds)
+import InfraredCode (InfraredCode(..), InfraredCodeSemantics(..), InfraredHexString, fromMilliseconds, irHexStringDisassembler, irCodeSemanticAnalysis, semanticAnalysisPhase1, toMilliseconds)
 import Test.Assert (assert')
 import Text.Parsing.Parser (Parser, parseErrorMessage, parseErrorPosition, runParser)
 import Text.Parsing.Parser.Pos (Position(..))
 
-inputIRCode :: String
+inputIRCode :: InfraredHexString
 inputIRCode = String.joinWith ""
   [ "7B00", "3D00" 
   , "0F00", "0F00"
@@ -25,7 +25,7 @@ inputIRCode = String.joinWith ""
   , "0F00", "0F00"
   ]
 
-expectIRCode :: Array IRCodeToken
+expectIRCode :: Array InfraredCode
 expectIRCode =
   [ Pulse {on: 0x7B, off: 0x3D}   -- on 0x007B, off 0x003D
   , Pulse {on: 0x0F, off: 0x0F}
@@ -37,7 +37,7 @@ expectIRCode =
   , Pulse {on: 0x0F, off: 0x0F}
   ]
 
-inputIRCode2 :: String
+inputIRCode2 :: InfraredHexString
 inputIRCode2 = String.joinWith ""
   [ "5801", "AA00"
   , "1900", "1400"
@@ -75,7 +75,7 @@ inputIRCode2 = String.joinWith ""
   , "1900", "4205"
   ]
 
-expectIRCode2 :: Array IRCodeToken
+expectIRCode2 :: Array InfraredCode
 expectIRCode2 =
   [ Pulse {on: 0x158, off: 0xAA}
   , Pulse {on: 0x19, off: 0x14}
@@ -113,14 +113,14 @@ expectIRCode2 =
   , Pulse {on: 0x19, off: 0x542}
   ]
 
-expectIRCodeFormat2 :: IRCodeEnvelope
+expectIRCodeFormat2 :: InfraredCodeSemantics
 expectIRCodeFormat2 =
   NEC { customer: 0xBF40  -- binary digit 1011 1111 0100 0000 : TOSHIBA
       , data:     0x12    -- binary digit 0001 0010 : TV POWER
       , invData:  0xED    -- binary digit 1110 1101
       }
 
-inputIRCode3 :: String
+inputIRCode3 :: InfraredHexString
 inputIRCode3 = String.joinWith ""
   [ "5801", "AA00"
   , "1900", "3E00"
@@ -158,7 +158,7 @@ inputIRCode3 = String.joinWith ""
   , "1900", "4205"
   ]
 
-expectIRCode3 :: Array IRCodeToken
+expectIRCode3 :: Array InfraredCode
 expectIRCode3 =
   [ Pulse {on: 344, off: 170}
   , Pulse {on: 25, off: 62}
@@ -196,7 +196,7 @@ expectIRCode3 =
   , Pulse {on: 25, off: 1346}
   ]
 
-expectIRCodeFormat3 :: IRCodeEnvelope
+expectIRCodeFormat3 :: InfraredCodeSemantics
 expectIRCodeFormat3 =
   NEC { customer: 0xBC45  -- binary digit 1011 1100 0100 0101 : TOSHIBA
       , data:     0x12    -- binary digit 0001 0010 : TV POWER
@@ -235,17 +235,17 @@ main = do
   --
   log ""
   log "parser test"
-  parseErrorTestPosition irCodeParser "1x" $ mkPos 2
-  parseErrorTestPosition irCodeParser "1+1" $ mkPos 2
+  parseErrorTestPosition irHexStringDisassembler "1x" $ mkPos 2
+  parseErrorTestPosition irHexStringDisassembler "1+1" $ mkPos 2
   --
-  parseErrorTestPosition irCodeParser "1" $ mkPos 2
-  parseErrorTestPosition irCodeParser "10" $ mkPos 3
-  parseErrorTestPosition irCodeParser "100" $ mkPos 4
-  parseTest "1000" [Leftover 0x10] irCodeParser
+  parseErrorTestPosition irHexStringDisassembler "1" $ mkPos 2
+  parseErrorTestPosition irHexStringDisassembler "10" $ mkPos 3
+  parseErrorTestPosition irHexStringDisassembler "100" $ mkPos 4
+  parseTest "1000" [Leftover 0x10] irHexStringDisassembler 
   --
-  parseTest "10002000" [Pulse {on: 0x10, off: 0x20}] irCodeParser
-  parseTest "100020003000" [Pulse {on: 0x10, off: 0x20}, Leftover 0x30] irCodeParser
-  parseTest "1000200030004000" [Pulse {on: 0x10, off: 0x20}, Pulse {on: 0x30, off: 0x40}] irCodeParser
+  parseTest "10002000" [Pulse {on: 0x10, off: 0x20}] irHexStringDisassembler
+  parseTest "100020003000" [Pulse {on: 0x10, off: 0x20}, Leftover 0x30] irHexStringDisassembler
+  parseTest "1000200030004000" [Pulse {on: 0x10, off: 0x20}, Pulse {on: 0x30, off: 0x40}] irHexStringDisassembler
   --
   log ""
   log "analysis test"
@@ -265,10 +265,10 @@ main = do
       in
       assert' ("expected: " <> show expected) (expected == value)
   --
-  parseTest inputIRCode expectIRCode irCodeParser
+  parseTest inputIRCode expectIRCode irHexStringDisassembler
   --
-  parseTest inputIRCode2 expectIRCode2 irCodeParser
-  case runParser inputIRCode2 irCodeParser of
+  parseTest inputIRCode2 expectIRCode2 irHexStringDisassembler
+  case runParser inputIRCode2 irHexStringDisassembler of
     Left a -> log $ parseErrorMessage a
     Right a -> 
       let expected = [expectIRCodeFormat2]
@@ -276,8 +276,8 @@ main = do
       in
       assert' ("expected: " <> show expected) (Right expected == value)
   --
-  parseTest inputIRCode3 expectIRCode3 irCodeParser
-  case runParser inputIRCode3 irCodeParser of
+  parseTest inputIRCode3 expectIRCode3 irHexStringDisassembler
+  case runParser inputIRCode3 irHexStringDisassembler of
     Left a -> log $ parseErrorMessage a
     Right a -> 
       let expected = [expectIRCodeFormat3]

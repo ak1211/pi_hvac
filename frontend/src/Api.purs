@@ -65,7 +65,7 @@ import Foreign as Foreign
 import Foreign.Class (class Decode, class Encode)
 import Foreign.Generic (defaultOptions, genericDecode, genericEncode, genericDecodeJSON, genericEncodeJSON)
 import Foreign.Generic.Class (class GenericDecode, class GenericEncode)
-import InfraRedCode (InfraredHexString)
+import InfraredCode (InfraredHexString)
 
 -- | JSONデコーダー
 decoder :: forall a rep. Generic a rep => GenericDecode rep => String -> Either String a
