@@ -122,6 +122,7 @@ render state =
       , HH.h2 [ HP.class_ HB.h2 ] [ HH.text "Upload to Infrared Code Database" ]
       , uploadCsvFile state
       ]
+    , Commons.footer
     ]
 
 -- |

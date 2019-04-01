@@ -21,6 +21,7 @@ module Page.Commons
   , disablePopover
   , disposePopover
   , navbar
+  , footer
   , icon
   , getContext2dById
   , toast
@@ -31,6 +32,7 @@ module Page.Commons
 import Prelude
 
 import CSS (marginLeft, px)
+import Data.Array as Array
 import Data.Maybe (Maybe(..), maybe)
 import Effect (Effect)
 import Graphics.Canvas as Canvas
@@ -41,6 +43,7 @@ import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Query as HQ
+import Halogen.Themes.Bootstrap4 as BS
 import Halogen.Themes.Bootstrap4 as BS
 import Halogen.Themes.Bootstrap4 as HB
 import Route (Route)
@@ -133,12 +136,20 @@ navbar navigateAction current =
                   else [ BS.navItem ]
       in
       HH.li
-        [ HP.classes clss
+        [ HP.classes $ Array.concat
+          [ [BS.navItem]
+          , if route == current then [BS.active] else []
+          ]
         ]
         [ HH.button
-          [ HP.classes [ BS.btn, BS.navLink ]
-          , HE.onClick $ HE.input_ $ navigateAction route
-          ]
+          (if route == current then
+            [ HP.classes [ BS.btn, BS.navLink ]
+            ]
+            else
+            [ HP.classes [ BS.btn, BS.navLink ]
+            , HE.onClick $ HE.input_ $ navigateAction route
+            ]
+          )
           [ HH.text $ Route.routeToString route
           ]
         ]
@@ -149,6 +160,16 @@ icon iconName =
   HH.span
     [ HP.class_ $ HC.ClassName "icon" ]
     [ HH.i [ HP.class_ $ HC.ClassName iconName ] [] ]
+
+-- | page footer
+footer :: forall p i. H.HTML p i
+footer =
+  HH.footer
+    [ HP.classes [ BS.fixedBottom, BS.bgLight ] ]
+    [ HH.p
+      [ HP.classes [ BS.p2, BS.textCenter, BS.bgLight, BS.textDark ] ]
+      [ HH.text "PiHVAC ©2019 Akihiro Yamamoto." ]
+    ]
 
 -- |
 getContext2dById :: String -> Effect (Maybe Canvas.Context2D)

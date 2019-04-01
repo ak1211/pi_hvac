@@ -132,6 +132,7 @@ component =
           ]
         , Commons.toast [ v.msg ]
         ]
+      , Commons.footer
       ]
     where
 
