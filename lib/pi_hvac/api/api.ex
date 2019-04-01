@@ -162,6 +162,7 @@ defmodule PiHvac.Api do
       v when not is_nil(offset) -> offset(v, ^offset)
       v -> v
     end
+    |> order_by([irdb], asc: irdb.product)
     |> Repo.all
   end
 
