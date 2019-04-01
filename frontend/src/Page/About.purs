@@ -78,6 +78,7 @@ render state =
   HH.div_
     [ Commons.navbar NavigateTo Route.About
     , HH.div [ HP.class_ $ HC.ClassName "container" ] document
+    , Commons.footer
     ]
 
 document :: forall p i. Array (H.HTML p i)
