@@ -99,7 +99,7 @@ routeToString :: Route -> String
 routeToString = case _ of
   Home -> "Home"
   Plotdata _ -> "Plotdata"
-  Infrared _ -> "Infrared"
+  Infrared _ -> "Infra-red"
   Settings -> "Settings"
   About -> "About"
 
@@ -119,9 +119,9 @@ routeToPathQuery route =
           "" -> ""
           str -> "?" <> str
       )
-    Infrared Nothing -> "infrared"
+    Infrared Nothing -> "infra-red"
     Infrared (Just qryparam) -> 
-      "infrared" <> (
+      "infra-red" <> (
         [ ("tab=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.tab
         , ("manuf=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.manuf
         , ("page=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.page
