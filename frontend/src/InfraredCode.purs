@@ -43,7 +43,7 @@ import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Int as Int
-import Data.Maybe (Maybe(..), fromJust, maybe)
+import Data.Maybe (Maybe(..), fromJust, isJust, maybe)
 import Data.Newtype (wrap)
 import Data.String.CodeUnits (fromCharArray)
 import Data.Time.Duration (Milliseconds(..))
@@ -194,21 +194,15 @@ irCodeSemanticAnalysis =
 -- | 入力を各フレームに分ける
 semanticAnalysisPhase1 :: Array InfraredCode -> Either ProcessError (Array (Array OnOffCount))
 semanticAnalysisPhase1 tokens =
-  if Array.all isPulse tokens then
-    Right $ unfoldr1 chop $ Array.catMaybes $ map toOnOffCount tokens
-  else
-    Left "Broken code, on-off pair mismatched"
+  case map toOnOffCount tokens of
+    xs  | Array.all isJust xs -> Right $ unfoldr1 chop $ Array.catMaybes xs
+        | otherwise -> Left "Broken code, on-off pair mismatched"
   where
 
   toOnOffCount :: InfraredCode -> Maybe OnOffCount
   toOnOffCount = case _ of
     Pulse p     -> Just p
     Leftover _  -> Nothing
-
-  isPulse :: InfraredCode -> Boolean
-  isPulse = case _ of
-    Pulse p     -> true
-    Leftover _  -> false
 
   chop :: Array OnOffCount -> Tuple (Array OnOffCount) (Maybe (Array OnOffCount))
   chop xs = 
