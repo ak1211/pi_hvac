@@ -26,6 +26,7 @@ import Api as Api
 import AppM (class HasApiAccessible, class Navigate, getApiBaseURL, navigate)
 import CSS (marginLeft, height, rem, vh)
 import Component.LineChart as LineChart
+import Control.Alt ((<|>))
 import Data.Either (Either(..), either)
 import Data.Either.Nested (Either3)
 import Data.Formatter.Number as FN
@@ -45,19 +46,20 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Themes.Bootstrap4 as HB
 import Page.Commons as Commons
-import Route (Route, RecordsLimit(..), defRecordsLimit)
+import Route (Route)
 import Route as Route
 import Utils as Utils
 
 type State =
-  { measValues    :: Api.RespGetMeasurements
-  , recordsLimit  :: RecordsLimit
+  { queryParams :: Route.PlotdataQueryParams
+  , measValues  :: Api.RespGetMeasurements
   }
 
 data Query a
   = NavigateTo Route a
+  | Initialize a
+  | ChangedRoute Route a
   | OnInputRecordsLimit String a
-  | OnValueChangeRecordsLimit String a
 
 type ChildQuery = Coproduct3 LineChart.Query LineChart.Query LineChart.Query
 type ChildSlot = Either3 Unit Unit Unit
@@ -82,23 +84,31 @@ component =
     { initialState: initialState
     , render
     , eval
-    , initializer: Just $ H.action (OnValueChangeRecordsLimit "")
+    , initializer: Just (H.action Initialize)
     , finalizer: Nothing
-    , receiver: const Nothing
+    , receiver: HE.input ChangedRoute
     }
   where
 
-  initialState route =
-    let limit = case route of
-                  Route.Plotdata (Just x) -> x
-                  _ -> defRecordsLimit
-    in
-    { measValues: []
-    , recordsLimit: limit
+  initialQueryParams :: Route.PlotdataQueryParams
+  initialQueryParams =
+    { limits: Just 30
     }
 
-  modifyRecordsLimit num =
-    H.modify_ _ { recordsLimit = RecordsLimit num }
+  initialState route =
+    let qry = case route of
+                Route.Plotdata Nothing ->
+                  initialQueryParams
+
+                Route.Plotdata (Just qryparams) ->
+                  { limits: qryparams.limits <|> initialQueryParams.limits
+                  }
+
+                _ -> initialQueryParams
+    in
+    { queryParams: qry
+    , measValues: []
+    }
 
   drawChart opts ds ctx =
     void $ drawLineChart ctx ds opts
@@ -129,7 +139,9 @@ component =
               ]
               [ HH.text "表示数"
               , HH.span [ style $ marginLeft $ rem 1.0 ] []
-              , HH.text $ Int.toStringAs Int.decimal $ unwrap state.recordsLimit
+              , case state.queryParams.limits of
+                  Nothing -> HH.text "--"
+                  Just x -> HH.text $ Int.toStringAs Int.decimal x
               ]
             , HH.input
               [ HP.class_ HB.customRange
@@ -138,7 +150,6 @@ component =
               , HP.attr (HC.AttrName "max") "1000"
               , HP.attr (HC.AttrName "step") "10"
               , HE.onValueInput $ HE.input OnInputRecordsLimit
-              , HE.onValueChange $ HE.input OnValueChangeRecordsLimit
               ]
             ]
           ]
@@ -155,24 +166,43 @@ component =
       navigate route
       pure next
 
-    OnInputRecordsLimit strLimit next -> do
-      maybe (pure unit) modifyRecordsLimit $ Int.fromString strLimit
+    Initialize next -> do
+      {queryParams} <- H.get
+      let newRoute = Route.Plotdata (Just queryParams)
+      void $ eval (ChangedRoute newRoute next)
       pure next
 
-    OnValueChangeRecordsLimit strLimit next -> do
-      maybe (pure unit) modifyRecordsLimit $ Int.fromString strLimit
-      { recordsLimit } <- H.get
+    ChangedRoute route next -> do
+      curState <- H.get
+      --
+      let state = case route of
+                    Route.Plotdata Nothing ->
+                      curState {queryParams = initialQueryParams}
+
+                    Route.Plotdata (Just qry) ->
+                      curState {queryParams = qry}
+
+                    _ -> curState
+      --
       url <- getApiBaseURL
-      let param = {baseurl: url, limits: Just $ unwrap recordsLimit}
+      let param = {baseurl: url, limits: state.queryParams.limits}
       res <- H.liftAff $ Api.getApiV1Measurements param
       case res.body of
-        Left a ->
+        Left a -> do
+          H.put state
           H.liftEffect $ logShow a
 
-        Right values -> do
-          H.modify_ _ { measValues = values }
+        Right values ->
+          H.put state { measValues = values }
       pure next
 
+    OnInputRecordsLimit strLimits next -> do
+      let newLimits = Int.fromString strLimits
+      { queryParams } <- H.get
+      let newQueryParams = queryParams { limits = newLimits }
+      H.modify_ _ { queryParams = newQueryParams }
+      navigate $ Route.Plotdata (Just newQueryParams)
+      pure next
 
 -- |
 card :: forall p i. String -> Array HC.ClassName -> String -> Array (H.HTML p i) -> H.HTML p i
