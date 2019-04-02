@@ -13,6 +13,11 @@ body,
   min-height: calc(100vh - 65px);
 }
 
+.container {
+  margin-bottom: 16px;
+}
+
+
 footer {
   margin-top: auto;
 }
