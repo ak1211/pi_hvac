@@ -31,7 +31,7 @@ module Page.Commons
 
 import Prelude
 
-import CSS (marginLeft, marginTop, px)
+import CSS (marginLeft, px)
 import Data.Array as Array
 import Data.Maybe (Maybe(..), maybe)
 import Effect (Effect)
@@ -166,7 +166,7 @@ footer =
     [ HP.classes [ HB.bgLight, HB.py2 ]
     ]
     [ HH.div
-      [ HP.classes [ HB.container, HB.textCenter, HB.bgLight, HB.textDark ]
+      [ HP.classes [ HB.textCenter, HB.bgLight, HB.textDark ]
       ]
       [ HH.span
         [ HP.classes [ HB.small, HB.textMuted ]

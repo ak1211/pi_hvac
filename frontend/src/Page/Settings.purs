@@ -41,7 +41,6 @@ import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.CSS (style)
-import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties (FormMethod(..), InputType(..))
 import Halogen.HTML.Properties as HP
