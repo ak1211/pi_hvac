@@ -31,7 +31,7 @@ module Page.Commons
 
 import Prelude
 
-import CSS (marginLeft, px)
+import CSS (marginLeft, marginTop, px)
 import Data.Array as Array
 import Data.Maybe (Maybe(..), maybe)
 import Effect (Effect)
@@ -159,14 +159,21 @@ icon iconName =
     [ HP.class_ $ HC.ClassName "icon" ]
     [ HH.i [ HP.class_ $ HC.ClassName iconName ] [] ]
 
--- | page footer
+--- | page footer
 footer :: forall p i. H.HTML p i
 footer =
   HH.footer
-    [ HP.classes [ HB.fixedBottom, HB.bgLight ] ]
-    [ HH.p
-      [ HP.classes [ HB.p2, HB.textCenter, HB.bgLight, HB.textDark ] ]
-      [ HH.text "PiHVAC ©2019 Akihiro Yamamoto." ]
+    [ HP.classes [ HB.bgLight, HB.py2 ]
+    ]
+    [ HH.div
+      [ HP.classes [ HB.container, HB.textCenter, HB.bgLight, HB.textDark ]
+      ]
+      [ HH.span
+        [ HP.classes [ HB.small, HB.textMuted ]
+        ]
+        [ HH.text "PiHVAC ©2019 Akihiro Yamamoto."
+        ]
+      ]
     ]
 
 -- |

@@ -75,9 +75,14 @@ component =
 
 render :: State -> H.ComponentHTML Query
 render state =
-  HH.div_
+  HH.div
+      [ HP.id_ "wrapper"
+      ]
     [ Commons.navbar NavigateTo Route.About
-    , HH.div [ HP.class_ $ HC.ClassName "container" ] document
+    , HH.main
+      [ HP.class_ $ HC.ClassName "container"
+      ]
+      document
     , Commons.footer
     ]
 

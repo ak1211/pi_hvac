@@ -44,6 +44,7 @@ import Halogen as H
 import Halogen.Component.ChildPath as ChildPath
 import Halogen.HTML as HH
 import Halogen.HTML.CSS (style)
+
 import Halogen.HTML.Properties as HP
 import Halogen.Themes.Bootstrap4 as HB
 import Page.Commons as Commons
@@ -117,9 +118,13 @@ component =
   render state =
     let v = latestValue state
     in
-    HH.div_
+    HH.div
+      [ HP.id_ "wrapper"
+      ]
       [ Commons.navbar NavigateTo Route.Home
-      , HH.div [ HP.class_ HB.container ]
+      , HH.main
+        [ HP.class_ HB.container
+        ]
         [ HH.div
           [ HP.class_ HB.row
           , style do

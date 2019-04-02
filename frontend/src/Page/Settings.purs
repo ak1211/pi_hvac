@@ -41,6 +41,7 @@ import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.CSS (style)
+import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties (FormMethod(..), InputType(..))
 import Halogen.HTML.Properties as HP
@@ -113,10 +114,13 @@ component =
 
 render :: State -> H.ComponentHTML Query
 render state =
-  HH.div_
+  HH.div
+      [ HP.id_ "wrapper"
+      ]
     [ Commons.navbar NavigateTo Route.Settings
-    , HH.div
-      [ HP.class_ HB.container ]
+    , HH.main
+      [ HP.classes [ HB.mbAuto, HB.container ]
+      ]
       [ HH.h2 [ HP.class_ HB.h2 ] [ i2c, HH.text " devices", i2cDetectButton OnClickI2CDetect ]
       , i2cDevices state.detectedAddresses
       , HH.h2 [ HP.class_ HB.h2 ] [ HH.text "Upload to Infrared Code Database" ]

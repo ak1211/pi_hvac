@@ -376,10 +376,13 @@ component =
   --| render
   render :: State -> H.ComponentHTML Query
   render state =
-    HH.div_
+    HH.div
+      [ HP.id_ "wrapper"
+      ]
       [ Commons.navbar NavigateTo (Route.Infrared Nothing)
-      , HH.div
-        [ HP.class_ HB.container ]
+      , HH.main
+        [ HP.class_ HB.container
+        ]
         [ renderTab state
         , case toEnum =<< state.queryParams.tab of
             Nothing               -> renderControlPanel state
@@ -436,21 +439,20 @@ component =
   renderControlPanel state =
     HH.div_
       [ HH.div
-        [ HP.class_ HB.row ]
+        [ HP.class_ HB.formInline ]
         [ HH.div
-          [ HP.classes [ HB.col, HB.colLg2 ] ] 
-          [ HH.label_ [ HH.text "Button Number" ] ]
-        , HH.div
-          [ HP.classes [ HB.col, HB.colLg2 ] ] 
-          [ HH.select
-            [ HP.class_ HB.formControl
+          [ HP.classes [ HB.formGroup ]
+          ]
+          [ HH.label_ [ HH.text "Button Number" ]
+          , HH.select
+            [ HP.classes [ HB.m3, HB.formControl ]
             , HE.onValueChange $ HE.input OnValueChangeButtonNumber
             ]
             $ map (HH.option_ <<< Array.singleton <<< HH.text <<< Int.toStringAs Int.decimal)
             $ 1..10
           ]
         , HH.div
-          [ HP.class_ HB.col ]
+          [ HP.classes [ HB.m3, HB.formGroup ] ]
           [ irDownloadButton OnClickIRCodeDownload
           , irUploadButton OnClickIRCodeUpload $ isRight state.infraredValue 
           , irTransmitButton OnClickIRCodeTransmit $ isRight state.infraredValue
@@ -488,20 +490,21 @@ component =
     where
     dropdown (Api.RespGetIrdbManufacturers x) =
       HH.div
-        [ HP.class_ HB.row ]
+        [ HP.classes [ HB.formInline ]
+        ]
         [ HH.div
-          [ HP.classes [ HB.col, HB.colLg2 ] ] 
-          [ HH.label_ [ HH.text "manufacturer" ] ]
-        , HH.div
-          [ HP.classes [ HB.col, HB.colLg2 ] ] 
-          [ HH.select
-            [ HP.class_ HB.formControl
+          [ HP.class_ HB.formGroup
+          ]
+          [ HH.label_ [ HH.text "manufacturer" ]
+          , HH.select
+            [ HP.classes [ HB.m2, HB.formControl ]
             , HE.onValueChange $ HE.input OnValueChangeManufacturer
             ]
             $ Array.zipWith item (0 .. Array.length x.manufacturers) x.manufacturers
           ]
         ]
       where
+
       item number name =
         case state.queryParams.manuf of
           Just manuf | manuf == number  -> HH.option [HP.selected true] [HH.text name]

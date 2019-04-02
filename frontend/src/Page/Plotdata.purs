@@ -122,18 +122,19 @@ component =
         pressChartData = {canvasId: idChartArea.press, datasets: chartdatasets.hpa, options: options}
         humChartData = {canvasId: idChartArea.hum, datasets: chartdatasets.rh, options: options}
      in
-    HH.div_
+    HH.div
+      [ HP.id_ "wrapper"
+      ]
       [ Commons.navbar NavigateTo (Route.Plotdata Nothing)
-      , HH.div
-        [ HP.class_ HB.container ]
-        [ HH.form
-          [ HP.classes
-            [ HB.alert
-            , HB.alertInfo
-            ]
+      , HH.main
+        [ HP.class_ HB.container
+        ]
+        [ HH.div
+          [ HP.classes [ HB.alert, HB.alertInfo ]
           ] 
           [ HH.div
-            [ HP.class_ HB.formGroup ]
+            [ HP.class_ HB.formGroup
+            ]
             [ HH.label
               [ HP.class_ HB.alertHeading
               ]
