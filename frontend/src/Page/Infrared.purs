@@ -57,8 +57,8 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Query as HQ
 import Halogen.Themes.Bootstrap4 as HB
-import InfraredCode (InfraredCodeSemantics(..), InfraredCode(..), InfraredLeader(..), InfraredHexString)
-import InfraredCode as IR
+import InfraredCode (InfraredBasebandSignals(..), InfraredHexString, InfraredLeader(..), LsbFirst, deserialize, infraredBasebandPhase1, infraredBasebandPhase2, infraredBasebandSignals, infraredHexStringParser)
+import InfraredCode as InfraredCode
 import Page.Commons as Commons
 import Route (Route)
 import Route as Route
@@ -279,7 +279,7 @@ component =
       pure next
 
     OnClickIrdbTableCode code next -> do
-      case runParser code IR.irHexStringDisassembler of
+      case runParser code infraredHexStringParser of
         Left err ->
           H.liftEffect $ logShow $ parseErrorMessage err
         Right tokens ->
@@ -513,34 +513,31 @@ component =
 -- |
 infraredPulse :: forall p i. InfraredHexString -> Array (H.HTML p i)
 infraredPulse code =
-  case runParser code IR.irHexStringDisassembler of
+  case runParser code infraredHexStringParser of
     Left err ->
       [ HH.text $ parseErrorMessage err ]
     Right tokens ->
       intercalate [HH.text ", "] $ map toText tokens
   where
 
-  toText (Pulse p) =
+  toText p =
     [ HH.span [HP.class_ HB.textPrimary] [HH.text $ strMillisec p.on <> "on"]
     , HH.text ", "
     , HH.span [HP.class_ HB.textSuccess] [HH.text $ strMillisec p.off <> "off"]
     ]
-  toText (Leftover n) =
-    [ HH.span [HP.class_ HB.textDanger] [HH.text $ strMillisec n <> "leftover"] ]
 
   strMillisec :: Int -> String
   strMillisec n =
     either (const "N/A") identity
     $ FN.formatNumber "0.0"
     $ unwrap
-    $ IR.toMilliseconds n
+    $ InfraredCode.toMilliseconds n
 
 -- |
 infraredBinary :: forall p i. InfraredHexString -> Array (H.HTML p i)
 infraredBinary code =
-  Bifunctor.lmap parseErrorMessage (runParser code IR.irHexStringDisassembler)
-  >>= IR.semanticAnalysisPhase1
-  >>= traverse IR.semanticAnalysisPhase2
+  Bifunctor.lmap parseErrorMessage (runParser code infraredHexStringParser)
+  >>= (infraredBasebandPhase1 >>> traverse infraredBasebandPhase2)
   # case _ of
     Left msg ->
       [ HH.text msg ]
@@ -582,8 +579,8 @@ infraredBinary code =
 -- |
 infraredSignal :: forall p i. InfraredHexString -> Array (H.HTML p i)
 infraredSignal code =
-  Bifunctor.lmap parseErrorMessage (runParser code IR.irHexStringDisassembler)
-  >>= IR.irCodeSemanticAnalysis
+  Bifunctor.lmap parseErrorMessage (runParser code infraredHexStringParser)
+  >>= infraredBasebandSignals
   # case _ of
     Left msg ->
       [ HH.text msg ]
@@ -643,17 +640,21 @@ infraredSignal code =
     HH.div [HP.class_ HB.col1] [HH.text $ showHexAndDec x]
 
 -- |
-showHex :: Int -> String
-showHex = case _ of
-  x | x < 16    -> "0x0" <> hexs x
-    | otherwise -> "0x" <> hexs x
-  where
-  hexs = String.toUpper <<< Int.toStringAs Int.hexadecimal
+showHex :: LsbFirst -> String
+showHex bits =
+  let x = deserialize bits
+  in
+  case x of
+  _ | x < 16    -> "0x0"
+    | otherwise -> "0x"
+  <> (String.toUpper $ Int.toStringAs Int.hexadecimal x)
 
 -- |
-showHexAndDec :: Int -> String
+showHexAndDec :: LsbFirst -> String
 showHexAndDec n =
-  showHex n <> "(" <> Int.toStringAs Int.decimal n <> ")"
+  let dec = Int.toStringAs Int.decimal $ deserialize n
+  in
+  showHex n <> "(" <> dec <> ")"
 
 -- |
 irDownloadButton :: forall p f. HQ.Action f -> H.HTML p f
@@ -848,8 +849,8 @@ irdbTable rowClick codeClick = case _ of
 -- |
 infraredSemantics :: String -> String
 infraredSemantics x =
-  Bifunctor.lmap parseErrorMessage (runParser x IR.irHexStringDisassembler)
-  >>= IR.irCodeSemanticAnalysis
+  Bifunctor.lmap parseErrorMessage (runParser x infraredHexStringParser)
+  >>= infraredBasebandSignals
   # case _ of
     Left msg -> msg
     Right xs -> String.joinWith ", " $ map display xs

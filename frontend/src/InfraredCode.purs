@@ -16,26 +16,25 @@
 -}
 
 module InfraredCode
-  ( InfraredCode(..)
-  , InfraredCodeSemantics(..)
+  ( Bit(..)
+  , InfraredBasebandSignals(..)
   , InfraredHexString
   , InfraredLeader(..)
-  , Logic(..)
-  , OnOffCount
+  , LsbFirst(..)
   , ProcessError
+  , Pulse
+  , deserialize
   , fromMilliseconds
-  , irCodeSemanticAnalysis
-  , irHexStringDisassembler
-  , mkInfraredLeader
-  , semanticAnalysisPhase1
-  , semanticAnalysisPhase2
-  , semanticAnalysisPhase3
+  , infraredHexStringParser
+  , infraredBasebandSignals
+  , infraredBasebandPhase1
+  , infraredBasebandPhase2
+  , infraredBasebandPhase3
   , toMilliseconds
   ) where
 
 import Prelude
 
-import Control.Alt ((<|>))
 import Control.MonadZero (guard)
 import Data.Array ((..))
 import Data.Array as Array
@@ -43,7 +42,7 @@ import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Int as Int
-import Data.Maybe (Maybe(..), fromJust, isJust, maybe)
+import Data.Maybe (Maybe(..), fromJust, maybe)
 import Data.Newtype (wrap)
 import Data.String.CodeUnits (fromCharArray)
 import Data.Time.Duration (Milliseconds(..))
@@ -53,7 +52,7 @@ import Data.Tuple as Tuple
 import Data.Unfoldable1 (unfoldr1)
 import Partial.Unsafe (unsafePartial)
 import Text.Parsing.Parser (Parser)
-import Text.Parsing.Parser.Combinators (try, (<?>))
+import Text.Parsing.Parser.Combinators ((<?>))
 import Text.Parsing.Parser.Token (hexDigit)
 import Utils (toArray2D)
 
@@ -64,40 +63,31 @@ type InfraredHexString = String
 type ProcessError = String
 
 -- | count is based on 38khz carrier
-type OnOffCount = {on :: Int, off :: Int}
+type Pulse = {on :: Int, off :: Int}
 
 -- |
-data InfraredCode
-  = Pulse OnOffCount
-  | Leftover Int
-derive instance genericIRCodeToken  :: Generic InfraredCode _
-derive instance eqIRCodeToken       :: Eq InfraredCode
-instance showIRCodeToken            :: Show InfraredCode where
-  show = genericShow
-
--- |
-data Logic
+data Bit
   = Negate
   | Assert
-derive instance eqLogic  :: Eq Logic
-instance showLogic       :: Show Logic where
+derive instance eqBit :: Eq Bit
+instance showBit      :: Show Bit where
   show Negate = "0"
   show Assert = "1"
 
 -- |
 data InfraredLeader
-  = ProtoAeha OnOffCount 
-  | ProtoNec OnOffCount 
-  | ProtoSony OnOffCount 
-  | ProtoUnknown OnOffCount 
+  = ProtoAeha Pulse 
+  | ProtoNec Pulse 
+  | ProtoSony Pulse 
+  | ProtoUnknown Pulse 
 derive instance genericInfraredLeader :: Generic InfraredLeader _
 derive instance eqInfraredLeader      :: Eq InfraredLeader
 instance showInfraredLeader           :: Show InfraredLeader where
   show = genericShow
 
 -- | InfraredLeader data constructor
-mkInfraredLeader :: OnOffCount -> InfraredLeader 
-mkInfraredLeader = case _ of
+makeInfraredLeader :: Pulse -> InfraredLeader 
+makeInfraredLeader = case _ of
   p | aeha p    -> ProtoAeha p
     | nec p     -> ProtoNec p
     | sony p    -> ProtoSony p
@@ -105,7 +95,7 @@ mkInfraredLeader = case _ of
   where
   -- | H-level width, typical 3.4ms
   -- | L-level width, typical 1.7ms
-  aeha :: OnOffCount -> Boolean
+  aeha :: Pulse -> Boolean
   aeha pulse =
     let on_   = fromMilliseconds (wrap 3.2) .. fromMilliseconds (wrap 3.6)
         off_  = fromMilliseconds (wrap 1.5) .. fromMilliseconds (wrap 1.9)
@@ -114,7 +104,7 @@ mkInfraredLeader = case _ of
 
   -- | H-level width, typical 9.0ms
   -- | L-level width, typical 4.5ms
-  nec :: OnOffCount -> Boolean
+  nec :: Pulse -> Boolean
   nec pulse =
     let on_   = fromMilliseconds (wrap 8.8) .. fromMilliseconds (wrap 9.2)
         off_  = fromMilliseconds (wrap 4.3) .. fromMilliseconds (wrap 4.7)
@@ -122,21 +112,28 @@ mkInfraredLeader = case _ of
     (Array.any (_ == pulse.on) on_) && (Array.any (_ == pulse.off) off_)
 
   -- | H-level width, typical 2.4ms
-  sony :: OnOffCount -> Boolean
+  sony :: Pulse -> Boolean
   sony pulse =
     let on_ = fromMilliseconds (wrap 2.2) .. fromMilliseconds (wrap 2.6)
     in
     Array.any (_ == pulse.on) on_
 
 -- |
-data InfraredCodeSemantics
-  = Unknown (Array Logic)
-  | AEHA  {customer :: Int, parity :: Int, data0 :: Int, data :: Array Int}
-  | NEC   {customer :: Int, data :: Int, invData :: Int}
-  | SONY  {command:: Int, address :: Int}
-derive instance genericInfraredCodeSemantics :: Generic InfraredCodeSemantics _
-derive instance eqInfraredCodeSemantics      :: Eq InfraredCodeSemantics
-instance showInfraredCodeSemantics           :: Show InfraredCodeSemantics where
+newtype LsbFirst = LsbFirst (Array Bit)
+derive instance genericLsbFirst :: Generic LsbFirst _
+derive instance eqLsbFirst      :: Eq LsbFirst
+instance showLsbFirst           :: Show LsbFirst where
+  show = genericShow
+
+-- |
+data InfraredBasebandSignals
+  = Unknown LsbFirst
+  | AEHA  {customer :: LsbFirst, parity :: LsbFirst, data0 :: LsbFirst, data :: Array LsbFirst}
+  | NEC   {customer :: LsbFirst, data :: LsbFirst, invData :: LsbFirst}
+  | SONY  {command:: LsbFirst, address :: LsbFirst}
+derive instance genericInfraredBasebandSignals  :: Generic InfraredBasebandSignals _
+derive instance eqInfraredBasebandSignals       :: Eq InfraredBasebandSignals
+instance showInfraredBasebandSignals            :: Show InfraredBasebandSignals where
   show = genericShow
 
 -- |
@@ -156,20 +153,16 @@ toMilliseconds counts =
   Milliseconds (Int.toNumber msec10x / 10.0)
 
 -- |
-irHexStringDisassembler :: Parser InfraredHexString (Array InfraredCode)
-irHexStringDisassembler =
-  Array.many (try pair <|> leftover)
+infraredHexStringParser:: Parser InfraredHexString (Array Pulse)
+infraredHexStringParser =
+  Array.many pulse
   where
 
-  pair = do
+  pulse = do
     -- 入力値はon -> offの順番
     ton <- valueOf32Bit <?> "on-counts"
     toff <- valueOf32Bit <?> "off-counts"
-    pure $ Pulse {on: ton, off: toff}
-
-  leftover = do
-    t <- valueOf32Bit <?> "leftover-counts"
-    pure $ Leftover t
+    pure {on: ton, off: toff}
 
   valueOf32Bit = do
     -- 入力値はLower -> Higherの順番
@@ -187,24 +180,17 @@ irHexStringDisassembler =
     pure $ fromCharArray [ a, b ]
 
 -- |
-irCodeSemanticAnalysis :: Array InfraredCode -> Either ProcessError (Array InfraredCodeSemantics)
-irCodeSemanticAnalysis =
-  traverse (semanticAnalysisPhase3 <=< semanticAnalysisPhase2) <=< semanticAnalysisPhase1 
+infraredBasebandSignals :: Array Pulse -> Either ProcessError (Array InfraredBasebandSignals)
+infraredBasebandSignals =
+  traverse (infraredBasebandPhase3 <=< infraredBasebandPhase2) <<< infraredBasebandPhase1 
 
 -- | 入力を各フレームに分ける
-semanticAnalysisPhase1 :: Array InfraredCode -> Either ProcessError (Array (Array OnOffCount))
-semanticAnalysisPhase1 tokens =
-  case map toOnOffCount tokens of
-    xs  | Array.all isJust xs -> Right $ unfoldr1 chop $ Array.catMaybes xs
-        | otherwise -> Left "Broken code, on-off pair mismatched"
+infraredBasebandPhase1 :: Array Pulse -> Array (Array Pulse)
+infraredBasebandPhase1 =
+  unfoldr1 chop
   where
 
-  toOnOffCount :: InfraredCode -> Maybe OnOffCount
-  toOnOffCount = case _ of
-    Pulse p     -> Just p
-    Leftover _  -> Nothing
-
-  chop :: Array OnOffCount -> Tuple (Array OnOffCount) (Maybe (Array OnOffCount))
+  chop :: Array Pulse -> Tuple (Array Pulse) (Maybe (Array Pulse))
   chop xs = 
     let x = Array.span (\p -> p.off < threshold) xs
     in
@@ -215,30 +201,30 @@ semanticAnalysisPhase1 tokens =
   threshold = fromMilliseconds (wrap 8.0)
 
 -- | 入力フレームをリーダ部とビット配列にする
-semanticAnalysisPhase2 :: Array OnOffCount -> Either ProcessError (Tuple InfraredLeader (Array Logic))
-semanticAnalysisPhase2 tokens =
+infraredBasebandPhase2 :: Array Pulse -> Either ProcessError (Tuple InfraredLeader (Array Bit))
+infraredBasebandPhase2 tokens =
   case Array.uncons tokens of
     Just {head: x, tail: xs} ->
-      Right $ Tuple (mkInfraredLeader x) (map pulsePositionModulation xs)
+      Right $ Tuple (makeInfraredLeader x) (map pulsePositionModulation xs)
 
     Nothing ->
       Left "Unexpected end of input"
   where
 
-  equal' :: OnOffCount -> Boolean
+  equal' :: Pulse -> Boolean
   equal' x
     | x.on == x.off = true
     | x.on > x.off = (x.on - x.off) < (x.off / 2)
     | x.off > x.on = (x.off - x.on) < (x.on / 2)
     | otherwise = false
 
-  pulsePositionModulation :: OnOffCount -> Logic
+  pulsePositionModulation :: Pulse -> Bit
   pulsePositionModulation p | equal' p  = Negate
                             | otherwise = Assert
 
 -- | 入力リーダ部とビット配列から赤外線信号にする
-semanticAnalysisPhase3 :: Tuple InfraredLeader (Array Logic) -> Either ProcessError InfraredCodeSemantics
-semanticAnalysisPhase3 input =
+infraredBasebandPhase3 :: Tuple InfraredLeader (Array Bit) -> Either ProcessError InfraredBasebandSignals
+infraredBasebandPhase3 input =
   case Tuple.fst input of
     ProtoAeha _     -> aeha
     ProtoNec _      -> nec 
@@ -246,7 +232,7 @@ semanticAnalysisPhase3 input =
     ProtoUnknown _  -> other
   where
 
-  take :: Int -> Int -> ProcessError -> Either ProcessError (Array Logic)
+  take :: Int -> Int -> ProcessError -> Either ProcessError (Array Bit)
   take begin length errmsg =
     let sigs = Array.slice begin (begin + length) (Tuple.snd input)
     in
@@ -254,11 +240,11 @@ semanticAnalysisPhase3 input =
       guard (Array.length sigs == length)
       pure sigs
 
-  takeEnd :: Int -> Array Logic
+  takeEnd :: Int -> Array Bit
   takeEnd begin =
     Array.drop (begin - 1) (Tuple.snd input)
 
-  aeha :: Either ProcessError InfraredCodeSemantics
+  aeha :: Either ProcessError InfraredBasebandSignals
   aeha = do
     sCustomer <- take 0 16 "fail to read: customer code (AEHA)"
     sParity   <- take 16 4 "fail to read: parity (AEHA)"
@@ -269,40 +255,40 @@ semanticAnalysisPhase3 input =
     stopBit   <- maybe (Left "fail to read: stop bit (AEHA)") Right
                   $ guard (sData.last == Assert)
     let octet = toArray2D 8 $ sData.init
-    { customer: deserializeLsbFirst sCustomer
-    , parity: deserializeLsbFirst sParity
-    , data0: deserializeLsbFirst sData0
-    , data: map deserializeLsbFirst octet
+    { customer: LsbFirst sCustomer
+    , parity: LsbFirst sParity
+    , data0: LsbFirst sData0
+    , data: map LsbFirst octet
     } # (Right <<< AEHA)
 
-  nec :: Either ProcessError InfraredCodeSemantics
+  nec :: Either ProcessError InfraredBasebandSignals
   nec = do
     sCustomer <- take 0 16 "fail to read: customer code (NEC)"
     sData     <- take 16 8 "fail to read: data code (NEC)"
     sInvData  <- take 24 8 "fail to read: inv-data code (NEC)"
     stopBit   <- take 32 1 "fail to read: stop bit (NEC)"
-    { customer: deserializeLsbFirst sCustomer
-    , data: deserializeLsbFirst sData
-    , invData: deserializeLsbFirst sInvData
+    { customer: LsbFirst sCustomer
+    , data: LsbFirst sData
+    , invData: LsbFirst sInvData
     } # (Right <<< NEC)
 
-  sony :: Either ProcessError InfraredCodeSemantics
+  sony :: Either ProcessError InfraredBasebandSignals
   sony = do
     sCommand <- take 0 6 "fail to read: command code (SONY)"
     let sAddress = takeEnd 7
-    { command: deserializeLsbFirst sCommand
-    , address: deserializeLsbFirst sAddress
+    { command: LsbFirst sCommand
+    , address: LsbFirst sAddress
     } # (Right <<< SONY)
 
-  other :: Either ProcessError InfraredCodeSemantics
+  other :: Either ProcessError InfraredBasebandSignals
   other =
-    Right $ Unknown (Tuple.snd input)
+    Right $ Unknown $ LsbFirst (Tuple.snd input)
 
 -- |
-deserializeLsbFirst :: Array Logic -> Int
-deserializeLsbFirst =
-  Array.foldl f 0 <<< Array.reverse
+deserialize :: LsbFirst -> Int
+deserialize (LsbFirst bits) =
+  Array.foldl f 0 $ Array.reverse bits
   where
-  f :: Int -> Logic -> Int
+  f :: Int -> Bit -> Int
   f acc Assert = acc * 2 + 1
   f acc Negate = acc * 2 + 0

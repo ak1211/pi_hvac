@@ -8,9 +8,9 @@ import Data.String as String
 import Data.Time.Duration (Milliseconds(..))
 import Effect (Effect)
 import Effect.Console (log, logShow)
-import InfraredCode (InfraredCode(..), InfraredCodeSemantics(..), InfraredHexString, fromMilliseconds, irHexStringDisassembler, irCodeSemanticAnalysis, semanticAnalysisPhase1, toMilliseconds)
+import InfraredCode (Bit(..), InfraredBasebandSignals(..), InfraredHexString, LsbFirst(..), Pulse, fromMilliseconds, infraredBasebandPhase1, infraredHexStringParser, toMilliseconds)
 import Test.Assert (assert')
-import Text.Parsing.Parser (Parser, parseErrorMessage, parseErrorPosition, runParser)
+import Text.Parsing.Parser (Parser, parseErrorPosition, runParser)
 import Text.Parsing.Parser.Pos (Position(..))
 
 inputIRCode :: InfraredHexString
@@ -25,16 +25,16 @@ inputIRCode = String.joinWith ""
   , "0F00", "0F00"
   ]
 
-expectIRCode :: Array InfraredCode
+expectIRCode :: Array Pulse 
 expectIRCode =
-  [ Pulse {on: 0x7B, off: 0x3D}   -- on 0x007B, off 0x003D
-  , Pulse {on: 0x0F, off: 0x0F}
-  , Pulse {on: 0x0F, off: 0x2E}
-  , Pulse {on: 0x0F, off: 0x0F}
-  , Pulse {on: 0x0F, off: 0x0F}
-  , Pulse {on: 0x0F, off: 0x2E}
-  , Pulse {on: 0x0F, off: 0x2E}
-  , Pulse {on: 0x0F, off: 0x0F}
+  [ {on: 0x7B, off: 0x3D}   -- on 0x007B, off 0x003D
+  , {on: 0x0F, off: 0x0F}
+  , {on: 0x0F, off: 0x2E}
+  , {on: 0x0F, off: 0x0F}
+  , {on: 0x0F, off: 0x0F}
+  , {on: 0x0F, off: 0x2E}
+  , {on: 0x0F, off: 0x2E}
+  , {on: 0x0F, off: 0x0F}
   ]
 
 inputIRCode2 :: InfraredHexString
@@ -75,49 +75,57 @@ inputIRCode2 = String.joinWith ""
   , "1900", "4205"
   ]
 
-expectIRCode2 :: Array InfraredCode
+expectIRCode2 :: Array Pulse
 expectIRCode2 =
-  [ Pulse {on: 0x158, off: 0xAA}
-  , Pulse {on: 0x19, off: 0x14}
-  , Pulse {on: 0x19, off: 0x14}
-  , Pulse {on: 0x1A, off: 0x13}
-  , Pulse {on: 0x1A, off: 0x14}
-  , Pulse {on: 0x19, off: 0x14}
-  , Pulse {on: 0x19, off: 0x14}
-  , Pulse {on: 0x19, off: 0x3E}
-  , Pulse {on: 0x1A, off: 0x13}
-  , Pulse {on: 0x1A, off: 0x3E}
-  , Pulse {on: 0x1A, off: 0x3D}
-  , Pulse {on: 0x1A, off: 0x3E}
-  , Pulse {on: 0x19, off: 0x3E}
-  , Pulse {on: 0x19, off: 0x3E}
-  , Pulse {on: 0x1A, off: 0x3E}
-  , Pulse {on: 0x19, off: 0x14}
-  , Pulse {on: 0x19, off: 0x3E}
-  , Pulse {on: 0x1A, off: 0x13}
-  , Pulse {on: 0x1A, off: 0x3E}
-  , Pulse {on: 0x19, off: 0x14}
-  , Pulse {on: 0x19, off: 0x14}
-  , Pulse {on: 0x19, off: 0x3F}
-  , Pulse {on: 0x19, off: 0x14}
-  , Pulse {on: 0x19, off: 0x14}
-  , Pulse {on: 0x19, off: 0x14}
-  , Pulse {on: 0x19, off: 0x3E}
-  , Pulse {on: 0x1A, off: 0x14}
-  , Pulse {on: 0x19, off: 0x3E}
-  , Pulse {on: 0x19, off: 0x3E}
-  , Pulse {on: 0x1A, off: 0x14}
-  , Pulse {on: 0x19, off: 0x3E}
-  , Pulse {on: 0x19, off: 0x3E}
-  , Pulse {on: 0x1A, off: 0x3E}
-  , Pulse {on: 0x19, off: 0x542}
+  [ {on: 0x158, off: 0xAA}
+  , {on: 0x19, off: 0x14}
+  , {on: 0x19, off: 0x14}
+  , {on: 0x1A, off: 0x13}
+  , {on: 0x1A, off: 0x14}
+  , {on: 0x19, off: 0x14}
+  , {on: 0x19, off: 0x14}
+  , {on: 0x19, off: 0x3E}
+  , {on: 0x1A, off: 0x13}
+  , {on: 0x1A, off: 0x3E}
+  , {on: 0x1A, off: 0x3D}
+  , {on: 0x1A, off: 0x3E}
+  , {on: 0x19, off: 0x3E}
+  , {on: 0x19, off: 0x3E}
+  , {on: 0x1A, off: 0x3E}
+  , {on: 0x19, off: 0x14}
+  , {on: 0x19, off: 0x3E}
+  , {on: 0x1A, off: 0x13}
+  , {on: 0x1A, off: 0x3E}
+  , {on: 0x19, off: 0x14}
+  , {on: 0x19, off: 0x14}
+  , {on: 0x19, off: 0x3F}
+  , {on: 0x19, off: 0x14}
+  , {on: 0x19, off: 0x14}
+  , {on: 0x19, off: 0x14}
+  , {on: 0x19, off: 0x3E}
+  , {on: 0x1A, off: 0x14}
+  , {on: 0x19, off: 0x3E}
+  , {on: 0x19, off: 0x3E}
+  , {on: 0x1A, off: 0x14}
+  , {on: 0x19, off: 0x3E}
+  , {on: 0x19, off: 0x3E}
+  , {on: 0x1A, off: 0x3E}
+  , {on: 0x19, off: 0x542}
   ]
 
-expectIRCodeFormat2 :: InfraredCodeSemantics
+expectIRCodeFormat2 :: InfraredBasebandSignals
 expectIRCodeFormat2 =
-  NEC { customer: 0xBF40  -- binary digit 1011 1111 0100 0000 : TOSHIBA
-      , data:     0x12    -- binary digit 0001 0010 : TV POWER
-      , invData:  0xED    -- binary digit 1110 1101
+  NEC { customer: LsbFirst  [ Assert,Negate,Assert,Assert
+                            , Assert,Assert,Negate,Negate
+                            , Negate,Assert,Negate,Negate
+                            , Negate,Assert,Negate,Assert
+                            ]                             -- binary digit 1011 1100 0100 0101 : TOSHIBA
+      , data:     LsbFirst  [ Negate,Negate,Negate,Assert
+                            , Negate,Negate,Assert,Negate
+                            ]                             -- binary digit 0001 0010 : TV POWER
+      , invData:  LsbFirst  [ Assert,Assert,Assert,Negate
+                            , Assert,Assert,Negate,Assert
+                            ]                             -- binary digit 1110 1101
       }
 
 inputIRCode3 :: InfraredHexString
@@ -158,49 +166,57 @@ inputIRCode3 = String.joinWith ""
   , "1900", "4205"
   ]
 
-expectIRCode3 :: Array InfraredCode
+expectIRCode3 :: Array Pulse
 expectIRCode3 =
-  [ Pulse {on: 344, off: 170}
-  , Pulse {on: 25, off: 62}
-  , Pulse {on: 26, off: 19}
-  , Pulse {on: 26, off: 62}
-  , Pulse {on: 25, off: 20}
-  , Pulse {on: 25, off: 20}
-  , Pulse {on: 25, off: 20}
-  , Pulse {on: 26, off: 62}
-  , Pulse {on: 25, off: 20}
-  , Pulse {on: 26, off: 19}
-  , Pulse {on: 25, off: 20}
-  , Pulse {on: 25, off: 63}
-  , Pulse {on: 25, off: 62}
-  , Pulse {on: 25, off: 62}
-  , Pulse {on: 26, off: 62}
-  , Pulse {on: 25, off: 20}
-  , Pulse {on: 25, off: 62}
-  , Pulse {on: 26, off: 20}
-  , Pulse {on: 25, off: 62}
-  , Pulse {on: 25, off: 20}
-  , Pulse {on: 25, off: 20}
-  , Pulse {on: 26, off: 62}
-  , Pulse {on: 25, off: 20}
-  , Pulse {on: 25, off: 20}
-  , Pulse {on: 25, off: 20}
-  , Pulse {on: 25, off: 63}
-  , Pulse {on: 26, off: 19}
-  , Pulse {on: 25, off: 62}
-  , Pulse {on: 26, off: 61}
-  , Pulse {on: 26, off: 20}
-  , Pulse {on: 25, off: 62}
-  , Pulse {on: 25, off: 62}
-  , Pulse {on: 26, off: 62}
-  , Pulse {on: 25, off: 1346}
+  [ {on: 344, off: 170}
+  , {on: 25, off: 62}
+  , {on: 26, off: 19}
+  , {on: 26, off: 62}
+  , {on: 25, off: 20}
+  , {on: 25, off: 20}
+  , {on: 25, off: 20}
+  , {on: 26, off: 62}
+  , {on: 25, off: 20}
+  , {on: 26, off: 19}
+  , {on: 25, off: 20}
+  , {on: 25, off: 63}
+  , {on: 25, off: 62}
+  , {on: 25, off: 62}
+  , {on: 26, off: 62}
+  , {on: 25, off: 20}
+  , {on: 25, off: 62}
+  , {on: 26, off: 20}
+  , {on: 25, off: 62}
+  , {on: 25, off: 20}
+  , {on: 25, off: 20}
+  , {on: 26, off: 62}
+  , {on: 25, off: 20}
+  , {on: 25, off: 20}
+  , {on: 25, off: 20}
+  , {on: 25, off: 63}
+  , {on: 26, off: 19}
+  , {on: 25, off: 62}
+  , {on: 26, off: 61}
+  , {on: 26, off: 20}
+  , {on: 25, off: 62}
+  , {on: 25, off: 62}
+  , {on: 26, off: 62}
+  , {on: 25, off: 1346}
   ]
 
-expectIRCodeFormat3 :: InfraredCodeSemantics
+expectIRCodeFormat3 :: InfraredBasebandSignals
 expectIRCodeFormat3 =
-  NEC { customer: 0xBC45  -- binary digit 1011 1100 0100 0101 : TOSHIBA
-      , data:     0x12    -- binary digit 0001 0010 : TV POWER
-      , invData:  0xED    -- binary digit 1110 1101
+  NEC { customer: LsbFirst  [ Assert,Negate,Assert,Assert
+                            , Assert,Assert,Negate,Negate
+                            , Negate,Assert,Negate,Negate
+                            , Negate,Assert,Negate,Assert
+                            ]                             -- binary digit 1011 1100 0100 0101 : TOSHIBA
+      , data:     LsbFirst  [ Negate,Negate,Negate,Assert
+                            , Negate,Negate,Assert,Negate
+                            ]                             -- binary digit 0001 0010 : TV POWER
+      , invData:  LsbFirst  [ Assert,Assert,Assert,Negate
+                            , Assert,Assert,Negate,Assert
+                            ]                             -- binary digit 1110 1101
       }
 
 parseTest :: forall s a. Show a => Eq a => s -> a -> Parser s a -> Effect Unit
@@ -235,52 +251,35 @@ main = do
   --
   log ""
   log "parser test"
-  parseErrorTestPosition irHexStringDisassembler "1x" $ mkPos 2
-  parseErrorTestPosition irHexStringDisassembler "1+1" $ mkPos 2
+  parseErrorTestPosition infraredHexStringParser "1x" $ mkPos 2
+  parseErrorTestPosition infraredHexStringParser "1+1" $ mkPos 2
   --
-  parseErrorTestPosition irHexStringDisassembler "1" $ mkPos 2
-  parseErrorTestPosition irHexStringDisassembler "10" $ mkPos 3
-  parseErrorTestPosition irHexStringDisassembler "100" $ mkPos 4
-  parseTest "1000" [Leftover 0x10] irHexStringDisassembler 
+  parseErrorTestPosition infraredHexStringParser "1" $ mkPos 2
+  parseErrorTestPosition infraredHexStringParser "10" $ mkPos 3
+  parseErrorTestPosition infraredHexStringParser "100" $ mkPos 4
+  parseErrorTestPosition infraredHexStringParser "1000" $ mkPos 5
+  parseErrorTestPosition infraredHexStringParser "10002" $ mkPos 6
+  parseErrorTestPosition infraredHexStringParser "100020" $ mkPos 7
+  parseErrorTestPosition infraredHexStringParser "1000200" $ mkPos 8
   --
-  parseTest "10002000" [Pulse {on: 0x10, off: 0x20}] irHexStringDisassembler
-  parseTest "100020003000" [Pulse {on: 0x10, off: 0x20}, Leftover 0x30] irHexStringDisassembler
-  parseTest "1000200030004000" [Pulse {on: 0x10, off: 0x20}, Pulse {on: 0x30, off: 0x40}] irHexStringDisassembler
+  parseTest "10002000" [{on: 0x10, off: 0x20}] infraredHexStringParser
+  parseTest "1000200030004000" [{on: 0x10, off: 0x20}, {on: 0x30, off: 0x40}] infraredHexStringParser
   --
   log ""
   log "analysis test"
   --
-  let tokens =  [ Pulse {on: 30, off: 60}
-                , Pulse {on: 30, off: 30}
-                , Pulse {on: 30, off: fromMilliseconds (wrap 10.0)}
-                , Pulse {on: 30, off: 30}
-                , Pulse {on: 30, off: 60}
+  let tokens =  [ {on: 30, off: 60}
+                , {on: 30, off: 30}
+                , {on: 30, off: fromMilliseconds (wrap 10.0)}
+                , {on: 30, off: 30}
+                , {on: 30, off: 60}
                 ]
-  case semanticAnalysisPhase1 tokens of
-    Left a -> log a
-    Right value -> 
-      let expected =  [ [{ off: 60, on: 30 }, { off: 30, on: 30 }, { off: 384, on: 30 }]
-                      , [{ off: 30, on: 30 }, { off: 60, on: 30 }]
-                      ]
-      in
-      assert' ("expected: " <> show expected) (expected == value)
+  let value = infraredBasebandPhase1 tokens
+  let expected =  [ [{ off: 60, on: 30 }, { off: 30, on: 30 }, { off: 384, on: 30 }]
+                  , [{ off: 30, on: 30 }, { off: 60, on: 30 }]
+                  ]
+  assert' ("expected: " <> show expected) (expected == value)
   --
-  parseTest inputIRCode expectIRCode irHexStringDisassembler
+  parseTest inputIRCode expectIRCode infraredHexStringParser
   --
-  parseTest inputIRCode2 expectIRCode2 irHexStringDisassembler
-  case runParser inputIRCode2 irHexStringDisassembler of
-    Left a -> log $ parseErrorMessage a
-    Right a -> 
-      let expected = [expectIRCodeFormat2]
-          value = irCodeSemanticAnalysis a
-      in
-      assert' ("expected: " <> show expected) (Right expected == value)
-  --
-  parseTest inputIRCode3 expectIRCode3 irHexStringDisassembler
-  case runParser inputIRCode3 irHexStringDisassembler of
-    Left a -> log $ parseErrorMessage a
-    Right a -> 
-      let expected = [expectIRCodeFormat3]
-          value = irCodeSemanticAnalysis a
-      in
-      assert' ("expected: " <> show expected) (Right expected == value)
+  parseTest inputIRCode2 expectIRCode2 infraredHexStringParser
