@@ -25,11 +25,13 @@ module InfraredCode
   , Pulse
   , deserialize
   , fromMilliseconds
-  , infraredHexStringParser
-  , infraredBasebandSignals
   , infraredBasebandPhase1
   , infraredBasebandPhase2
   , infraredBasebandPhase3
+  , infraredBasebandSignals
+  , infraredHexStringParser
+  , showBit
+  , showLsbFirst
   , toMilliseconds
   ) where
 
@@ -44,6 +46,7 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), fromJust, maybe)
 import Data.Newtype (wrap)
+import Data.String as String
 import Data.String.CodeUnits (fromCharArray)
 import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (traverse)
@@ -70,9 +73,13 @@ data Bit
   = Negate
   | Assert
 derive instance eqBit :: Eq Bit
-instance showBit      :: Show Bit where
-  show Negate = "0"
-  show Assert = "1"
+instance showBit'     :: Show Bit where
+  show = showBit
+
+--|
+showBit :: Bit -> String
+showBit Negate = "0"
+showBit Assert = "1"
 
 -- |
 data InfraredLeader
@@ -120,10 +127,14 @@ makeInfraredLeader = case _ of
 
 -- |
 newtype LsbFirst = LsbFirst (Array Bit)
-derive instance genericLsbFirst :: Generic LsbFirst _
 derive instance eqLsbFirst      :: Eq LsbFirst
-instance showLsbFirst           :: Show LsbFirst where
-  show = genericShow
+instance showLsbFirst'          :: Show LsbFirst where
+  show = showLsbFirst
+
+-- |
+showLsbFirst  :: LsbFirst -> String
+showLsbFirst (LsbFirst xs) =
+  "(LsbFirst " <> (String.joinWith "" $ map showBit xs) <> ")"
 
 -- |
 data InfraredBasebandSignals

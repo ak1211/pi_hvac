@@ -37,6 +37,7 @@ import Data.Formatter.Number as FN
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Bounded (genericBottom, genericTop)
 import Data.Generic.Rep.Enum (genericCardinality, genericFromEnum, genericPred, genericSucc, genericToEnum)
+
 import Data.Int as Int
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (unwrap)
@@ -319,6 +320,7 @@ component =
       let maybeLimits = Int.fromString text
           newQry = state.queryParams
                     { limits = maybeLimits <|> initialQueryParams.limits
+                    , page = Just 1
                     }
       H.modify_ _ {queryParams = newQry}
       fetchIrdb
@@ -668,7 +670,7 @@ infraredSignal code =
         , HH.dt_ [ HH.text "data0" ]
         , HH.dd_ [ HH.text $ showHexAndDec irValue.data0 ]
         , HH.dt_ [ HH.text "data" ]
-        , HH.dd_ [ row irValue.data ]
+        , HH.dd_ [ row hexadecimal irValue.data ]
         ]
       ]
 
@@ -688,10 +690,10 @@ infraredSignal code =
       , HH.p_ [ HH.text $ show irValue ]
       ]
 
-  row xs =
-    HH.div [HP.class_ HB.row] $ map col xs
+  row f =
+    HH.div [HP.class_ HB.row] <<< map f
 
-  col x =
+  hexadecimal x =
     HH.div [HP.class_ HB.col1] [HH.text $ showHexAndDec x]
 
 -- |
