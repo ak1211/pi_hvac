@@ -64,6 +64,7 @@ type PlotdataQueryParams =
 type InfraredQueryParams =
   { tab   :: Maybe Int
   , manuf :: Maybe Int
+  , limits:: Maybe Int
   , page  :: Maybe Int
   }
 
@@ -91,6 +92,7 @@ routing = oneOf
     Just
     { tab:    Int.fromString =<< M.lookup "tab" kvsets
     , manuf:  Int.fromString =<< M.lookup "manuf" kvsets
+    , limits: Int.fromString =<< M.lookup "limits" kvsets
     , page:   Int.fromString =<< M.lookup "page" kvsets
     }
 
@@ -124,6 +126,7 @@ routeToPathQuery route =
       "infra-red" <> (
         [ ("tab=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.tab
         , ("manuf=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.manuf
+        , ("limits=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.limits
         , ("page=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.page
         ]
         # Array.catMaybes

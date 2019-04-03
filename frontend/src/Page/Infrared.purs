@@ -110,6 +110,7 @@ data Query a
   | OnClickIrdbTableCode String a
   | OnValueChangeButtonNumber String a
   | OnValueChangeManufacturer String a
+  | OnValueChangeLimits String a
   | OnChangeCSVFileSelect Event a
 
 -- | component
@@ -134,6 +135,7 @@ component =
   initialQueryParams =
     { tab: Just $ fromEnum TabControlPanel
     , manuf: Just 0
+    , limits: Just 10
     , page: Just 1
     }
 
@@ -145,6 +147,7 @@ component =
                 Route.Infrared (Just a) ->
                   { tab: a.tab <|> initialQueryParams.tab
                   , manuf: a.manuf <|> initialQueryParams.manuf
+                  , limits: a.limits <|> initialQueryParams.limits
                   , page: a.page <|> initialQueryParams.page
                   }
 
@@ -300,7 +303,23 @@ component =
                         (\(Api.RespGetIrdbManufacturers x) -> Just x.manufacturers)
                         state.irdbManufacturers
           maybeIndex = Array.elemIndex text =<< maybeManuf
-      let newQry = state.queryParams {manuf = maybeIndex, page = Just 1}
+          newQry = state.queryParams
+                    { manuf = maybeIndex <|> initialQueryParams.manuf
+                    , page = Just 1
+                    }
+      H.modify_ _ {queryParams = newQry}
+      fetchIrdb
+      navigate $ Route.Infrared (Just newQry)
+      H.liftEffect Commons.enablePopover
+      pure next
+
+    OnValueChangeLimits text next -> do
+      H.liftEffect Commons.disposePopover
+      state <- H.get
+      let maybeLimits = Int.fromString text
+          newQry = state.queryParams
+                    { limits = maybeLimits <|> initialQueryParams.limits
+                    }
       H.modify_ _ {queryParams = newQry}
       fetchIrdb
       navigate $ Route.Infrared (Just newQry)
@@ -335,7 +354,7 @@ component =
                   let param = { baseurl: url
                               , manufacturer: Array.index xs.manufacturers =<< state.queryParams.manuf
                               , product: Nothing
-                              , limits: Just 10
+                              , limits: state.queryParams.limits
                               , page: state.queryParams.page
                               }
                       request = Api.getApiV1Irdb param
@@ -463,14 +482,17 @@ component =
 
   renderIrdbTable state =
     HH.div_
-      [ case state.irdbManufacturers of
-          Left reason ->
-            HH.p
-              [ HP.classes [ HB.alert, HB.alertDanger ] ]
-              [ HH.text reason ]
+      [ HH.div_
+        [ case state.irdbManufacturers of
+            Left reason ->
+              HH.p
+                [ HP.classes [ HB.alert, HB.alertDanger ] ]
+                [ HH.text reason ]
 
-          Right manuf ->
-            dropdown manuf
+            Right manuf ->
+              dropdownManuf manuf
+        , dropdownLimits
+        ]
       , HH.h2_ [ HH.text "Infrared code database" ]
       , HH.div_
         [ HH.div
@@ -488,27 +510,60 @@ component =
         ]
       ]
     where
-    dropdown (Api.RespGetIrdbManufacturers x) =
+
+    dropdownLimits =
       HH.div
-        [ HP.classes [ HB.formInline ]
+        [ HP.classes [ HB.formGroup, HB.row ]
         ]
-        [ HH.div
-          [ HP.class_ HB.formGroup
+        [ HH.label
+          [ HP.class_ HB.colSm2 ]
+          [ HH.text "limits" ]
+        , HH.div
+          [ HP.class_ HB.colSm10
           ]
-          [ HH.label_ [ HH.text "manufacturer" ]
-          , HH.select
-            [ HP.classes [ HB.m2, HB.formControl ]
+          [ HH.select
+            [ HP.classes [ HB.formControl ]
+            , HE.onValueChange $ HE.input OnValueChangeLimits
+            ]
+            [ item 10
+            , item 25
+            , item 50
+            , item 100
+            ]
+          ]
+        ]
+        where
+
+        item number =
+          let str = Int.toStringAs Int.decimal number 
+          in
+          case state.queryParams.limits of
+            Just x | x == number  -> HH.option [HP.selected true] [HH.text str]
+            _                     -> HH.option [] [HH.text str]
+
+    dropdownManuf (Api.RespGetIrdbManufacturers x) =
+      HH.div
+        [ HP.classes [ HB.formGroup, HB.row ]
+        ]
+        [ HH.label
+          [ HP.class_ HB.colSm2 ]
+          [ HH.text "manufacturer" ]
+        , HH.div
+          [ HP.class_ HB.colSm10
+          ]
+          [ HH.select
+            [ HP.classes [ HB.formControl ]
             , HE.onValueChange $ HE.input OnValueChangeManufacturer
             ]
             $ Array.zipWith item (0 .. Array.length x.manufacturers) x.manufacturers
           ]
         ]
-      where
+        where
 
-      item number name =
-        case state.queryParams.manuf of
-          Just manuf | manuf == number  -> HH.option [HP.selected true] [HH.text name]
-          _                             -> HH.option [] [HH.text name]
+        item number name =
+          case state.queryParams.manuf of
+            Just manuf | manuf == number  -> HH.option [HP.selected true] [HH.text name]
+            _                             -> HH.option [] [HH.text name]
 
 -- |
 infraredPulse :: forall p i. InfraredHexString -> Array (H.HTML p i)
