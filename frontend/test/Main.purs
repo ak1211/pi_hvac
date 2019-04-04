@@ -8,7 +8,7 @@ import Data.String as String
 import Data.Time.Duration (Milliseconds(..))
 import Effect (Effect)
 import Effect.Console (log, logShow)
-import InfraredCode (Bit(..), InfraredBasebandSignals(..), InfraredHexString, LsbFirst(..), Pulse, fromMilliseconds, infraredBasebandPhase1, infraredHexStringParser, toMilliseconds)
+import InfraredCode (Bit(..), Count(..), InfraredBasebandSignals(..), InfraredHexString, LsbFirst(..), Pulse, fromMilliseconds, infraredBasebandPhase1, infraredHexStringParser, toMilliseconds)
 import Test.Assert (assert')
 import Text.Parsing.Parser (Parser, parseErrorPosition, runParser)
 import Text.Parsing.Parser.Pos (Position(..))
@@ -27,14 +27,14 @@ inputIRCode = String.joinWith ""
 
 expectIRCode :: Array Pulse 
 expectIRCode =
-  [ {on: 0x7B, off: 0x3D}   -- on 0x007B, off 0x003D
-  , {on: 0x0F, off: 0x0F}
-  , {on: 0x0F, off: 0x2E}
-  , {on: 0x0F, off: 0x0F}
-  , {on: 0x0F, off: 0x0F}
-  , {on: 0x0F, off: 0x2E}
-  , {on: 0x0F, off: 0x2E}
-  , {on: 0x0F, off: 0x0F}
+  [ {on: Count 0x7B, off: Count 0x3D}   -- on 0x007B, off 0x003D
+  , {on: Count 0x0F, off: Count 0x0F}
+  , {on: Count 0x0F, off: Count 0x2E}
+  , {on: Count 0x0F, off: Count 0x0F}
+  , {on: Count 0x0F, off: Count 0x0F}
+  , {on: Count 0x0F, off: Count 0x2E}
+  , {on: Count 0x0F, off: Count 0x2E}
+  , {on: Count 0x0F, off: Count 0x0F}
   ]
 
 inputIRCode2 :: InfraredHexString
@@ -77,40 +77,40 @@ inputIRCode2 = String.joinWith ""
 
 expectIRCode2 :: Array Pulse
 expectIRCode2 =
-  [ {on: 0x158, off: 0xAA}
-  , {on: 0x19, off: 0x14}
-  , {on: 0x19, off: 0x14}
-  , {on: 0x1A, off: 0x13}
-  , {on: 0x1A, off: 0x14}
-  , {on: 0x19, off: 0x14}
-  , {on: 0x19, off: 0x14}
-  , {on: 0x19, off: 0x3E}
-  , {on: 0x1A, off: 0x13}
-  , {on: 0x1A, off: 0x3E}
-  , {on: 0x1A, off: 0x3D}
-  , {on: 0x1A, off: 0x3E}
-  , {on: 0x19, off: 0x3E}
-  , {on: 0x19, off: 0x3E}
-  , {on: 0x1A, off: 0x3E}
-  , {on: 0x19, off: 0x14}
-  , {on: 0x19, off: 0x3E}
-  , {on: 0x1A, off: 0x13}
-  , {on: 0x1A, off: 0x3E}
-  , {on: 0x19, off: 0x14}
-  , {on: 0x19, off: 0x14}
-  , {on: 0x19, off: 0x3F}
-  , {on: 0x19, off: 0x14}
-  , {on: 0x19, off: 0x14}
-  , {on: 0x19, off: 0x14}
-  , {on: 0x19, off: 0x3E}
-  , {on: 0x1A, off: 0x14}
-  , {on: 0x19, off: 0x3E}
-  , {on: 0x19, off: 0x3E}
-  , {on: 0x1A, off: 0x14}
-  , {on: 0x19, off: 0x3E}
-  , {on: 0x19, off: 0x3E}
-  , {on: 0x1A, off: 0x3E}
-  , {on: 0x19, off: 0x542}
+  [ {on: Count 0x158, off: Count 0xAA}
+  , {on: Count 0x19, off: Count 0x14}
+  , {on: Count 0x19, off: Count 0x14}
+  , {on: Count 0x1A, off: Count 0x13}
+  , {on: Count 0x1A, off: Count 0x14}
+  , {on: Count 0x19, off: Count 0x14}
+  , {on: Count 0x19, off: Count 0x14}
+  , {on: Count 0x19, off: Count 0x3E}
+  , {on: Count 0x1A, off: Count 0x13}
+  , {on: Count 0x1A, off: Count 0x3E}
+  , {on: Count 0x1A, off: Count 0x3D}
+  , {on: Count 0x1A, off: Count 0x3E}
+  , {on: Count 0x19, off: Count 0x3E}
+  , {on: Count 0x19, off: Count 0x3E}
+  , {on: Count 0x1A, off: Count 0x3E}
+  , {on: Count 0x19, off: Count 0x14}
+  , {on: Count 0x19, off: Count 0x3E}
+  , {on: Count 0x1A, off: Count 0x13}
+  , {on: Count 0x1A, off: Count 0x3E}
+  , {on: Count 0x19, off: Count 0x14}
+  , {on: Count 0x19, off: Count 0x14}
+  , {on: Count 0x19, off: Count 0x3F}
+  , {on: Count 0x19, off: Count 0x14}
+  , {on: Count 0x19, off: Count 0x14}
+  , {on: Count 0x19, off: Count 0x14}
+  , {on: Count 0x19, off: Count 0x3E}
+  , {on: Count 0x1A, off: Count 0x14}
+  , {on: Count 0x19, off: Count 0x3E}
+  , {on: Count 0x19, off: Count 0x3E}
+  , {on: Count 0x1A, off: Count 0x14}
+  , {on: Count 0x19, off: Count 0x3E}
+  , {on: Count 0x19, off: Count 0x3E}
+  , {on: Count 0x1A, off: Count 0x3E}
+  , {on: Count 0x19, off: Count 0x542}
   ]
 
 expectIRCodeFormat2 :: InfraredBasebandSignals
@@ -168,40 +168,40 @@ inputIRCode3 = String.joinWith ""
 
 expectIRCode3 :: Array Pulse
 expectIRCode3 =
-  [ {on: 344, off: 170}
-  , {on: 25, off: 62}
-  , {on: 26, off: 19}
-  , {on: 26, off: 62}
-  , {on: 25, off: 20}
-  , {on: 25, off: 20}
-  , {on: 25, off: 20}
-  , {on: 26, off: 62}
-  , {on: 25, off: 20}
-  , {on: 26, off: 19}
-  , {on: 25, off: 20}
-  , {on: 25, off: 63}
-  , {on: 25, off: 62}
-  , {on: 25, off: 62}
-  , {on: 26, off: 62}
-  , {on: 25, off: 20}
-  , {on: 25, off: 62}
-  , {on: 26, off: 20}
-  , {on: 25, off: 62}
-  , {on: 25, off: 20}
-  , {on: 25, off: 20}
-  , {on: 26, off: 62}
-  , {on: 25, off: 20}
-  , {on: 25, off: 20}
-  , {on: 25, off: 20}
-  , {on: 25, off: 63}
-  , {on: 26, off: 19}
-  , {on: 25, off: 62}
-  , {on: 26, off: 61}
-  , {on: 26, off: 20}
-  , {on: 25, off: 62}
-  , {on: 25, off: 62}
-  , {on: 26, off: 62}
-  , {on: 25, off: 1346}
+  [ {on: Count 344, off: Count 170}
+  , {on: Count 25, off: Count 62}
+  , {on: Count 26, off: Count 19}
+  , {on: Count 26, off: Count 62}
+  , {on: Count 25, off: Count 20}
+  , {on: Count 25, off: Count 20}
+  , {on: Count 25, off: Count 20}
+  , {on: Count 26, off: Count 62}
+  , {on: Count 25, off: Count 20}
+  , {on: Count 26, off: Count 19}
+  , {on: Count 25, off: Count 20}
+  , {on: Count 25, off: Count 63}
+  , {on: Count 25, off: Count 62}
+  , {on: Count 25, off: Count 62}
+  , {on: Count 26, off: Count 62}
+  , {on: Count 25, off: Count 20}
+  , {on: Count 25, off: Count 62}
+  , {on: Count 26, off: Count 20}
+  , {on: Count 25, off: Count 62}
+  , {on: Count 25, off: Count 20}
+  , {on: Count 25, off: Count 20}
+  , {on: Count 26, off: Count 62}
+  , {on: Count 25, off: Count 20}
+  , {on: Count 25, off: Count 20}
+  , {on: Count 25, off: Count 20}
+  , {on: Count 25, off: Count 63}
+  , {on: Count 26, off: Count 19}
+  , {on: Count 25, off: Count 62}
+  , {on: Count 26, off: Count 61}
+  , {on: Count 26, off: Count 20}
+  , {on: Count 25, off: Count 62}
+  , {on: Count 25, off: Count 62}
+  , {on: Count 26, off: Count 62}
+  , {on: Count 25, off: Count 1346}
   ]
 
 expectIRCodeFormat3 :: InfraredBasebandSignals
@@ -244,8 +244,8 @@ main :: Effect Unit
 main = do
   log "from, toMilliseconds test"
   --
-  let msec = toMilliseconds 0x7B
-  assert' ("expected: 0x7B") (0x7B == fromMilliseconds (Milliseconds 3.2))
+  let msec = toMilliseconds (Count 0x7B)
+  assert' ("expected: 0x7B") (Count 0x7B == fromMilliseconds (Milliseconds 3.2))
   assert' ("expected: 3.2 msec ") (msec == Milliseconds 3.2)
   log $ "count 0x7B is " <> show (unwrap msec) <> " ms"
   --
@@ -262,21 +262,21 @@ main = do
   parseErrorTestPosition infraredHexStringParser "100020" $ mkPos 7
   parseErrorTestPosition infraredHexStringParser "1000200" $ mkPos 8
   --
-  parseTest "10002000" [{on: 0x10, off: 0x20}] infraredHexStringParser
-  parseTest "1000200030004000" [{on: 0x10, off: 0x20}, {on: 0x30, off: 0x40}] infraredHexStringParser
+  parseTest "10002000" [{on: Count 0x10, off: Count 0x20}] infraredHexStringParser
+  parseTest "1000200030004000" [{on: Count 0x10, off: Count 0x20}, {on: Count 0x30, off: Count 0x40}] infraredHexStringParser
   --
   log ""
   log "analysis test"
   --
-  let tokens =  [ {on: 30, off: 60}
-                , {on: 30, off: 30}
-                , {on: 30, off: fromMilliseconds (wrap 10.0)}
-                , {on: 30, off: 30}
-                , {on: 30, off: 60}
+  let tokens =  [ {on: Count 30, off: Count 60}
+                , {on: Count 30, off: Count 30}
+                , {on: Count 30, off: fromMilliseconds (wrap 10.0)}
+                , {on: Count 30, off: Count 30}
+                , {on: Count 30, off: Count 60}
                 ]
   let value = infraredBasebandPhase1 tokens
-  let expected =  [ [{ off: 60, on: 30 }, { off: 30, on: 30 }, { off: 384, on: 30 }]
-                  , [{ off: 30, on: 30 }, { off: 60, on: 30 }]
+  let expected =  [ [{ off: Count 60, on: Count 30 }, { off: Count 30, on: Count 30 }, { off: Count 384, on: Count 30 }]
+                  , [{ off: Count 30, on: Count 30 }, { off: Count 60, on: Count 30 }]
                   ]
   assert' ("expected: " <> show expected) (expected == value)
   --
