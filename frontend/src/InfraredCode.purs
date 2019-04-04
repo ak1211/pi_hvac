@@ -48,7 +48,7 @@ import Data.Generic.Rep.Semiring (genericAdd, genericMul, genericOne, genericZer
 import Data.Generic.Rep.Show (genericShow)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), fromJust, maybe)
-import Data.Newtype (class Newtype, wrap)
+import Data.Newtype (class Newtype, unwrap, wrap)
 import Data.String as String
 import Data.String.CodeUnits (fromCharArray)
 import Data.Time.Duration (Milliseconds(..))
@@ -149,7 +149,7 @@ makeInfraredLeader = case _ of
     | otherwise -> ProtoUnknown p
   where
 
-  -- | tolerance 0.2ms
+  -- | upper lower tolerance 0.2ms
   typical = withTolerance (Milliseconds 0.2)
 
   -- | H-level width, typical 3.4ms
@@ -261,8 +261,8 @@ infraredBasebandPhase2 tokens =
   equal' :: Pulse -> Boolean
   equal' x
     | x.on == x.off = true
-    | x.on > x.off = (x.on - x.off) < (x.off / wrap 2)
-    | x.off > x.on = (x.off - x.on) < (x.on / wrap 2)
+    | x.on > x.off = (x.on - x.off) < (x.off / Count 2)
+    | x.off > x.on = (x.off - x.on) < (x.on / Count 2)
     | otherwise = false
 
   demodulatePPM :: Pulse -> Bit

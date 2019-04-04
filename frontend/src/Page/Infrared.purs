@@ -57,8 +57,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Query as HQ
 import Halogen.Themes.Bootstrap4 as HB
-import InfraredCode (Count, InfraredBasebandSignals(..), InfraredHexString, InfraredLeader(..), LsbFirst, deserialize, infraredBasebandPhase1, infraredBasebandPhase2, infraredBasebandSignals, infraredHexStringParser)
-import InfraredCode as InfraredCode
+import InfraredCode (Count, InfraredBasebandSignals(..), InfraredHexString, InfraredLeader(..), LsbFirst, deserialize, infraredBasebandPhase1, infraredBasebandPhase2, infraredBasebandSignals, infraredHexStringParser, toMilliseconds)
 import Page.Commons as Commons
 import Route (Route)
 import Route as Route
@@ -587,7 +586,7 @@ infraredPulse code =
     either (const "N/A") identity
     $ FN.formatNumber "0.0"
     $ unwrap
-    $ InfraredCode.toMilliseconds n
+    $ toMilliseconds n
 
 -- |
 infraredBinary :: forall p i. InfraredHexString -> Array (H.HTML p i)
