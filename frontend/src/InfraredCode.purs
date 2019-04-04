@@ -150,14 +150,14 @@ makeInfraredLeader = case _ of
   where
 
   -- | tolerance 0.2ms
-  tolerance = withTolerance (Milliseconds 0.2)
+  typical = withTolerance (Milliseconds 0.2)
 
   -- | H-level width, typical 3.4ms
   -- | L-level width, typical 1.7ms
   aeha :: Pulse -> Boolean
   aeha pulse =
-    let on_   = tolerance (Milliseconds 3.4)
-        off_  = tolerance (Milliseconds 1.7)
+    let on_   = typical (Milliseconds 3.4)
+        off_  = typical (Milliseconds 1.7)
     in
     (Array.any (_ == pulse.on) on_) && (Array.any (_ == pulse.off) off_)
 
@@ -165,15 +165,15 @@ makeInfraredLeader = case _ of
   -- | L-level width, typical 4.5ms
   nec :: Pulse -> Boolean
   nec pulse =
-    let on_   = tolerance (Milliseconds 9.0)
-        off_  = tolerance (Milliseconds 4.5)
+    let on_   = typical (Milliseconds 9.0)
+        off_  = typical (Milliseconds 4.5)
     in
     (Array.any (_ == pulse.on) on_) && (Array.any (_ == pulse.off) off_)
 
   -- | H-level width, typical 2.4ms
   sony :: Pulse -> Boolean
   sony pulse =
-    let on_   = tolerance (Milliseconds 2.4)
+    let on_   = typical (Milliseconds 2.4)
     in
     Array.any (_ == pulse.on) on_
 
