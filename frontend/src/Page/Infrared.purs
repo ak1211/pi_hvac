@@ -37,7 +37,6 @@ import Data.Formatter.Number as FN
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Bounded (genericBottom, genericTop)
 import Data.Generic.Rep.Enum (genericCardinality, genericFromEnum, genericPred, genericSucc, genericToEnum)
-
 import Data.Int as Int
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (unwrap)
@@ -58,7 +57,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Query as HQ
 import Halogen.Themes.Bootstrap4 as HB
-import InfraredCode (InfraredBasebandSignals(..), InfraredHexString, InfraredLeader(..), LsbFirst, deserialize, infraredBasebandPhase1, infraredBasebandPhase2, infraredBasebandSignals, infraredHexStringParser)
+import InfraredCode (Count, InfraredBasebandSignals(..), InfraredHexString, InfraredLeader(..), LsbFirst, deserialize, infraredBasebandPhase1, infraredBasebandPhase2, infraredBasebandSignals, infraredHexStringParser)
 import InfraredCode as InfraredCode
 import Page.Commons as Commons
 import Route (Route)
@@ -583,7 +582,7 @@ infraredPulse code =
     , HH.span [HP.class_ HB.textSuccess] [HH.text $ strMillisec p.off <> "off"]
     ]
 
-  strMillisec :: Int -> String
+  strMillisec :: Count -> String
   strMillisec n =
     either (const "N/A") identity
     $ FN.formatNumber "0.0"

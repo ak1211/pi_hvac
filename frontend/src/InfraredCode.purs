@@ -17,6 +17,7 @@
 
 module InfraredCode
   ( Bit(..)
+  , Count(..)
   , InfraredBasebandSignals(..)
   , InfraredHexString
   , InfraredLeader(..)
@@ -42,10 +43,12 @@ import Data.Array ((..))
 import Data.Array as Array
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
+import Data.Generic.Rep.Ring (genericSub)
+import Data.Generic.Rep.Semiring (genericAdd, genericMul, genericOne, genericZero)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), fromJust, maybe)
-import Data.Newtype (wrap)
+import Data.Newtype (class Newtype, wrap)
 import Data.String as String
 import Data.String.CodeUnits (fromCharArray)
 import Data.Time.Duration (Milliseconds(..))
@@ -65,8 +68,53 @@ type InfraredHexString = String
 -- |
 type ProcessError = String
 
+-- |
+type Pulse = {on :: Count, off :: Count}
+
 -- | count is based on 38khz carrier
-type Pulse = {on :: Int, off :: Int}
+newtype Count = Count Int
+derive instance genericCount  :: Generic Count _
+derive instance newtypeCount  :: Newtype Count _
+derive instance eqCount       :: Eq Count
+derive instance ordCount      :: Ord Count
+instance showCount            :: Show Count where
+  show = genericShow
+instance semiringCount        :: Semiring Count where
+  add = genericAdd
+  zero = genericZero
+  mul = genericMul
+  one = genericOne
+instance ringCount            :: Ring Count where
+  sub = genericSub
+instance commutativeRingCount :: CommutativeRing Count
+instance eucideanRingCount    :: EuclideanRing Count where
+  degree (Count c) = degree c
+  div (Count c) (Count d) = Count (div c d)
+  mod (Count c) (Count d) = Count (mod c d)
+
+-- |
+withTolerance :: Milliseconds -> Milliseconds -> Array Count
+withTolerance tolerance typical =
+  let (Count x) = fromMilliseconds tolerance
+      (Count typ) = fromMilliseconds typical
+  in
+  Count <$> (typ - x) .. (typ + x)
+
+-- |
+fromMilliseconds :: Milliseconds -> Count
+fromMilliseconds (Milliseconds msec)=
+  let freq    = 38    -- 38.0 kHz
+      usec    = 1000 / freq
+  in
+  Count $ Int.floor (1000.0 * msec) / usec
+
+-- |
+toMilliseconds :: Count -> Milliseconds
+toMilliseconds (Count counts) =
+  let freq    = 38    -- 38.0 kHz
+      msec10x = 10 * counts / freq
+  in
+  Milliseconds (Int.toNumber msec10x / 10.0)
 
 -- |
 data Bit
@@ -100,12 +148,16 @@ makeInfraredLeader = case _ of
     | sony p    -> ProtoSony p
     | otherwise -> ProtoUnknown p
   where
+
+  -- | tolerance 0.2ms
+  tolerance = withTolerance (Milliseconds 0.2)
+
   -- | H-level width, typical 3.4ms
   -- | L-level width, typical 1.7ms
   aeha :: Pulse -> Boolean
   aeha pulse =
-    let on_   = fromMilliseconds (wrap 3.2) .. fromMilliseconds (wrap 3.6)
-        off_  = fromMilliseconds (wrap 1.5) .. fromMilliseconds (wrap 1.9)
+    let on_   = tolerance (Milliseconds 3.4)
+        off_  = tolerance (Milliseconds 1.7)
     in
     (Array.any (_ == pulse.on) on_) && (Array.any (_ == pulse.off) off_)
 
@@ -113,15 +165,15 @@ makeInfraredLeader = case _ of
   -- | L-level width, typical 4.5ms
   nec :: Pulse -> Boolean
   nec pulse =
-    let on_   = fromMilliseconds (wrap 8.8) .. fromMilliseconds (wrap 9.2)
-        off_  = fromMilliseconds (wrap 4.3) .. fromMilliseconds (wrap 4.7)
+    let on_   = tolerance (Milliseconds 9.0)
+        off_  = tolerance (Milliseconds 4.5)
     in
     (Array.any (_ == pulse.on) on_) && (Array.any (_ == pulse.off) off_)
 
   -- | H-level width, typical 2.4ms
   sony :: Pulse -> Boolean
   sony pulse =
-    let on_ = fromMilliseconds (wrap 2.2) .. fromMilliseconds (wrap 2.6)
+    let on_   = tolerance (Milliseconds 2.4)
     in
     Array.any (_ == pulse.on) on_
 
@@ -148,22 +200,6 @@ instance showInfraredBasebandSignals            :: Show InfraredBasebandSignals 
   show = genericShow
 
 -- |
-fromMilliseconds :: Milliseconds -> Int
-fromMilliseconds (Milliseconds msec)=
-  let freq    = 38    -- 38.0 kHz
-      usec    = 1000 / freq
-  in
-  Int.floor (1000.0 * msec) / usec
-
--- |
-toMilliseconds :: Int -> Milliseconds
-toMilliseconds counts =
-  let freq    = 38    -- 38.0 kHz
-      msec10x = 10 * counts / freq
-  in
-  Milliseconds (Int.toNumber msec10x / 10.0)
-
--- |
 infraredHexStringParser:: Parser InfraredHexString (Array Pulse)
 infraredHexStringParser =
   Array.many pulse
@@ -173,7 +209,7 @@ infraredHexStringParser =
     -- 入力値はon -> offの順番
     ton <- valueOf32Bit <?> "on-counts"
     toff <- valueOf32Bit <?> "off-counts"
-    pure {on: ton, off: toff}
+    pure {on: Count ton, off: Count toff}
 
   valueOf32Bit = do
     -- 入力値はLower -> Higherの順番
@@ -203,7 +239,7 @@ infraredBasebandPhase1 =
 
   chop :: Array Pulse -> Tuple (Array Pulse) (Maybe (Array Pulse))
   chop xs = 
-    let x = Array.span (\p -> p.off < threshold) xs
+    let x = Array.span (\c -> c.off < threshold) xs
     in
     case Array.drop 1 x.rest of
       [] -> Tuple (x.init <> Array.take 1 x.rest) Nothing
@@ -216,7 +252,7 @@ infraredBasebandPhase2 :: Array Pulse -> Either ProcessError (Tuple InfraredLead
 infraredBasebandPhase2 tokens =
   case Array.uncons tokens of
     Just {head: x, tail: xs} ->
-      Right $ Tuple (makeInfraredLeader x) (map pulsePositionModulation xs)
+      Right $ Tuple (makeInfraredLeader x) (map demodulatePPM xs)
 
     Nothing ->
       Left "Unexpected end of input"
@@ -225,13 +261,13 @@ infraredBasebandPhase2 tokens =
   equal' :: Pulse -> Boolean
   equal' x
     | x.on == x.off = true
-    | x.on > x.off = (x.on - x.off) < (x.off / 2)
-    | x.off > x.on = (x.off - x.on) < (x.on / 2)
+    | x.on > x.off = (x.on - x.off) < (x.off / wrap 2)
+    | x.off > x.on = (x.off - x.on) < (x.on / wrap 2)
     | otherwise = false
 
-  pulsePositionModulation :: Pulse -> Bit
-  pulsePositionModulation p | equal' p  = Negate
-                            | otherwise = Assert
+  demodulatePPM :: Pulse -> Bit
+  demodulatePPM p | equal' p  = Negate
+                  | otherwise = Assert
 
 -- | 入力リーダ部とビット配列から赤外線信号にする
 infraredBasebandPhase3 :: Tuple InfraredLeader (Array Bit) -> Either ProcessError InfraredBasebandSignals
