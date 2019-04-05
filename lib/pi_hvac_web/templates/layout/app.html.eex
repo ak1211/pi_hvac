@@ -13,7 +13,7 @@
 
     <link rel="stylesheet" href="/css/app.css">
 
-    <title>PiHvac</title>
+    <title>PiHVAC</title>
   </head>
   <body>
     <script type="text/javascript" src="<%= Routes.static_path(@conn, "/js/app.js") %>"></script>
