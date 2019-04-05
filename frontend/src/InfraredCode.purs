@@ -48,7 +48,7 @@ import Data.Generic.Rep.Semiring (genericAdd, genericMul, genericOne, genericZer
 import Data.Generic.Rep.Show (genericShow)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), fromJust, maybe)
-import Data.Newtype (class Newtype, unwrap, wrap)
+import Data.Newtype (class Newtype, wrap)
 import Data.String as String
 import Data.String.CodeUnits (fromCharArray)
 import Data.Time.Duration (Milliseconds(..))
@@ -252,7 +252,7 @@ infraredBasebandPhase2 :: Array Pulse -> Either ProcessError (Tuple InfraredLead
 infraredBasebandPhase2 tokens =
   case Array.uncons tokens of
     Just {head: x, tail: xs} ->
-      Right $ Tuple (makeInfraredLeader x) (map demodulatePPM xs)
+      Right $ Tuple (makeInfraredLeader x) (map demodulate xs)
 
     Nothing ->
       Left "Unexpected end of input"
@@ -265,9 +265,9 @@ infraredBasebandPhase2 tokens =
     | x.off > x.on = (x.off - x.on) < (x.on / Count 2)
     | otherwise = false
 
-  demodulatePPM :: Pulse -> Bit
-  demodulatePPM p | equal' p  = Negate
-                  | otherwise = Assert
+  demodulate :: Pulse -> Bit
+  demodulate p  | equal' p  = Negate
+                | otherwise = Assert
 
 -- | 入力リーダ部とビット配列から赤外線信号にする
 infraredBasebandPhase3 :: Tuple InfraredLeader (Array Bit) -> Either ProcessError InfraredBasebandSignals
