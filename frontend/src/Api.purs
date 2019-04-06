@@ -138,9 +138,9 @@ instance showMeasEnvironment            :: Show MeasEnvironment where
 instance decodeMeasEnvironment          :: Decode MeasEnvironment where
   decode = genericDecode $ defaultOptions {unwrapSingleConstructors = true}
 
--- | 受け取ったJSONのキー"data"に内容物が入っている
+-- | 受け取ったJSONのキー"env"に内容物が入っている
 newtype EnvMeasurements = EnvMeasurements
-  { data :: Array MeasEnvironment
+  { env :: Array MeasEnvironment
   }
 derive instance genericEnvMeasurements  :: Generic EnvMeasurements _
 instance decodeEnvMeasurements          :: Decode EnvMeasurements where
@@ -177,7 +177,7 @@ getApiV1Measurements param =
       "" -> ""
       str -> "?" <> str
 
-  pickupData (EnvMeasurements x) = x.data
+  pickupData (EnvMeasurements x) = x.env
 
 --
 -- /api/v1/i2c-devices
