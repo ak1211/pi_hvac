@@ -48,7 +48,7 @@ import Data.Generic.Rep.Semiring (genericAdd, genericMul, genericOne, genericZer
 import Data.Generic.Rep.Show (genericShow)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), fromJust, maybe)
-import Data.Newtype (class Newtype, wrap)
+import Data.Newtype (class Newtype)
 import Data.String as String
 import Data.String.CodeUnits (fromCharArray)
 import Data.Time.Duration (Milliseconds(..))
@@ -193,7 +193,7 @@ data InfraredBasebandSignals
   = Unknown LsbFirst
   | AEHA  {customer :: LsbFirst, parity :: LsbFirst, data0 :: LsbFirst, data :: Array LsbFirst}
   | NEC   {customer :: LsbFirst, data :: LsbFirst, invData :: LsbFirst}
-  | SONY  {command:: LsbFirst, address :: LsbFirst}
+  | SONY  {command :: LsbFirst, address :: LsbFirst}
 derive instance genericInfraredBasebandSignals  :: Generic InfraredBasebandSignals _
 derive instance eqInfraredBasebandSignals       :: Eq InfraredBasebandSignals
 instance showInfraredBasebandSignals            :: Show InfraredBasebandSignals where
@@ -245,7 +245,7 @@ infraredBasebandPhase1 =
       [] -> Tuple (x.init <> Array.take 1 x.rest) Nothing
       a -> Tuple (x.init <> Array.take 1 x.rest) (Just a)
 
-  threshold = fromMilliseconds (wrap 8.0)
+  threshold = fromMilliseconds (Milliseconds 8.0)
 
 -- | 入力フレームをリーダ部とビット配列にする
 infraredBasebandPhase2 :: Array Pulse -> Either ProcessError (Tuple InfraredLeader (Array Bit))
