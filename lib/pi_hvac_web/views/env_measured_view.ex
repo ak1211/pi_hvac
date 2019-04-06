@@ -3,11 +3,11 @@ defmodule PiHvacWeb.V1.EnvMeasuredView do
   alias PiHvacWeb.V1.EnvMeasuredView
 
   def render("index.json", %{env_measured: env_measured}) do
-    %{data: render_many(env_measured, EnvMeasuredView, "env_measured.json")}
+    %{env: render_many(env_measured, EnvMeasuredView, "env_measured.json")}
   end
 
   def render("show.json", %{env_measured: env_measured}) do
-    %{data: render_one(env_measured, EnvMeasuredView, "env_measured.json")}
+    %{env: render_one(env_measured, EnvMeasuredView, "env_measured.json")}
   end
 
   def render("env_measured.json", %{env_measured: env_measured}) do
