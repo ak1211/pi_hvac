@@ -589,8 +589,8 @@ infraredPulse code =
     $ toMilliseconds n
 
 -- |
-infraredBinary :: forall p i. InfraredHexString -> Array (H.HTML p i)
-infraredBinary code =
+infraredDemodulation :: forall p i. InfraredHexString -> Array (H.HTML p i)
+infraredDemodulation code =
   Bifunctor.lmap parseErrorMessage (runParser code infraredHexStringParser)
   >>= (infraredBasebandPhase1 >>> traverse infraredBasebandPhase2)
   # case _ of
@@ -793,9 +793,9 @@ renderInfraredRemoconCode state =
         Right (Api.DatumInfraRed ir) -> 
           [ HH.h5_ [ HH.text "Pulse milliseconds" ]
           , HH.p_ $ infraredPulse ir.code
-          , HH.h5_ [ HH.text "Decoded binaries" ]
-          , HH.p_ $ infraredBinary ir.code
-          , HH.h5_ [ HH.text "Decoded infrared signal" ]
+          , HH.h5_ [ HH.text "Demodulation" ]
+          , HH.p_ $ infraredDemodulation ir.code
+          , HH.h5_ [ HH.text "Decoded baseband signal" ]
           , HH.p_ $ infraredSignal ir.code
           ]
     ]
@@ -894,7 +894,7 @@ irdbTable rowClick codeClick = case _ of
           , HP.attr (HC.AttrName "data-container") "body"
           , HP.attr (HC.AttrName "data-toggle") "popover"
           , HP.attr (HC.AttrName "data-placement") "left"
-          , HP.attr (HC.AttrName "data-content") $ infraredSemantics val.code
+          , HP.attr (HC.AttrName "data-content") $ popoverContents val.code
           ]
           [ HH.text $ String.take 8 val.code, HH.text "..."
           ]
@@ -902,8 +902,8 @@ irdbTable rowClick codeClick = case _ of
       ]
 
 -- |
-infraredSemantics :: String -> String
-infraredSemantics x =
+popoverContents :: InfraredHexString -> String
+popoverContents x =
   Bifunctor.lmap parseErrorMessage (runParser x infraredHexStringParser)
   >>= infraredBasebandSignals
   # case _ of
