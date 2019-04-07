@@ -280,9 +280,8 @@ infraredBasebandPhase2 tokens =
     -- | pulse distance modulation is NEC, AEHA
     pulseDistanceModulation :: Pulse -> Bit
     pulseDistanceModulation = case _ of
-      x | x.on < x.off && (x.off - x.on) > x.on -> Assert
-        | x.on == x.off                         -> Negate
-        | otherwise                             -> Negate
+      x | (Count 2 * x.on) <= x.off -> Assert
+        | otherwise                 -> Negate
 
     sircModulation :: Pulse -> Bit
     sircModulation p =
