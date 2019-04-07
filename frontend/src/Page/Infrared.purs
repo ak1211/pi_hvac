@@ -611,11 +611,11 @@ infraredDemodulation code =
       , HH.br_
       , row $ toArray2D 8 vs
       ]
-    ProtoSony _  ->
+    ProtoSirc _  ->
       let bit7 = Array.take 7 vs
           left = Array.drop 7 vs
       in
-      [ HH.text "SONY"
+      [ HH.text "SIRC"
       , HH.br_
       , row (bit7 : toArray2D 8 left)
       ]
@@ -649,7 +649,7 @@ infraredSignal code =
         [ HH.dt_ [ HH.text "protocol" ]
         , HH.dd_ [ HH.text "NEC" ]
         , HH.dt_ [ HH.text "customer" ]
-        , HH.dd_ [ HH.text $ showHexAndDec irValue.customer ]
+        , HH.dd_ [ HH.text $ showHex irValue.customer0, HH.text " ", HH.text $ showHex irValue.customer1 ]
         , HH.dt_ [ HH.text "data" ]
         , HH.dd_ [ HH.text $ showHexAndDec irValue.data ]
         , HH.dt_ [ HH.text "invarted-data" ]
@@ -662,7 +662,7 @@ infraredSignal code =
         [ HH.dt_ [ HH.text "protocol" ]
         , HH.dd_ [ HH.text "AEHA" ]
         , HH.dt_ [ HH.text "customer" ]
-        , HH.dd_ [ HH.text $ showHexAndDec irValue.customer ]
+        , HH.dd_ [ HH.text $ showHex irValue.customer0, HH.text " ", HH.text $ showHex irValue.customer1 ]
         , HH.dt_ [ HH.text "parity" ]
         , HH.dd_ [ HH.text $ showHexAndDec irValue.parity ]
         , HH.dt_ [ HH.text "data0" ]
@@ -672,10 +672,10 @@ infraredSignal code =
         ]
       ]
 
-    SONY irValue ->
+    SIRC irValue ->
       [ HH.dl_
         [ HH.dt_ [ HH.text "protocol" ]
-        , HH.dd_ [ HH.text "SONY" ]
+        , HH.dd_ [ HH.text "SIRC" ]
         , HH.dt_ [ HH.text "command" ]
         , HH.dd_ [ HH.text $ showHexAndDec irValue.command ]
         , HH.dt_ [ HH.text "address" ]
@@ -915,7 +915,8 @@ popoverContents x =
     NEC irValue ->
       String.joinWith " "
         [ "NEC"
-        , showHex irValue.customer
+        , showHex irValue.customer0
+        , showHex irValue.customer1
         , showHex irValue.data
         , showHex irValue.invData
         ]
@@ -923,16 +924,17 @@ popoverContents x =
     AEHA irValue ->
       String.joinWith " " $ Array.concat
         [ [ "AEHA"
-          , showHex irValue.customer
+          , showHex irValue.customer0
+          , showHex irValue.customer1
           , showHex irValue.parity
           , showHex irValue.data0
           ]
         , map showHex irValue.data
         ]
 
-    SONY irValue ->
+    SIRC irValue ->
       String.joinWith " "
-        [ "SONY"
+        [ "SONY SIRC"
         , showHex irValue.command
         , showHex irValue.address
         ]

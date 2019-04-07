@@ -41,6 +41,8 @@ import Prelude
 import Control.MonadZero (guard)
 import Data.Array ((..))
 import Data.Array as Array
+import Data.Array.NonEmpty (NonEmptyArray)
+import Data.Array.NonEmpty as NEA
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Ring (genericSub)
@@ -133,7 +135,7 @@ showBit Assert = "1"
 data InfraredLeader
   = ProtoAeha Pulse 
   | ProtoNec Pulse 
-  | ProtoSony Pulse 
+  | ProtoSirc Pulse 
   | ProtoUnknown Pulse 
 derive instance genericInfraredLeader :: Generic InfraredLeader _
 derive instance eqInfraredLeader      :: Eq InfraredLeader
@@ -145,7 +147,7 @@ makeInfraredLeader :: Pulse -> InfraredLeader
 makeInfraredLeader = case _ of
   p | aeha p    -> ProtoAeha p
     | nec p     -> ProtoNec p
-    | sony p    -> ProtoSony p
+    | sirc p    -> ProtoSirc p
     | otherwise -> ProtoUnknown p
   where
 
@@ -171,14 +173,14 @@ makeInfraredLeader = case _ of
     (Array.any (_ == pulse.on) on_) && (Array.any (_ == pulse.off) off_)
 
   -- | H-level width, typical 2.4ms
-  sony :: Pulse -> Boolean
-  sony pulse =
+  sirc :: Pulse -> Boolean
+  sirc pulse =
     let on_   = typical (Milliseconds 2.4)
     in
     Array.any (_ == pulse.on) on_
 
 -- |
-newtype LsbFirst = LsbFirst (Array Bit)
+newtype LsbFirst = LsbFirst (NonEmptyArray Bit)
 derive instance eqLsbFirst      :: Eq LsbFirst
 instance showLsbFirst'          :: Show LsbFirst where
   show = showLsbFirst
@@ -186,14 +188,14 @@ instance showLsbFirst'          :: Show LsbFirst where
 -- |
 showLsbFirst  :: LsbFirst -> String
 showLsbFirst (LsbFirst xs) =
-  "(LsbFirst " <> (String.joinWith "" $ map showBit xs) <> ")"
+  "(LsbFirst " <> (String.joinWith "" $ NEA.toArray $ map showBit xs) <> ")"
 
 -- |
 data InfraredBasebandSignals
-  = Unknown LsbFirst
-  | AEHA  {customer :: LsbFirst, parity :: LsbFirst, data0 :: LsbFirst, data :: Array LsbFirst}
-  | NEC   {customer :: LsbFirst, data :: LsbFirst, invData :: LsbFirst}
-  | SONY  {command :: LsbFirst, address :: LsbFirst}
+  = Unknown (Array Bit)
+  | AEHA  {customer0 :: LsbFirst, customer1 :: LsbFirst, parity :: LsbFirst, data0 :: LsbFirst, data :: Array LsbFirst}
+  | NEC   {customer0 :: LsbFirst, customer1 :: LsbFirst, data :: LsbFirst, invData :: LsbFirst}
+  | SIRC {command :: LsbFirst, address :: LsbFirst}
 derive instance genericInfraredBasebandSignals  :: Generic InfraredBasebandSignals _
 derive instance eqInfraredBasebandSignals       :: Eq InfraredBasebandSignals
 instance showInfraredBasebandSignals            :: Show InfraredBasebandSignals where
@@ -275,66 +277,68 @@ infraredBasebandPhase3 input =
   case Tuple.fst input of
     ProtoAeha _     -> aeha
     ProtoNec _      -> nec 
-    ProtoSony _     -> sony
+    ProtoSirc _     -> sirc
     ProtoUnknown _  -> other
   where
 
-  take :: Int -> Int -> ProcessError -> Either ProcessError (Array Bit)
+  take :: Int -> Int -> ProcessError -> Either ProcessError (NonEmptyArray Bit)
   take begin length errmsg =
     let sigs = Array.slice begin (begin + length) (Tuple.snd input)
     in
     maybe (Left errmsg) Right do
       guard (Array.length sigs == length)
-      pure sigs
+      NEA.fromArray sigs
 
-  takeEnd :: Int -> Array Bit
-  takeEnd begin =
-    Array.drop (begin - 1) (Tuple.snd input)
+  takeEnd :: Int -> ProcessError -> Either ProcessError (NonEmptyArray Bit)
+  takeEnd begin errmsg =
+    let xs = Array.drop (begin - 1) (Tuple.snd input)
+    in
+    maybe (Left errmsg) Right $ NEA.fromArray xs
 
   aeha :: Either ProcessError InfraredBasebandSignals
   aeha = do
-    sCustomer <- take 0 16 "fail to read: customer code (AEHA)"
-    sParity   <- take 16 4 "fail to read: parity (AEHA)"
-    sData0    <- take 20 4 "fail to read: data zero (AEHA)"
-    let arr   = takeEnd 24
-    sData     <- maybe (Left "fail to read: data (AEHA)") Right
-                  $ Array.unsnoc arr
-    stopBit   <- maybe (Left "fail to read: stop bit (AEHA)") Right
-                  $ guard (sData.last == Assert)
-    let octet = toArray2D 8 $ sData.init
-    { customer: LsbFirst sCustomer
+    sCustomer0  <- take 0 8 "fail to read: customer0 code (AEHA)"
+    sCustomer1  <- take 8 8 "fail to read: customer1 code (AEHA)"
+    sParity     <- take 16 4 "fail to read: parity (AEHA)"
+    sData0      <- take 20 4 "fail to read: data zero (AEHA)"
+    sData       <- takeEnd 24 "fail to read: data (AEHA)"
+    let octet = toArray2D 8 $ NEA.init sData
+    { customer0: LsbFirst sCustomer0
+    , customer1: LsbFirst sCustomer1
     , parity: LsbFirst sParity
     , data0: LsbFirst sData0
-    , data: map LsbFirst octet
+    , data: map LsbFirst $ Array.mapMaybe NEA.fromArray $ octet
     } # (Right <<< AEHA)
 
   nec :: Either ProcessError InfraredBasebandSignals
   nec = do
-    sCustomer <- take 0 16 "fail to read: customer code (NEC)"
-    sData     <- take 16 8 "fail to read: data code (NEC)"
-    sInvData  <- take 24 8 "fail to read: inv-data code (NEC)"
-    stopBit   <- take 32 1 "fail to read: stop bit (NEC)"
-    { customer: LsbFirst sCustomer
+    sCustomer0 <- take 0 8 "fail to read: customer0 code (NEC)"
+    sCustomer1 <- take 8 8 "fail to read: customer1 code (NEC)"
+    sData       <- take 16 8 "fail to read: data code (NEC)"
+    sInvData    <- take 24 8 "fail to read: inv-data code (NEC)"
+    stopBit     <- take 32 1 "fail to read: stop bit (NEC)"
+    { customer0: LsbFirst sCustomer0
+    , customer1: LsbFirst sCustomer1
     , data: LsbFirst sData
     , invData: LsbFirst sInvData
     } # (Right <<< NEC)
 
-  sony :: Either ProcessError InfraredBasebandSignals
-  sony = do
-    sCommand <- take 0 6 "fail to read: command code (SONY)"
-    let sAddress = takeEnd 7
+  sirc :: Either ProcessError InfraredBasebandSignals
+  sirc = do
+    sCommand <- take 0 6 "fail to read: command code (SIRC)"
+    sAddress <- takeEnd 7 "fail to read: address (SIRC)"
     { command: LsbFirst sCommand
     , address: LsbFirst sAddress
-    } # (Right <<< SONY)
+    } # (Right <<< SIRC)
 
   other :: Either ProcessError InfraredBasebandSignals
   other =
-    Right $ Unknown $ LsbFirst (Tuple.snd input)
+    Right $ Unknown (Tuple.snd input)
 
 -- |
 deserialize :: LsbFirst -> Int
 deserialize (LsbFirst bits) =
-  Array.foldl f 0 $ Array.reverse bits
+  Array.foldl f 0 $ NEA.reverse bits
   where
   f :: Int -> Bit -> Int
   f acc Assert = acc * 2 + 1
