@@ -95,12 +95,16 @@ instance eucideanRingCount    :: EuclideanRing Count where
   mod (Count c) (Count d) = Count (mod c d)
 
 -- |
-withTolerance :: Milliseconds -> Milliseconds -> Array Count
+withTolerance
+  :: {upper :: Milliseconds, lower :: Milliseconds}
+  -> Milliseconds
+  -> Array Count
 withTolerance tolerance typical =
-  let (Count x) = fromMilliseconds tolerance
+  let (Count up) = fromMilliseconds tolerance.upper
+      (Count lo) = fromMilliseconds tolerance.lower
       (Count typ) = fromMilliseconds typical
   in
-  Count <$> (typ - x) .. (typ + x)
+  Count <$> (typ - lo) .. (typ + up)
 
 -- |
 fromMilliseconds :: Milliseconds -> Count
@@ -152,7 +156,7 @@ makeInfraredLeader = case _ of
   where
 
   -- | upper lower tolerance 0.2ms
-  typical = withTolerance (Milliseconds 0.2)
+  typical = withTolerance {upper: Milliseconds 0.2, lower: Milliseconds 0.2}
 
   -- | H-level width, typical 3.4ms
   -- | L-level width, typical 1.7ms
@@ -173,11 +177,13 @@ makeInfraredLeader = case _ of
     (Array.any (_ == pulse.on) on_) && (Array.any (_ == pulse.off) off_)
 
   -- | H-level width, typical 2.4ms
+  -- | L-level width, typical 0.6ms
   sirc :: Pulse -> Boolean
   sirc pulse =
     let on_   = typical (Milliseconds 2.4)
+        off_  = typical (Milliseconds 0.6)
     in
-    Array.any (_ == pulse.on) on_
+    (Array.any (_ == pulse.on) on_) && (Array.any (_ == pulse.off) off_)
 
 -- |
 newtype LsbFirst = LsbFirst (NonEmptyArray Bit)
@@ -254,22 +260,39 @@ infraredBasebandPhase2 :: Array Pulse -> Either ProcessError (Tuple InfraredLead
 infraredBasebandPhase2 tokens =
   case Array.uncons tokens of
     Just {head: x, tail: xs} ->
-      Right $ Tuple (makeInfraredLeader x) (map demodulate xs)
+      let leader = makeInfraredLeader x
+      in
+      Right $ Tuple leader (demodulate leader xs)
 
     Nothing ->
       Left "Unexpected end of input"
   where
 
-  equal' :: Pulse -> Boolean
-  equal' x
-    | x.on == x.off = true
-    | x.on > x.off = (x.on - x.off) < (x.off / Count 2)
-    | x.off > x.on = (x.off - x.on) < (x.on / Count 2)
-    | otherwise = false
+  demodulate :: InfraredLeader -> Array Pulse -> Array Bit
+  demodulate leader ps =
+    case leader of
+      ProtoSirc _ ->
+        map sircModulation ps
+      _ ->
+        map pulseDistanceModulation ps
+    where
 
-  demodulate :: Pulse -> Bit
-  demodulate p  | equal' p  = Negate
-                | otherwise = Assert
+    -- | pulse distance modulation is NEC, AEHA
+    pulseDistanceModulation :: Pulse -> Bit
+    pulseDistanceModulation = case _ of
+      x | x.on < x.off && (x.off - x.on) > x.on -> Assert
+        | x.on == x.off                         -> Negate
+        | otherwise                             -> Negate
+
+    sircModulation :: Pulse -> Bit
+    sircModulation p =
+      let threshold = withTolerance
+                        {upper: Milliseconds 0.1, lower: Milliseconds 0.1}
+                        (Milliseconds 1.2)
+      in
+      case Array.any (_ == p.on) threshold of
+        true -> Assert
+        false -> Negate
 
 -- | 入力リーダ部とビット配列から赤外線信号にする
 infraredBasebandPhase3 :: Tuple InfraredLeader (Array Bit) -> Either ProcessError InfraredBasebandSignals
@@ -325,8 +348,8 @@ infraredBasebandPhase3 input =
 
   sirc :: Either ProcessError InfraredBasebandSignals
   sirc = do
-    sCommand <- take 0 6 "fail to read: command code (SIRC)"
-    sAddress <- takeEnd 7 "fail to read: address (SIRC)"
+    sCommand <- take 0 7 "fail to read: command code (SIRC)"
+    sAddress <- takeEnd 8 "fail to read: address (SIRC)"
     { command: LsbFirst sCommand
     , address: LsbFirst sAddress
     } # (Right <<< SIRC)

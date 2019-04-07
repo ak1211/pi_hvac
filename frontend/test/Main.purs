@@ -2,13 +2,16 @@ module Test.Main where
 
 import Prelude
 
+import Data.Array.NonEmpty as NEA
 import Data.Either (Either(..))
+import Data.Maybe (fromJust)
 import Data.Newtype (unwrap, wrap)
 import Data.String as String
 import Data.Time.Duration (Milliseconds(..))
 import Effect (Effect)
 import Effect.Console (log, logShow)
 import InfraredCode (Bit(..), Count(..), InfraredBasebandSignals(..), InfraredHexString, LsbFirst(..), Pulse, fromMilliseconds, infraredBasebandPhase1, infraredHexStringParser, toMilliseconds)
+import Partial.Unsafe (unsafePartial)
 import Test.Assert (assert')
 import Text.Parsing.Parser (Parser, parseErrorPosition, runParser)
 import Text.Parsing.Parser.Pos (Position(..))
@@ -115,17 +118,22 @@ expectIRCode2 =
 
 expectIRCodeFormat2 :: InfraredBasebandSignals
 expectIRCodeFormat2 =
-  NEC { customer: LsbFirst  [ Assert,Negate,Assert,Assert
-                            , Assert,Assert,Negate,Negate
-                            , Negate,Assert,Negate,Negate
-                            , Negate,Assert,Negate,Assert
-                            ]                             -- binary digit 1011 1100 0100 0101 : TOSHIBA
-      , data:     LsbFirst  [ Negate,Negate,Negate,Assert
-                            , Negate,Negate,Assert,Negate
-                            ]                             -- binary digit 0001 0010 : TV POWER
-      , invData:  LsbFirst  [ Assert,Assert,Assert,Negate
-                            , Assert,Assert,Negate,Assert
-                            ]                             -- binary digit 1110 1101
+  NEC { customer0: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+                    [ Assert,Negate,Assert,Assert
+                    , Assert,Assert,Negate,Negate
+                    ]
+      , customer1: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+                    [ Negate,Assert,Negate,Negate
+                    , Negate,Assert,Negate,Assert
+                    ]                             -- binary digit 1011 1100 0100 0101 : TOSHIBA
+      , data: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+                    [ Negate,Negate,Negate,Assert
+                    , Negate,Negate,Assert,Negate
+                    ]                             -- binary digit 0001 0010 : TV POWER
+      , invData: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+                    [ Assert,Assert,Assert,Negate
+                    , Assert,Assert,Negate,Assert
+                    ]                             -- binary digit 1110 1101
       }
 
 inputIRCode3 :: InfraredHexString
@@ -206,17 +214,22 @@ expectIRCode3 =
 
 expectIRCodeFormat3 :: InfraredBasebandSignals
 expectIRCodeFormat3 =
-  NEC { customer: LsbFirst  [ Assert,Negate,Assert,Assert
-                            , Assert,Assert,Negate,Negate
-                            , Negate,Assert,Negate,Negate
-                            , Negate,Assert,Negate,Assert
-                            ]                             -- binary digit 1011 1100 0100 0101 : TOSHIBA
-      , data:     LsbFirst  [ Negate,Negate,Negate,Assert
-                            , Negate,Negate,Assert,Negate
-                            ]                             -- binary digit 0001 0010 : TV POWER
-      , invData:  LsbFirst  [ Assert,Assert,Assert,Negate
-                            , Assert,Assert,Negate,Assert
-                            ]                             -- binary digit 1110 1101
+  NEC { customer0: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+                    [ Assert,Negate,Assert,Assert
+                    , Assert,Assert,Negate,Negate
+                    ]
+      , customer1: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+                    [ Negate,Assert,Negate,Negate
+                    , Negate,Assert,Negate,Assert
+                    ]                             -- binary digit 1011 1100 0100 0101 : TOSHIBA
+      , data:     LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+                    [ Negate,Negate,Negate,Assert
+                    , Negate,Negate,Assert,Negate
+                    ]                             -- binary digit 0001 0010 : TV POWER
+      , invData:  LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+                    [ Assert,Assert,Assert,Negate
+                    , Assert,Assert,Negate,Assert
+                    ]                             -- binary digit 1110 1101
       }
 
 parseTest :: forall s a. Show a => Eq a => s -> a -> Parser s a -> Effect Unit

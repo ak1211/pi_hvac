@@ -934,7 +934,7 @@ popoverContents x =
 
     SIRC irValue ->
       String.joinWith " "
-        [ "SONY SIRC"
+        [ "SIRC"
         , showHex irValue.command
         , showHex irValue.address
         ]
