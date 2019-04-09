@@ -154,8 +154,8 @@ component =
     in
     { queryParams: qry
     , infraredValue: Left "Click Download button to show."
-    , irdb: Left "Click Download button to show."
-    , irdbManufacturers: Left "empty"
+    , irdb: Left "データがありません"
+    , irdbManufacturers: Left "データがありません"
     , buttonNumber: 1
     }
 
