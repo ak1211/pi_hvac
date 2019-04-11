@@ -38,6 +38,8 @@ module InfraredCode
 
 import Prelude
 
+import Control.Monad.State (State)
+import Control.Monad.State as State
 import Control.MonadZero (guard)
 import Data.Array ((..))
 import Data.Array as Array
@@ -56,7 +58,6 @@ import Data.String.CodeUnits (fromCharArray)
 import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
-import Data.Tuple as Tuple
 import Data.Unfoldable1 (unfoldr1)
 import Partial.Unsafe (unsafePartial)
 import Text.Parsing.Parser (Parser)
@@ -197,10 +198,19 @@ showLsbFirst (LsbFirst xs) =
   "(LsbFirst " <> (String.joinWith "" $ NEA.toArray $ map showBit xs) <> ")"
 
 -- |
+deserialize :: LsbFirst -> Int
+deserialize (LsbFirst bits) =
+  Array.foldl f 0 $ NEA.reverse bits
+  where
+  f :: Int -> Bit -> Int
+  f acc Assert = acc * 2 + 1
+  f acc Negate = acc * 2 + 0
+
+-- |
 data InfraredBasebandSignals
   = Unknown (Array Bit)
-  | AEHA  {customer0 :: LsbFirst, customer1 :: LsbFirst, parity :: LsbFirst, data0 :: LsbFirst, data :: Array LsbFirst}
-  | NEC   {customer0 :: LsbFirst, customer1 :: LsbFirst, data :: LsbFirst, invData :: LsbFirst}
+  | AEHA  {customer0 :: LsbFirst, customer1 :: LsbFirst, parity :: LsbFirst, data0 :: LsbFirst, data :: Array LsbFirst, stop :: Bit}
+  | NEC   {customer0 :: LsbFirst, customer1 :: LsbFirst, data :: LsbFirst, invData :: LsbFirst, stop :: Bit}
   | SIRC {command :: LsbFirst, address :: LsbFirst}
 derive instance genericInfraredBasebandSignals  :: Generic InfraredBasebandSignals _
 derive instance eqInfraredBasebandSignals       :: Eq InfraredBasebandSignals
@@ -295,73 +305,113 @@ infraredBasebandPhase2 tokens =
 
 -- | 入力リーダ部とビット配列から赤外線信号にする
 infraredBasebandPhase3 :: Tuple InfraredLeader (Array Bit) -> Either ProcessError InfraredBasebandSignals
-infraredBasebandPhase3 input =
-  case Tuple.fst input of
-    ProtoAeha _     -> aeha
-    ProtoNec _      -> nec 
-    ProtoSirc _     -> sirc
-    ProtoUnknown _  -> other
+infraredBasebandPhase3 (Tuple leader bitarray) =
+  let (Tuple result state) = State.runState proto bitarray
+  in
+  result
   where
-
-  take :: Int -> Int -> ProcessError -> Either ProcessError (NonEmptyArray Bit)
-  take begin length errmsg =
-    let sigs = Array.slice begin (begin + length) (Tuple.snd input)
-    in
-    maybe (Left errmsg) Right do
-      guard (Array.length sigs == length)
-      NEA.fromArray sigs
-
-  takeEnd :: Int -> ProcessError -> Either ProcessError (NonEmptyArray Bit)
-  takeEnd begin errmsg =
-    let xs = Array.drop (begin - 1) (Tuple.snd input)
-    in
-    maybe (Left errmsg) Right $ NEA.fromArray xs
-
-  aeha :: Either ProcessError InfraredBasebandSignals
-  aeha = do
-    sCustomer0  <- take 0 8 "fail to read: customer0 code (AEHA)"
-    sCustomer1  <- take 8 8 "fail to read: customer1 code (AEHA)"
-    sParity     <- take 16 4 "fail to read: parity (AEHA)"
-    sData0      <- take 20 4 "fail to read: data zero (AEHA)"
-    sData       <- takeEnd 24 "fail to read: data (AEHA)"
-    let octet = toArray2D 8 $ NEA.init sData
-    { customer0: LsbFirst sCustomer0
-    , customer1: LsbFirst sCustomer1
-    , parity: LsbFirst sParity
-    , data0: LsbFirst sData0
-    , data: map LsbFirst $ Array.mapMaybe NEA.fromArray $ octet
-    } # (Right <<< AEHA)
-
-  nec :: Either ProcessError InfraredBasebandSignals
-  nec = do
-    sCustomer0 <- take 0 8 "fail to read: customer0 code (NEC)"
-    sCustomer1 <- take 8 8 "fail to read: customer1 code (NEC)"
-    sData       <- take 16 8 "fail to read: data code (NEC)"
-    sInvData    <- take 24 8 "fail to read: inv-data code (NEC)"
-    stopBit     <- take 32 1 "fail to read: stop bit (NEC)"
-    { customer0: LsbFirst sCustomer0
-    , customer1: LsbFirst sCustomer1
-    , data: LsbFirst sData
-    , invData: LsbFirst sInvData
-    } # (Right <<< NEC)
-
-  sirc :: Either ProcessError InfraredBasebandSignals
-  sirc = do
-    sCommand <- take 0 7 "fail to read: command code (SIRC)"
-    sAddress <- takeEnd 8 "fail to read: address (SIRC)"
-    { command: LsbFirst sCommand
-    , address: LsbFirst sAddress
-    } # (Right <<< SIRC)
-
-  other :: Either ProcessError InfraredBasebandSignals
-  other =
-    Right $ Unknown (Tuple.snd input)
+  proto = case leader of
+    ProtoAeha _     -> aehaProtocol
+    ProtoNec _      -> necProtocol
+    ProtoSirc _     -> sircProtocol
+    ProtoUnknown _  -> unknownProtocol
 
 -- |
-deserialize :: LsbFirst -> Int
-deserialize (LsbFirst bits) =
-  Array.foldl f 0 $ NEA.reverse bits
+type BitArrayState a = State (Array Bit) (Either ProcessError a)
+
+-- |
+takeBit :: ProcessError -> BitArrayState Bit
+takeBit errmsg = do
+  state <- State.get
+  case Array.uncons state of
+    Nothing ->
+      pure $ Left errmsg
+    Just x -> do
+      State.put x.tail
+      pure $ Right x.head
+
+-- |
+takeBits :: Int -> ProcessError -> BitArrayState (NonEmptyArray Bit)
+takeBits n errmsg = do
+  state <- State.get
+  let bitarray  = Array.take n state
+      nextState = Array.drop n state
+  State.put nextState
+  pure $ maybe (Left errmsg) Right do
+    guard (Array.length bitarray == n)
+    NEA.fromArray bitarray
+
+-- |
+takeEnd :: ProcessError -> BitArrayState (NonEmptyArray Bit)
+takeEnd errmsg = do
+  array <- State.get
+  State.put []
+  pure $ maybe (Left errmsg) Right $ NEA.fromArray array
+
+-- |
+toNonEmptyArray2D :: forall a. Int -> Array a -> Array (NonEmptyArray a)
+toNonEmptyArray2D n =
+  Array.mapMaybe NEA.fromArray <<< toArray2D n
+
+-- |
+aehaProtocol :: BitArrayState InfraredBasebandSignals
+aehaProtocol = do
+  c0 <- takeBits 8 "fail to read: customer0 code (AEHA)"
+  c1 <- takeBits 8 "fail to read: customer1 code (AEHA)"
+  p_ <- takeBits 4 "fail to read: parity (AEHA)"
+  d0 <- takeBits 4 "fail to read: data0 (AEHA)"
+  d_ <- takeEnd "fail to read: data (AEHA)"
+  pure (result <$> c0 <*> c1 <*> p_ <*> d0 <*> d_)
   where
-  f :: Int -> Bit -> Int
-  f acc Assert = acc * 2 + 1
-  f acc Negate = acc * 2 + 0
+  result c0 c1 p d0 d =
+    let init = NEA.init d
+        last = NEA.last d
+        octets = toNonEmptyArray2D 8 init
+    in
+    AEHA
+    { customer0: LsbFirst c0
+    , customer1: LsbFirst c1
+    , parity: LsbFirst p
+    , data0: LsbFirst d0
+    , data: map LsbFirst octets
+    , stop: last
+    }
+
+-- |
+necProtocol :: BitArrayState InfraredBasebandSignals
+necProtocol = do
+  c0 <- takeBits 8 "fail to read: customer0 code (NEC)"
+  c1 <- takeBits 8 "fail to read: customer1 code (NEC)"
+  d0 <- takeBits 8 "fail to read: data (NEC)"
+  d1 <- takeBits 8 "fail to read: inv-data (NEC)"
+  sb <- takeBit "fail to read: stop bit (NEC)"
+  pure (result <$> c0 <*> c1 <*> d0 <*> d1 <*> sb)
+  where
+  result c0 c1 d0 d1 sb =
+    NEC
+    { customer0: LsbFirst c0
+    , customer1: LsbFirst c1
+    , data: LsbFirst d0
+    , invData: LsbFirst d1
+    , stop: sb
+    }
+
+-- |
+sircProtocol :: BitArrayState InfraredBasebandSignals
+sircProtocol = do
+  com <- takeBits 7 "fail to read: command code (SIRC)"
+  add <- takeEnd "fail to read: address (SIRC)"
+  pure (result <$> com <*> add)
+  where
+  result com add =
+    SIRC
+    { command: LsbFirst com
+    , address: LsbFirst add
+    }
+
+-- |
+unknownProtocol :: BitArrayState InfraredBasebandSignals
+unknownProtocol = do
+  array <- State.get
+  State.put []
+  pure (Right $ Unknown array)

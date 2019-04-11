@@ -3,6 +3,7 @@ module Test.Main where
 import Prelude
 
 import Data.Array.NonEmpty as NEA
+import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
 import Data.Maybe (fromJust)
 import Data.Newtype (unwrap, wrap)
@@ -10,7 +11,7 @@ import Data.String as String
 import Data.Time.Duration (Milliseconds(..))
 import Effect (Effect)
 import Effect.Console (log, logShow)
-import InfraredCode (Bit(..), Count(..), InfraredBasebandSignals(..), InfraredHexString, LsbFirst(..), Pulse, fromMilliseconds, infraredBasebandPhase1, infraredHexStringParser, toMilliseconds)
+import InfraredCode (Bit(..), Count(..), InfraredBasebandSignals(..), InfraredHexString, LsbFirst(..), Pulse, fromMilliseconds, infraredBasebandPhase1, infraredBasebandSignals, infraredHexStringParser, toMilliseconds)
 import Partial.Unsafe (unsafePartial)
 import Test.Assert (assert')
 import Text.Parsing.Parser (Parser, parseErrorPosition, runParser)
@@ -40,197 +41,58 @@ expectIRCode =
   , {on: Count 0x0F, off: Count 0x0F}
   ]
 
-inputIRCode2 :: InfraredHexString
-inputIRCode2 = String.joinWith ""
-  [ "5801", "AA00"
-  , "1900", "1400"
-  , "1900", "1400"
-  , "1A00", "1300"
-  , "1A00", "1400"
-  , "1900", "1400"
-  , "1900", "1400"
-  , "1900", "3E00"
-  , "1A00", "1300"
-  , "1A00", "3E00"
-  , "1A00", "3D00"
-  , "1A00", "3E00"
-  , "1900", "3E00"
-  , "1900", "3E00"
-  , "1A00", "3E00"
-  , "1900", "1400"
-  , "1900", "3E00"
-  , "1A00", "1300"
-  , "1A00", "3E00"
-  , "1900", "1400"
-  , "1900", "1400"
-  , "1900", "3F00"
-  , "1900", "1400"
-  , "1900", "1400"
-  , "1900", "1400"
-  , "1900", "3E00"
-  , "1A00", "1400"
-  , "1900", "3E00"
-  , "1900", "3E00"
-  , "1A00", "1400"
-  , "1900", "3E00"
-  , "1900", "3E00"
-  , "1A00", "3E00"
-  , "1900", "4205"
-  ]
-
-expectIRCode2 :: Array Pulse
-expectIRCode2 =
-  [ {on: Count 0x158, off: Count 0xAA}
-  , {on: Count 0x19, off: Count 0x14}
-  , {on: Count 0x19, off: Count 0x14}
-  , {on: Count 0x1A, off: Count 0x13}
-  , {on: Count 0x1A, off: Count 0x14}
-  , {on: Count 0x19, off: Count 0x14}
-  , {on: Count 0x19, off: Count 0x14}
-  , {on: Count 0x19, off: Count 0x3E}
-  , {on: Count 0x1A, off: Count 0x13}
-  , {on: Count 0x1A, off: Count 0x3E}
-  , {on: Count 0x1A, off: Count 0x3D}
-  , {on: Count 0x1A, off: Count 0x3E}
-  , {on: Count 0x19, off: Count 0x3E}
-  , {on: Count 0x19, off: Count 0x3E}
-  , {on: Count 0x1A, off: Count 0x3E}
-  , {on: Count 0x19, off: Count 0x14}
-  , {on: Count 0x19, off: Count 0x3E}
-  , {on: Count 0x1A, off: Count 0x13}
-  , {on: Count 0x1A, off: Count 0x3E}
-  , {on: Count 0x19, off: Count 0x14}
-  , {on: Count 0x19, off: Count 0x14}
-  , {on: Count 0x19, off: Count 0x3F}
-  , {on: Count 0x19, off: Count 0x14}
-  , {on: Count 0x19, off: Count 0x14}
-  , {on: Count 0x19, off: Count 0x14}
-  , {on: Count 0x19, off: Count 0x3E}
-  , {on: Count 0x1A, off: Count 0x14}
-  , {on: Count 0x19, off: Count 0x3E}
-  , {on: Count 0x19, off: Count 0x3E}
-  , {on: Count 0x1A, off: Count 0x14}
-  , {on: Count 0x19, off: Count 0x3E}
-  , {on: Count 0x19, off: Count 0x3E}
-  , {on: Count 0x1A, off: Count 0x3E}
-  , {on: Count 0x19, off: Count 0x542}
-  ]
-
-expectIRCodeFormat2 :: InfraredBasebandSignals
-expectIRCodeFormat2 =
-  NEC { customer0: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
-                    [ Assert,Negate,Assert,Assert
-                    , Assert,Assert,Negate,Negate
-                    ]
-      , customer1: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
-                    [ Negate,Assert,Negate,Negate
-                    , Negate,Assert,Negate,Assert
-                    ]                             -- binary digit 1011 1100 0100 0101 : TOSHIBA
-      , data: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
-                    [ Negate,Negate,Negate,Assert
-                    , Negate,Negate,Assert,Negate
-                    ]                             -- binary digit 0001 0010 : TV POWER
-      , invData: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
-                    [ Assert,Assert,Assert,Negate
-                    , Assert,Assert,Negate,Assert
-                    ]                             -- binary digit 1110 1101
-      }
-
 inputIRCode3 :: InfraredHexString
-inputIRCode3 = String.joinWith ""
-  [ "5801", "AA00"
-  , "1900", "3E00"
-  , "1A00", "1300"
-  , "1A00", "3E00"
-  , "1900", "1400"
-  , "1900", "1400"
-  , "1900", "1400"
-  , "1A00", "3E00"
-  , "1900", "1400"
-  , "1A00", "1300"
-  , "1900", "1400"
-  , "1900", "3F00"
-  , "1900", "3E00"
-  , "1900", "3E00"
-  , "1A00", "3E00"
-  , "1900", "1400"
-  , "1900", "3E00"
-  , "1A00", "1400"
-  , "1900", "3E00"
-  , "1900", "1400"
-  , "1900", "1400"
-  , "1A00", "3E00"
-  , "1900", "1400"
-  , "1900", "1400"
-  , "1900", "1400"
-  , "1900", "3F00"
-  , "1A00", "1300"
-  , "1900", "3E00"
-  , "1A00", "3D00"
-  , "1A00", "1400"
-  , "1900", "3E00"
-  , "1900", "3E00"
-  , "1A00", "3E00"
-  , "1900", "4205"
-  ]
-
-expectIRCode3 :: Array Pulse
-expectIRCode3 =
-  [ {on: Count 344, off: Count 170}
-  , {on: Count 25, off: Count 62}
-  , {on: Count 26, off: Count 19}
-  , {on: Count 26, off: Count 62}
-  , {on: Count 25, off: Count 20}
-  , {on: Count 25, off: Count 20}
-  , {on: Count 25, off: Count 20}
-  , {on: Count 26, off: Count 62}
-  , {on: Count 25, off: Count 20}
-  , {on: Count 26, off: Count 19}
-  , {on: Count 25, off: Count 20}
-  , {on: Count 25, off: Count 63}
-  , {on: Count 25, off: Count 62}
-  , {on: Count 25, off: Count 62}
-  , {on: Count 26, off: Count 62}
-  , {on: Count 25, off: Count 20}
-  , {on: Count 25, off: Count 62}
-  , {on: Count 26, off: Count 20}
-  , {on: Count 25, off: Count 62}
-  , {on: Count 25, off: Count 20}
-  , {on: Count 25, off: Count 20}
-  , {on: Count 26, off: Count 62}
-  , {on: Count 25, off: Count 20}
-  , {on: Count 25, off: Count 20}
-  , {on: Count 25, off: Count 20}
-  , {on: Count 25, off: Count 63}
-  , {on: Count 26, off: Count 19}
-  , {on: Count 25, off: Count 62}
-  , {on: Count 26, off: Count 61}
-  , {on: Count 26, off: Count 20}
-  , {on: Count 25, off: Count 62}
-  , {on: Count 25, off: Count 62}
-  , {on: Count 26, off: Count 62}
-  , {on: Count 25, off: Count 1346}
-  ]
+inputIRCode3 =
+  "5901A9001A003D00190014001B003D0019001400190014001A00130019003F0019001400190014001A00130019003E001B003D0019003E001A003E00190014001A003D00190014001A003E00190014001900140019003E001B0013001A0013001A0013001A003D001A0013001B003D0019003E001A0013001A003E001A003D0019003E001B004205"
 
 expectIRCodeFormat3 :: InfraredBasebandSignals
-expectIRCodeFormat3 =
-  NEC { customer0: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
-                    [ Assert,Negate,Assert,Assert
-                    , Assert,Assert,Negate,Negate
-                    ]
-      , customer1: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
-                    [ Negate,Assert,Negate,Negate
-                    , Negate,Assert,Negate,Assert
-                    ]                             -- binary digit 1011 1100 0100 0101 : TOSHIBA
-      , data:     LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
-                    [ Negate,Negate,Negate,Assert
-                    , Negate,Negate,Assert,Negate
-                    ]                             -- binary digit 0001 0010 : TV POWER
-      , invData:  LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
-                    [ Assert,Assert,Assert,Negate
-                    , Assert,Assert,Negate,Assert
-                    ]                             -- binary digit 1110 1101
-      }
+expectIRCodeFormat3 = NEC
+  { customer0: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+                [ Assert, Negate, Assert, Negate
+                , Negate, Negate, Assert, Negate
+                ]
+  , customer1: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+                [ Negate, Negate, Assert, Assert
+                , Assert, Assert, Negate, Assert
+                ]                             -- binary digit 1010 0010 0011 1101 : TOSHIBA
+  , data:     LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+                [ Negate, Assert, Negate, Negate
+                , Assert, Negate, Negate, Negate
+                ]                             -- binary digit 0100 1000 : TV POWER
+  , invData:  LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+                [ Assert, Negate, Assert, Assert
+                , Negate, Assert, Assert, Assert
+                ]                             -- binary digit 1011 0111
+  , stop: Assert
+  }
+
+inputIRCode4 :: InfraredHexString
+inputIRCode4 =
+  "8500430013001100120032001100110012001000120012001200110012001000120011001300100012001200110010001300110012001100120032001100110011001100120012001200110012001000130011001200100012001100120010001300320012001000130011001200100012001000130010001200120012001000130010001300310012001100120032001200320012003100120033001200110012001000130031001200100013003200110033001200310011003300120010001300320012004F03"
+
+expectIRCodeFormat4 :: InfraredBasebandSignals
+expectIRCodeFormat4 = AEHA
+  { customer0: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+                [ Negate,Assert,Negate,Negate, Negate,Negate,Negate,Negate ]
+  , customer1: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+                [ Negate,Negate,Negate,Negate, Negate,Assert,Negate,Negate ]
+                -- binary digit 0100 0000 0000 0100 : PANASONIC
+  , parity: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+                [ Negate,Negate,Negate,Negate ]
+                -- binary digit 0000
+  , data0: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+                [ Negate,Negate,Negate,Assert ]
+                -- binary digit 0001
+  , data: [ LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+                [ Negate,Negate,Negate,Negate, Negate,Negate,Negate,Negate ]
+          , LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+                [ Assert,Negate,Assert,Assert, Assert,Assert,Negate,Negate ]
+          , LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+                [ Assert,Negate,Assert,Assert, Assert,Assert,Negate,Assert ]
+          ]
+          -- binary digit 0000 0000 / 1011 1100 / 1011 1101: TV POWER
+  , stop: Assert
+  }
 
 parseTest :: forall s a. Show a => Eq a => s -> a -> Parser s a -> Effect Unit
 parseTest input expected p = case runParser input p of
@@ -238,6 +100,16 @@ parseTest input expected p = case runParser input p of
     assert' ("expected: " <> show expected <> ", actual: " <> show actual) (expected == actual)
     logShow actual
   Left err -> assert' ("error: " <> show err) false
+
+bbsignalsTest :: InfraredHexString -> Array InfraredBasebandSignals -> Effect Unit
+bbsignalsTest input expected =
+  lmap show (runParser input infraredHexStringParser)
+  >>= infraredBasebandSignals
+  # case _ of
+    Right actual -> do
+      assert' ("expected: " <> show expected <> ", actual: " <> show actual) (expected == actual)
+      logShow actual
+    Left err -> assert' ("error: " <> show err) false
 
 parseErrorTestPosition :: forall s a. Show a => Parser s a -> s -> Position -> Effect Unit
 parseErrorTestPosition p input expected = case runParser input p of
@@ -295,4 +167,5 @@ main = do
   --
   parseTest inputIRCode expectIRCode infraredHexStringParser
   --
-  parseTest inputIRCode2 expectIRCode2 infraredHexStringParser
+  bbsignalsTest inputIRCode3 [expectIRCodeFormat3]
+  bbsignalsTest inputIRCode4 [expectIRCodeFormat4]

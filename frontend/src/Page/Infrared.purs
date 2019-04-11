@@ -654,6 +654,8 @@ infraredSignal code =
         , HH.dd_ [ HH.text $ showHexAndDec irValue.data ]
         , HH.dt_ [ HH.text "invarted-data" ]
         , HH.dd_ [ HH.text $ showHexAndDec irValue.invData ]
+        , HH.dt_ [ HH.text "stop" ]
+        , HH.dd_ [ HH.text $ show irValue.stop ]
         ]
       ]
 
@@ -669,6 +671,8 @@ infraredSignal code =
         , HH.dd_ [ HH.text $ showHexAndDec irValue.data0 ]
         , HH.dt_ [ HH.text "data" ]
         , HH.dd_ [ row hexadecimal irValue.data ]
+        , HH.dt_ [ HH.text "stop" ]
+        , HH.dd_ [ HH.text $ show irValue.stop ]
         ]
       ]
 
