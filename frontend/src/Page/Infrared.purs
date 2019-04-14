@@ -25,7 +25,7 @@ import Prelude
 
 import Api as Api
 import AppM (class HasApiAccessible, class Navigate, getApiBaseURL, getApiTimeout, navigate)
-import CSS (em, margin, marginBottom, marginTop, minHeight, padding, px, rem, width)
+import CSS (em, margin, marginBottom, marginTop, minHeight, overline, padding, px, rem, textDecoration, width)
 import Control.Alt ((<|>))
 import Data.Array ((:), (..))
 import Data.Array as Array
@@ -665,47 +665,50 @@ infraredSignal code =
       intercalate [HH.hr_] $ map display xs
   where
 
+  dt = HH.dt_
+  dd = HH.dd [ HP.classes [HB.p4, HB.row] ]
+
   display = case _ of
     NEC irValue ->
       [ HH.dl_
-        [ HH.dt_ [ HH.text "protocol" ]
-        , HH.dd_ [ HH.text "NEC" ]
-        , HH.dt_ [ HH.text "customer" ]
-        , HH.dd_ [ HH.text $ showHex 4 (irValue.customHi <> irValue.customLo) ]
-        , HH.dt_ [ HH.text "data" ]
-        , HH.dd_ [ HH.text $ showHexAndDec 2 irValue.data ]
-        , HH.dt_ [ HH.text "invarted-data" ]
-        , HH.dd_ [ HH.text $ showHexAndDec 2 irValue.invData ]
-        , HH.dt_ [ HH.text "stop" ]
-        , HH.dd_ [ HH.text $ show irValue.stop ]
+        [ dt [ HH.text "protocol" ]
+        , dd [ HH.text "NEC" ]
+        , dt [ HH.text "custom" ]
+        , dd [ HH.text $ showHex 4 (irValue.customHi <> irValue.customLo) ]
+        , dt [ HH.text "data" ]
+        , dd [ HH.text $ showHexAndDec 2 irValue.data ]
+        , dt [ HH.span [ style do textDecoration overline ] [ HH.text "data" ] ]
+        , dd [ HH.text $ showHexAndDec 2 irValue.invData ]
+        , dt [ HH.text "stop" ]
+        , dd [ HH.text $ show irValue.stop ]
         ]
       ]
 
     AEHA irValue ->
       [ HH.dl_
-        [ HH.dt_ [ HH.text "protocol" ]
-        , HH.dd_ [ HH.text "AEHA" ]
-        , HH.dt_ [ HH.text "customer" ]
-        , HH.dd_ [ HH.text $ showHex 4 (irValue.customHi <> irValue.customLo) ]
-        , HH.dt_ [ HH.text "parity" ]
-        , HH.dd_ [ HH.text $ showHexAndDec 1 irValue.parity ]
-        , HH.dt_ [ HH.text "data0" ]
-        , HH.dd_ [ HH.text $ showHexAndDec 1 irValue.data0 ]
-        , HH.dt_ [ HH.text "data" ]
-        , HH.dd [HP.class_ HB.row] $ map showData irValue.data
-        , HH.dt_ [ HH.text "stop" ]
-        , HH.dd_ [ HH.text $ show irValue.stop ]
+        [ dt [ HH.text "protocol" ]
+        , dd [ HH.text "AEHA" ]
+        , dt [ HH.text "custom" ]
+        , dd [ HH.text $ showHex 4 (irValue.customHi <> irValue.customLo) ]
+        , dt [ HH.text "parity" ]
+        , dd [ HH.text $ showHexAndDec 1 irValue.parity ]
+        , dt [ HH.text "data0" ]
+        , dd [ HH.text $ showHexAndDec 1 irValue.data0 ]
+        , dt [ HH.text "data" ]
+        , dd $ map showData irValue.data
+        , dt [ HH.text "stop" ]
+        , dd [ HH.text $ show irValue.stop ]
         ]
       ]
 
     SIRC irValue ->
       [ HH.dl_
-        [ HH.dt_ [ HH.text "protocol" ]
-        , HH.dd_ [ HH.text "SIRC" ]
-        , HH.dt_ [ HH.text "command" ]
-        , HH.dd_ [ HH.text $ showHexAndDec 1 irValue.command ]
-        , HH.dt_ [ HH.text "address" ]
-        , HH.dd_ [ HH.text $ showHexAndDec 2 irValue.address ]
+        [ dt [ HH.text "protocol" ]
+        , dd [ HH.text "SIRC" ]
+        , dt [ HH.text "command" ]
+        , dd [ HH.text $ showHexAndDec 1 irValue.command ]
+        , dt [ HH.text "address" ]
+        , dd [ HH.text $ showHexAndDec 2 irValue.address ]
         ]
       ]
 
