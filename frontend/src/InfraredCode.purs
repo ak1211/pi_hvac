@@ -277,7 +277,7 @@ decodeBaseband =
 -- | 入力を各フレームに分ける
 decodePhase1 :: Baseband -> Array (Array Pulse)
 decodePhase1 (Baseband bb) =
-  unfoldr1 chop $ bb
+  unfoldr1 chop bb
   where
 
   chop :: Array Pulse -> Tuple (Array Pulse) (Maybe (Array Pulse))
