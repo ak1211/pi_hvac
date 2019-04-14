@@ -30,6 +30,7 @@ import Control.Alt ((<|>))
 import Data.Array ((:), (..))
 import Data.Array as Array
 import Data.Bifunctor as Bifunctor
+import Data.Char (fromCharCode)
 import Data.Either (Either(..), either, isRight)
 import Data.Enum (class BoundedEnum, class Enum, fromEnum, toEnum)
 import Data.Foldable (intercalate)
@@ -38,7 +39,7 @@ import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Bounded (genericBottom, genericTop)
 import Data.Generic.Rep.Enum (genericCardinality, genericFromEnum, genericPred, genericSucc, genericToEnum)
 import Data.Int as Int
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Newtype (unwrap)
 import Data.String as String
 import Data.Traversable (traverse)
@@ -57,7 +58,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Query as HQ
 import Halogen.Themes.Bootstrap4 as HB
-import InfraredCode (Count, InfraredBasebandSignals(..), InfraredHexString, InfraredLeader(..), LsbFirst, deserialize, infraredBasebandPhase1, infraredBasebandPhase2, infraredBasebandSignals, infraredHexStringParser, toMilliseconds)
+import InfraredCode (Count, InfraredBasebandSignals(..), InfraredHexString, InfraredLeader(..), LsbFirst, infraredBasebandPhase1, infraredBasebandPhase2, infraredBasebandSignals, infraredHexStringParser, toMilliseconds, toStringLsbFirst, toStringLsbFirstWithHex)
 import Page.Commons as Commons
 import Route (Route)
 import Route as Route
@@ -572,7 +573,7 @@ infraredPulse code =
     Left err ->
       [ HH.text $ parseErrorMessage err ]
     Right tokens ->
-      intercalate [HH.text ", "] $ map toText tokens
+      [ HH.div [HP.class_ HB.row] $ map col tokens ]
   where
 
   toText p =
@@ -587,6 +588,24 @@ infraredPulse code =
     $ FN.formatNumber "0.0"
     $ unwrap
     $ toMilliseconds n
+
+  col p =
+    HH.div
+      [ HP.classes [HB.col6, HB.colMd2]
+      ]
+      [ HH.div_
+        [ HH.span
+          [ HP.class_ HB.textPrimary ]
+          [ HH.text $ strMillisec p.on <> "on" ]
+        , HH.text ("," <> String.singleton nbsp)
+        , HH.span
+          [ HP.class_ HB.textSecondary ]
+          [ HH.text $ strMillisec p.off <> "off" ]
+        ]
+      ]
+
+  nbsp =
+    String.codePointFromChar $ fromMaybe '?' $ fromCharCode 0x00a0
 
 -- |
 infraredDemodulation :: forall p i. InfraredHexString -> Array (H.HTML p i)
@@ -629,7 +648,10 @@ infraredDemodulation code =
     HH.div [HP.class_ HB.row] $ map col xxs
 
   col xs =
-    HH.div [HP.class_ HB.col1] $ map (HH.text <<< show) xs
+    HH.div
+      [ HP.classes [HB.col6, HB.colMd2]
+      ]
+      $ map (HH.text <<< show) xs
 
 -- |
 infraredSignal :: forall p i. InfraredHexString -> Array (H.HTML p i)
@@ -649,11 +671,11 @@ infraredSignal code =
         [ HH.dt_ [ HH.text "protocol" ]
         , HH.dd_ [ HH.text "NEC" ]
         , HH.dt_ [ HH.text "customer" ]
-        , HH.dd_ [ HH.text $ showHex irValue.customer0, HH.text " ", HH.text $ showHex irValue.customer1 ]
+        , HH.dd_ [ HH.text $ showHex 4 (irValue.customHi <> irValue.customLo) ]
         , HH.dt_ [ HH.text "data" ]
-        , HH.dd_ [ HH.text $ showHexAndDec irValue.data ]
+        , HH.dd_ [ HH.text $ showHexAndDec 2 irValue.data ]
         , HH.dt_ [ HH.text "invarted-data" ]
-        , HH.dd_ [ HH.text $ showHexAndDec irValue.invData ]
+        , HH.dd_ [ HH.text $ showHexAndDec 2 irValue.invData ]
         , HH.dt_ [ HH.text "stop" ]
         , HH.dd_ [ HH.text $ show irValue.stop ]
         ]
@@ -664,13 +686,13 @@ infraredSignal code =
         [ HH.dt_ [ HH.text "protocol" ]
         , HH.dd_ [ HH.text "AEHA" ]
         , HH.dt_ [ HH.text "customer" ]
-        , HH.dd_ [ HH.text $ showHex irValue.customer0, HH.text " ", HH.text $ showHex irValue.customer1 ]
+        , HH.dd_ [ HH.text $ showHex 4 (irValue.customHi <> irValue.customLo) ]
         , HH.dt_ [ HH.text "parity" ]
-        , HH.dd_ [ HH.text $ showHexAndDec irValue.parity ]
+        , HH.dd_ [ HH.text $ showHexAndDec 1 irValue.parity ]
         , HH.dt_ [ HH.text "data0" ]
-        , HH.dd_ [ HH.text $ showHexAndDec irValue.data0 ]
+        , HH.dd_ [ HH.text $ showHexAndDec 1 irValue.data0 ]
         , HH.dt_ [ HH.text "data" ]
-        , HH.dd_ [ row hexadecimal irValue.data ]
+        , HH.dd [HP.class_ HB.row] $ map showData irValue.data
         , HH.dt_ [ HH.text "stop" ]
         , HH.dd_ [ HH.text $ show irValue.stop ]
         ]
@@ -681,9 +703,9 @@ infraredSignal code =
         [ HH.dt_ [ HH.text "protocol" ]
         , HH.dd_ [ HH.text "SIRC" ]
         , HH.dt_ [ HH.text "command" ]
-        , HH.dd_ [ HH.text $ showHexAndDec irValue.command ]
+        , HH.dd_ [ HH.text $ showHexAndDec 1 irValue.command ]
         , HH.dt_ [ HH.text "address" ]
-        , HH.dd_ [ HH.text $ showHexAndDec irValue.address ]
+        , HH.dd_ [ HH.text $ showHexAndDec 2 irValue.address ]
         ]
       ]
 
@@ -692,28 +714,27 @@ infraredSignal code =
       , HH.p_ [ HH.text $ show irValue ]
       ]
 
-  row f =
-    HH.div [HP.class_ HB.row] <<< map f
-
-  hexadecimal x =
-    HH.div [HP.class_ HB.col1] [HH.text $ showHexAndDec x]
-
--- |
-showHex :: LsbFirst -> String
-showHex bits =
-  let x = deserialize bits
-  in
-  case x of
-  _ | x < 16    -> "0x0"
-    | otherwise -> "0x"
-  <> (String.toUpper $ Int.toStringAs Int.hexadecimal x)
+  showData x =
+    HH.span
+      [ HP.classes [HB.col6, HB.colMd2]
+      ]
+      [ HH.text $ showHexAndDec 2 x, HH.text " " ]
 
 -- |
-showHexAndDec :: LsbFirst -> String
-showHexAndDec n =
-  let dec = Int.toStringAs Int.decimal $ deserialize n
-  in
-  showHex n <> "(" <> dec <> ")"
+showHex :: Int -> LsbFirst -> String
+showHex width bits =
+  case width - strLen of
+    x | x < 0     -> "0x" <> strNum
+      | otherwise -> "0x" <> fill x <> strNum
+  where
+  strNum = toStringLsbFirstWithHex bits
+  strLen = String.length strNum
+  fill n = String.joinWith "" $ Array.replicate n "0"
+ 
+-- |
+showHexAndDec :: Int -> LsbFirst -> String
+showHexAndDec width bits =
+  showHex width bits <> "(" <> toStringLsbFirst bits <> ")"
 
 -- |
 irDownloadButton :: forall p f. HQ.Action f -> H.HTML p f
@@ -919,28 +940,26 @@ popoverContents x =
     NEC irValue ->
       String.joinWith " "
         [ "NEC"
-        , showHex irValue.customer0
-        , showHex irValue.customer1
-        , showHex irValue.data
-        , showHex irValue.invData
+        , showHex 4 (irValue.customHi <> irValue.customLo)
+        , showHex 2 irValue.data
+        , showHex 2 irValue.invData
         ]
 
     AEHA irValue ->
       String.joinWith " " $ Array.concat
         [ [ "AEHA"
-          , showHex irValue.customer0
-          , showHex irValue.customer1
-          , showHex irValue.parity
-          , showHex irValue.data0
+          , showHex 4 (irValue.customHi <> irValue.customLo)
+          , showHex 1 irValue.parity
+          , showHex 1 irValue.data0
           ]
-        , map showHex irValue.data
+        , map (showHex 2) irValue.data
         ]
 
     SIRC irValue ->
       String.joinWith " "
         [ "SIRC"
-        , showHex irValue.command
-        , showHex irValue.address
+        , showHex 1 irValue.command
+        , showHex 2 irValue.address
         ]
 
     Unknown irValue ->

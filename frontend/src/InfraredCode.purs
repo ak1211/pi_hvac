@@ -34,6 +34,8 @@ module InfraredCode
   , showBit
   , showLsbFirst
   , toMilliseconds
+  , toStringLsbFirst
+  , toStringLsbFirstWithHex
   ) where
 
 import Prelude
@@ -48,6 +50,7 @@ import Data.Array.NonEmpty as NEA
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Ring (genericSub)
+import Data.Generic.Rep.Semigroup (genericAppend)
 import Data.Generic.Rep.Semiring (genericAdd, genericMul, genericOne, genericZero)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Int as Int
@@ -188,7 +191,10 @@ makeInfraredLeader = case _ of
 
 -- |
 newtype LsbFirst = LsbFirst (NonEmptyArray Bit)
+derive instance genericLsbFirst :: Generic LsbFirst _
 derive instance eqLsbFirst      :: Eq LsbFirst
+instance semigroupLsbFirst      :: Semigroup LsbFirst where
+  append = genericAppend
 instance showLsbFirst'          :: Show LsbFirst where
   show = showLsbFirst
 
@@ -196,6 +202,16 @@ instance showLsbFirst'          :: Show LsbFirst where
 showLsbFirst  :: LsbFirst -> String
 showLsbFirst (LsbFirst xs) =
   "(LsbFirst " <> (String.joinWith "" $ NEA.toArray $ map showBit xs) <> ")"
+
+-- |
+toStringLsbFirst :: LsbFirst -> String
+toStringLsbFirst =
+  Int.toStringAs Int.decimal <<< deserialize
+
+-- |
+toStringLsbFirstWithHex :: LsbFirst -> String
+toStringLsbFirstWithHex =
+  Int.toStringAs Int.hexadecimal <<< deserialize
 
 -- |
 deserialize :: LsbFirst -> Int
@@ -209,8 +225,8 @@ deserialize (LsbFirst bits) =
 -- |
 data InfraredBasebandSignals
   = Unknown (Array Bit)
-  | AEHA  {customer0 :: LsbFirst, customer1 :: LsbFirst, parity :: LsbFirst, data0 :: LsbFirst, data :: Array LsbFirst, stop :: Bit}
-  | NEC   {customer0 :: LsbFirst, customer1 :: LsbFirst, data :: LsbFirst, invData :: LsbFirst, stop :: Bit}
+  | AEHA {customLo :: LsbFirst, customHi :: LsbFirst, parity :: LsbFirst, data0 :: LsbFirst, data :: Array LsbFirst, stop :: Bit}
+  | NEC  {customLo :: LsbFirst, customHi :: LsbFirst, data :: LsbFirst, invData :: LsbFirst, stop :: Bit}
   | SIRC {command :: LsbFirst, address :: LsbFirst}
 derive instance genericInfraredBasebandSignals  :: Generic InfraredBasebandSignals _
 derive instance eqInfraredBasebandSignals       :: Eq InfraredBasebandSignals
@@ -356,21 +372,21 @@ toNonEmptyArray2D n =
 -- |
 aehaProtocol :: BitArrayState InfraredBasebandSignals
 aehaProtocol = do
-  c0 <- takeBits 8 "fail to read: customer0 code (AEHA)"
-  c1 <- takeBits 8 "fail to read: customer1 code (AEHA)"
+  lo <- takeBits 8 "fail to read: custom code lower (AEHA)"
+  hi <- takeBits 8 "fail to read: custom code higher (AEHA)"
   p_ <- takeBits 4 "fail to read: parity (AEHA)"
   d0 <- takeBits 4 "fail to read: data0 (AEHA)"
   d_ <- takeEnd "fail to read: data (AEHA)"
-  pure (result <$> c0 <*> c1 <*> p_ <*> d0 <*> d_)
+  pure (result <$> lo <*> hi <*> p_ <*> d0 <*> d_)
   where
-  result c0 c1 p d0 d =
+  result lo hi p d0 d =
     let init = NEA.init d
         last = NEA.last d
         octets = toNonEmptyArray2D 8 init
     in
     AEHA
-    { customer0: LsbFirst c0
-    , customer1: LsbFirst c1
+    { customLo: LsbFirst lo
+    , customHi: LsbFirst hi
     , parity: LsbFirst p
     , data0: LsbFirst d0
     , data: map LsbFirst octets
@@ -380,17 +396,17 @@ aehaProtocol = do
 -- |
 necProtocol :: BitArrayState InfraredBasebandSignals
 necProtocol = do
-  c0 <- takeBits 8 "fail to read: customer0 code (NEC)"
-  c1 <- takeBits 8 "fail to read: customer1 code (NEC)"
+  lo <- takeBits 8 "fail to read: custom code lower (NEC)"
+  hi <- takeBits 8 "fail to read: custom code higher (NEC)"
   d0 <- takeBits 8 "fail to read: data (NEC)"
   d1 <- takeBits 8 "fail to read: inv-data (NEC)"
   sb <- takeBit "fail to read: stop bit (NEC)"
-  pure (result <$> c0 <*> c1 <*> d0 <*> d1 <*> sb)
+  pure (result <$> lo <*> hi <*> d0 <*> d1 <*> sb)
   where
-  result c0 c1 d0 d1 sb =
+  result lo hi d0 d1 sb =
     NEC
-    { customer0: LsbFirst c0
-    , customer1: LsbFirst c1
+    { customLo: LsbFirst lo
+    , customHi: LsbFirst hi
     , data: LsbFirst d0
     , invData: LsbFirst d1
     , stop: sb
