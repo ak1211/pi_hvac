@@ -801,7 +801,7 @@ renderInfraredRemoconCode :: forall p i. State -> H.HTML p i
 renderInfraredRemoconCode state =
   HH.div
     [ HP.class_ HB.formGroup ]
-    [ HH.h3_ [ HH.text "Baseband (hexadecimal codes, based on 38kHz carrier)" ]
+    [ HH.h3_ [ HH.text "Baseband (Counts in 38kHz carrier)" ]
     , HH.p
       [ HP.classes [ HB.p3, HB.formControl, HC.ClassName "overflow-auto" ]
       , style do
@@ -816,7 +816,7 @@ renderInfraredRemoconCode state =
           []
 
         Right (Api.DatumInfraRed ir) -> 
-          [ HH.h3_ [ HH.text "Baseband (Pulses in milliseconds)" ]
+          [ HH.h3_ [ HH.text "Baseband (Counts in milliseconds)" ]
           , HH.p [HP.class_ HB.p3] $ infraredPulse ir.code
           , HH.h3_ [ HH.text "Demodulated pulses" ]
           , HH.p [HP.class_ HB.p3] $ infraredDemodulation ir.code
