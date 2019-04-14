@@ -58,7 +58,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Query as HQ
 import Halogen.Themes.Bootstrap4 as HB
-import InfraredCode (Baseband(..), Count, InfraredCodes(..), InfraredHexString, InfraredLeader(..), LsbFirst, decodeBaseband, decodePhase1, decodePhase2, infraredHexStringParser, toMilliseconds, toStringLsbFirst, toStringLsbFirstWithHex)
+import InfraredCode (Baseband(..), Bit, Count, InfraredCodes(..), InfraredHexString, InfraredLeader(..), LsbFirst, decodeBaseband, decodePhase1, decodePhase2, decodePhase3, infraredHexStringParser, toMilliseconds, toStringLsbFirst, toStringLsbFirstWithHex)
 import Page.Commons as Commons
 import Route (Route)
 import Route as Route
@@ -567,13 +567,9 @@ component =
             _                             -> HH.option [] [HH.text name]
 
 -- |
-infraredPulse :: forall p i. InfraredHexString -> Array (H.HTML p i)
-infraredPulse code =
-  case runParser code infraredHexStringParser of
-    Left err ->
-      [ HH.text $ parseErrorMessage err ]
-    Right (Baseband pulses) ->
-      [ HH.div [HP.class_ HB.row] $ map col pulses ]
+infraredBaseband :: forall p i. Baseband -> H.HTML p i
+infraredBaseband (Baseband pulses) =
+  HH.div [HP.class_ HB.row] $ map col pulses
   where
 
   toText p =
@@ -608,18 +604,9 @@ infraredPulse code =
     String.codePointFromChar $ fromMaybe '?' $ fromCharCode 0x00a0
 
 -- |
-infraredDemodulation :: forall p i. InfraredHexString -> Array (H.HTML p i)
-infraredDemodulation code =
-  Bifunctor.lmap parseErrorMessage (runParser code infraredHexStringParser)
-  >>= (decodePhase1 >>> traverse decodePhase2)
-  # case _ of
-    Left msg ->
-      [ HH.text msg ]
-    Right xs ->
-      intercalate [HH.hr_] $ map display xs
-  where
-
-  display (Tuple leader vs) = case leader of
+infraredBitpatterns :: forall p i. Tuple InfraredLeader (Array Bit) -> Array (H.HTML p i)
+infraredBitpatterns (Tuple leader vs) =
+  case leader of
     ProtoAeha _     ->
       [ HH.text "AEHA"
       , HH.br_
@@ -643,6 +630,7 @@ infraredDemodulation code =
       , HH.br_
       , row $ toArray2D 8 vs
       ]
+  where
 
   row xxs =
     HH.div [HP.class_ HB.row] $ map col xxs
@@ -654,21 +642,9 @@ infraredDemodulation code =
       $ map (HH.text <<< show) xs
 
 -- |
-infraredSignal :: forall p i. InfraredHexString -> Array (H.HTML p i)
-infraredSignal code =
-  Bifunctor.lmap parseErrorMessage (runParser code infraredHexStringParser)
-  >>= decodeBaseband
-  # case _ of
-    Left msg ->
-      [ HH.text msg ]
-    Right xs ->
-      intercalate [HH.hr_] $ map display xs
-  where
-
-  dt = HH.dt_
-  dd = HH.dd [ HP.classes [HB.pl4, HB.row] ]
-
-  display = case _ of
+infraredSignal :: forall p i. InfraredCodes -> Array (H.HTML p i)
+infraredSignal =
+  case _ of
     NEC irValue ->
       [ HH.dl_
         [ dt [ HH.text "protocol" ]
@@ -713,9 +689,16 @@ infraredSignal code =
       ]
 
     Unknown irValue ->
-      [ HH.text "unknown protocol"
-      , HH.p_ [ HH.text $ show irValue ]
+      [ HH.dl_
+        [ dt [ HH.text "unknown protocol" ]
+        , dd [ HH.text $ show irValue ]
+        ]
       ]
+  where
+
+  dt = HH.dt_
+
+  dd = HH.dd [ HP.classes [HB.pl4, HB.row] ]
 
   showData x =
     HH.span
@@ -819,15 +802,25 @@ renderInfraredRemoconCode state =
           []
 
         Right (Api.DatumInfraRed ir) -> 
+          let baseband    = Bifunctor.lmap parseErrorMessage (runParser ir.code infraredHexStringParser)
+              bitPatterns = (traverse decodePhase2 <<< decodePhase1) =<< baseband
+              signal      = traverse decodePhase3 =<< bitPatterns
+          in
           [ HH.h3_ [ HH.text "Baseband (Counts in milliseconds)" ]
-          , HH.p [HP.class_ HB.p3] $ infraredPulse ir.code
-          , HH.h3_ [ HH.text "Demodulated pulses" ]
-          , HH.p [HP.class_ HB.p3] $ infraredDemodulation ir.code
+          , HH.p
+            [ HP.class_ HB.p3 ]
+            [ either HH.text infraredBaseband baseband ]
+          , HH.h3_ [ HH.text "Bit patterns" ]
+          , HH.p
+            [ HP.class_ HB.p3 ]
+            $ either (Array.singleton <<< HH.text) (intercalate [HH.hr_] <<< map infraredBitpatterns) bitPatterns
           , HH.h3_ [ HH.text "Infrared remote control code" ]
-          , HH.p [HP.class_ HB.p3] $ infraredSignal ir.code
+          , HH.p
+            [ HP.class_ HB.p3 ]
+            $ either (Array.singleton <<< HH.text) (intercalate [HH.hr_] <<< map infraredSignal) signal
           ]
     ]
-
+ 
 -- |
 irdbPagination
   :: forall p f
