@@ -11,7 +11,7 @@ import Data.String as String
 import Data.Time.Duration (Milliseconds(..))
 import Effect (Effect)
 import Effect.Console (log, logShow)
-import InfraredCode (Bit(..), Count(..), InfraredBasebandSignals(..), InfraredHexString, LsbFirst(..), Pulse, fromMilliseconds, infraredBasebandPhase1, infraredBasebandSignals, infraredHexStringParser, toMilliseconds)
+import InfraredCode (Baseband(..), Bit(..), Count(..), InfraredCodes(..), InfraredHexString, LsbFirst(..), Pulse, decodeBaseband, decodePhase1, fromMilliseconds, infraredHexStringParser, toMilliseconds)
 import Partial.Unsafe (unsafePartial)
 import Test.Assert (assert')
 import Text.Parsing.Parser (Parser, parseErrorPosition, runParser)
@@ -29,8 +29,9 @@ inputIRCode = String.joinWith ""
   , "0F00", "0F00"
   ]
 
-expectIRCode :: Array Pulse 
+expectIRCode :: Baseband
 expectIRCode =
+  Baseband
   [ {on: Count 0x7B, off: Count 0x3D}   -- on 0x007B, off 0x003D
   , {on: Count 0x0F, off: Count 0x0F}
   , {on: Count 0x0F, off: Count 0x2E}
@@ -45,13 +46,13 @@ inputIRCode3 :: InfraredHexString
 inputIRCode3 =
   "5901A9001A003D00190014001B003D0019001400190014001A00130019003F0019001400190014001A00130019003E001B003D0019003E001A003E00190014001A003D00190014001A003E00190014001900140019003E001B0013001A0013001A0013001A003D001A0013001B003D0019003E001A0013001A003E001A003D0019003E001B004205"
 
-expectIRCodeFormat3 :: InfraredBasebandSignals
+expectIRCodeFormat3 :: InfraredCodes
 expectIRCodeFormat3 = NEC
-  { customer0: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+  { customLo: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
                 [ Assert, Negate, Assert, Negate
                 , Negate, Negate, Assert, Negate
                 ]
-  , customer1: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+  , customHi: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
                 [ Negate, Negate, Assert, Assert
                 , Assert, Assert, Negate, Assert
                 ]                             -- binary digit 1010 0010 0011 1101 : TOSHIBA
@@ -70,11 +71,11 @@ inputIRCode4 :: InfraredHexString
 inputIRCode4 =
   "8500430013001100120032001100110012001000120012001200110012001000120011001300100012001200110010001300110012001100120032001100110011001100120012001200110012001000130011001200100012001100120010001300320012001000130011001200100012001000130010001200120012001000130010001300310012001100120032001200320012003100120033001200110012001000130031001200100013003200110033001200310011003300120010001300320012004F03"
 
-expectIRCodeFormat4 :: InfraredBasebandSignals
+expectIRCodeFormat4 :: InfraredCodes
 expectIRCodeFormat4 = AEHA
-  { customer0: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+  { customLo: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
                 [ Negate,Assert,Negate,Negate, Negate,Negate,Negate,Negate ]
-  , customer1: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+  , customHi: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
                 [ Negate,Negate,Negate,Negate, Negate,Assert,Negate,Negate ]
                 -- binary digit 0100 0000 0000 0100 : PANASONIC
   , parity: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
@@ -101,10 +102,10 @@ parseTest input expected p = case runParser input p of
     logShow actual
   Left err -> assert' ("error: " <> show err) false
 
-bbsignalsTest :: InfraredHexString -> Array InfraredBasebandSignals -> Effect Unit
+bbsignalsTest :: InfraredHexString -> Array InfraredCodes -> Effect Unit
 bbsignalsTest input expected =
   lmap show (runParser input infraredHexStringParser)
-  >>= infraredBasebandSignals
+  >>= decodeBaseband
   # case _ of
     Right actual -> do
       assert' ("expected: " <> show expected <> ", actual: " <> show actual) (expected == actual)
@@ -147,8 +148,8 @@ main = do
   parseErrorTestPosition infraredHexStringParser "100020" $ mkPos 7
   parseErrorTestPosition infraredHexStringParser "1000200" $ mkPos 8
   --
-  parseTest "10002000" [{on: Count 0x10, off: Count 0x20}] infraredHexStringParser
-  parseTest "1000200030004000" [{on: Count 0x10, off: Count 0x20}, {on: Count 0x30, off: Count 0x40}] infraredHexStringParser
+  parseTest "10002000" (Baseband [{on: Count 0x10, off: Count 0x20}]) infraredHexStringParser
+  parseTest "1000200030004000" (Baseband [{on: Count 0x10, off: Count 0x20}, {on: Count 0x30, off: Count 0x40}]) infraredHexStringParser
   --
   log ""
   log "analysis test"
@@ -159,7 +160,7 @@ main = do
                 , {on: Count 30, off: Count 30}
                 , {on: Count 30, off: Count 60}
                 ]
-  let value = infraredBasebandPhase1 tokens
+  let value = decodePhase1 (Baseband tokens)
   let expected =  [ [{ off: Count 60, on: Count 30 }, { off: Count 30, on: Count 30 }, { off: Count 384, on: Count 30 }]
                   , [{ off: Count 30, on: Count 30 }, { off: Count 60, on: Count 30 }]
                   ]

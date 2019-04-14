@@ -58,7 +58,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Query as HQ
 import Halogen.Themes.Bootstrap4 as HB
-import InfraredCode (Count, InfraredBasebandSignals(..), InfraredHexString, InfraredLeader(..), LsbFirst, infraredBasebandPhase1, infraredBasebandPhase2, infraredBasebandSignals, infraredHexStringParser, toMilliseconds, toStringLsbFirst, toStringLsbFirstWithHex)
+import InfraredCode (Baseband(..), Count, InfraredCodes(..), InfraredHexString, InfraredLeader(..), LsbFirst, decodeBaseband, decodePhase1, decodePhase2, infraredHexStringParser, toMilliseconds, toStringLsbFirst, toStringLsbFirstWithHex)
 import Page.Commons as Commons
 import Route (Route)
 import Route as Route
@@ -572,8 +572,8 @@ infraredPulse code =
   case runParser code infraredHexStringParser of
     Left err ->
       [ HH.text $ parseErrorMessage err ]
-    Right tokens ->
-      [ HH.div [HP.class_ HB.row] $ map col tokens ]
+    Right (Baseband pulses) ->
+      [ HH.div [HP.class_ HB.row] $ map col pulses ]
   where
 
   toText p =
@@ -611,7 +611,7 @@ infraredPulse code =
 infraredDemodulation :: forall p i. InfraredHexString -> Array (H.HTML p i)
 infraredDemodulation code =
   Bifunctor.lmap parseErrorMessage (runParser code infraredHexStringParser)
-  >>= (infraredBasebandPhase1 >>> traverse infraredBasebandPhase2)
+  >>= (decodePhase1 >>> traverse decodePhase2)
   # case _ of
     Left msg ->
       [ HH.text msg ]
@@ -657,7 +657,7 @@ infraredDemodulation code =
 infraredSignal :: forall p i. InfraredHexString -> Array (H.HTML p i)
 infraredSignal code =
   Bifunctor.lmap parseErrorMessage (runParser code infraredHexStringParser)
-  >>= infraredBasebandSignals
+  >>= decodeBaseband
   # case _ of
     Left msg ->
       [ HH.text msg ]
@@ -930,7 +930,7 @@ irdbTable rowClick codeClick = case _ of
 popoverContents :: InfraredHexString -> String
 popoverContents x =
   Bifunctor.lmap parseErrorMessage (runParser x infraredHexStringParser)
-  >>= infraredBasebandSignals
+  >>= decodeBaseband
   # case _ of
     Left msg -> msg
     Right xs -> String.joinWith ", " $ map display xs

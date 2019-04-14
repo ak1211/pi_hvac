@@ -16,20 +16,21 @@
 -}
 
 module InfraredCode
-  ( Bit(..)
+  ( Baseband(..)
+  , Bit(..)
   , Count(..)
-  , InfraredBasebandSignals(..)
+  , InfraredCodes(..)
   , InfraredHexString
   , InfraredLeader(..)
   , LsbFirst(..)
   , ProcessError
   , Pulse
+  , decodeBaseband
+  , decodePhase1
+  , decodePhase2
+  , decodePhase3
   , deserialize
   , fromMilliseconds
-  , infraredBasebandPhase1
-  , infraredBasebandPhase2
-  , infraredBasebandPhase3
-  , infraredBasebandSignals
   , infraredHexStringParser
   , showBit
   , showLsbFirst
@@ -76,6 +77,14 @@ type ProcessError = String
 
 -- |
 type Pulse = {on :: Count, off :: Count}
+
+-- |
+newtype Baseband = Baseband (Array Pulse)
+derive instance genericBaseband :: Generic Baseband _
+derive instance newtypeBaseband :: Newtype Baseband _
+derive instance eqBaseband      :: Eq Baseband
+instance showBaseband           :: Show Baseband where
+  show = genericShow
 
 -- | count is based on 38khz carrier
 newtype Count = Count Int
@@ -223,20 +232,20 @@ deserialize (LsbFirst bits) =
   f acc Negate = acc * 2 + 0
 
 -- |
-data InfraredBasebandSignals
+data InfraredCodes
   = Unknown (Array Bit)
   | AEHA {customLo :: LsbFirst, customHi :: LsbFirst, parity :: LsbFirst, data0 :: LsbFirst, data :: Array LsbFirst, stop :: Bit}
   | NEC  {customLo :: LsbFirst, customHi :: LsbFirst, data :: LsbFirst, invData :: LsbFirst, stop :: Bit}
   | SIRC {command :: LsbFirst, address :: LsbFirst}
-derive instance genericInfraredBasebandSignals  :: Generic InfraredBasebandSignals _
-derive instance eqInfraredBasebandSignals       :: Eq InfraredBasebandSignals
-instance showInfraredBasebandSignals            :: Show InfraredBasebandSignals where
+derive instance genericInfraredCodes  :: Generic InfraredCodes _
+derive instance eqInfraredCodes       :: Eq InfraredCodes
+instance showInfraredCodes            :: Show InfraredCodes where
   show = genericShow
 
 -- |
-infraredHexStringParser:: Parser InfraredHexString (Array Pulse)
+infraredHexStringParser:: Parser InfraredHexString Baseband
 infraredHexStringParser =
-  Array.many pulse
+  Baseband <$> Array.many pulse
   where
 
   pulse = do
@@ -261,14 +270,14 @@ infraredHexStringParser =
     pure $ fromCharArray [ a, b ]
 
 -- |
-infraredBasebandSignals :: Array Pulse -> Either ProcessError (Array InfraredBasebandSignals)
-infraredBasebandSignals =
-  traverse (infraredBasebandPhase3 <=< infraredBasebandPhase2) <<< infraredBasebandPhase1 
+decodeBaseband :: Baseband -> Either ProcessError (Array InfraredCodes)
+decodeBaseband =
+  traverse (decodePhase3 <=< decodePhase2) <<< decodePhase1 
 
 -- | 入力を各フレームに分ける
-infraredBasebandPhase1 :: Array Pulse -> Array (Array Pulse)
-infraredBasebandPhase1 =
-  unfoldr1 chop
+decodePhase1 :: Baseband -> Array (Array Pulse)
+decodePhase1 (Baseband bb) =
+  unfoldr1 chop $ bb
   where
 
   chop :: Array Pulse -> Tuple (Array Pulse) (Maybe (Array Pulse))
@@ -282,8 +291,8 @@ infraredBasebandPhase1 =
   threshold = fromMilliseconds (Milliseconds 8.0)
 
 -- | 入力フレームをリーダ部とビット配列にする
-infraredBasebandPhase2 :: Array Pulse -> Either ProcessError (Tuple InfraredLeader (Array Bit))
-infraredBasebandPhase2 tokens =
+decodePhase2 :: Array Pulse -> Either ProcessError (Tuple InfraredLeader (Array Bit))
+decodePhase2 tokens =
   case Array.uncons tokens of
     Just {head: x, tail: xs} ->
       let leader = makeInfraredLeader x
@@ -320,8 +329,8 @@ infraredBasebandPhase2 tokens =
         false -> Negate
 
 -- | 入力リーダ部とビット配列から赤外線信号にする
-infraredBasebandPhase3 :: Tuple InfraredLeader (Array Bit) -> Either ProcessError InfraredBasebandSignals
-infraredBasebandPhase3 (Tuple leader bitarray) =
+decodePhase3 :: Tuple InfraredLeader (Array Bit) -> Either ProcessError InfraredCodes
+decodePhase3 (Tuple leader bitarray) =
   let (Tuple result state) = State.runState proto bitarray
   in
   result
@@ -370,7 +379,7 @@ toNonEmptyArray2D n =
   Array.mapMaybe NEA.fromArray <<< toArray2D n
 
 -- |
-aehaProtocol :: BitArrayState InfraredBasebandSignals
+aehaProtocol :: BitArrayState InfraredCodes
 aehaProtocol = do
   lo <- takeBits 8 "fail to read: custom code lower (AEHA)"
   hi <- takeBits 8 "fail to read: custom code higher (AEHA)"
@@ -394,7 +403,7 @@ aehaProtocol = do
     }
 
 -- |
-necProtocol :: BitArrayState InfraredBasebandSignals
+necProtocol :: BitArrayState InfraredCodes
 necProtocol = do
   lo <- takeBits 8 "fail to read: custom code lower (NEC)"
   hi <- takeBits 8 "fail to read: custom code higher (NEC)"
@@ -413,7 +422,7 @@ necProtocol = do
     }
 
 -- |
-sircProtocol :: BitArrayState InfraredBasebandSignals
+sircProtocol :: BitArrayState InfraredCodes
 sircProtocol = do
   com <- takeBits 7 "fail to read: command code (SIRC)"
   add <- takeEnd "fail to read: address (SIRC)"
@@ -426,7 +435,7 @@ sircProtocol = do
     }
 
 -- |
-unknownProtocol :: BitArrayState InfraredBasebandSignals
+unknownProtocol :: BitArrayState InfraredCodes
 unknownProtocol = do
   array <- State.get
   State.put []
