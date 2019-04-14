@@ -6,12 +6,12 @@ import Data.Array.NonEmpty as NEA
 import Data.Bifunctor (lmap)
 import Data.Either (Either(..))
 import Data.Maybe (fromJust)
-import Data.Newtype (unwrap, wrap)
+import Data.Newtype (wrap)
 import Data.String as String
 import Data.Time.Duration (Milliseconds(..))
 import Effect (Effect)
 import Effect.Console (log, logShow)
-import InfraredCode (Baseband(..), Bit(..), Count(..), InfraredCodes(..), InfraredHexString, LsbFirst(..), Pulse, decodeBaseband, decodePhase1, fromMilliseconds, infraredHexStringParser, toMilliseconds)
+import InfraredCode (Baseband(..), Bit(..), Count(..), InfraredCodes(..), InfraredHexString, LsbFirst(..), decodeBaseband, decodePhase1, fromMilliseconds, infraredHexStringParser, toMilliseconds)
 import Partial.Unsafe (unsafePartial)
 import Test.Assert (assert')
 import Text.Parsing.Parser (Parser, parseErrorPosition, runParser)
@@ -130,10 +130,15 @@ main :: Effect Unit
 main = do
   log "from, toMilliseconds test"
   --
-  let msec = toMilliseconds (Count 0x7B)
-  assert' ("expected: 0x7B") (Count 0x7B == fromMilliseconds (Milliseconds 3.2))
-  assert' ("expected: 3.2 msec ") (msec == Milliseconds 3.2)
-  log $ "count 0x7B is " <> show (unwrap msec) <> " ms"
+  let count = fromMilliseconds (Milliseconds 3.2)
+  log $ show count
+  assert' ("expected: 123") (Count 123 == count)
+  let msec = toMilliseconds count
+  log $ show msec
+  let count' = fromMilliseconds msec
+  log $ show count'
+  assert' ("expected: 123") (Count 123 == count')
+
   --
   log ""
   log "parser test"

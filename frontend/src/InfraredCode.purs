@@ -122,18 +122,16 @@ withTolerance tolerance typical =
 -- |
 fromMilliseconds :: Milliseconds -> Count
 fromMilliseconds (Milliseconds msec)=
-  let freq    = 38    -- 38.0 kHz
-      usec    = 1000 / freq
+  let period  = 0.026   -- 1 / 38kHz
   in
-  Count $ Int.floor (1000.0 * msec) / usec
+  Count $ Int.floor (msec / period)
 
 -- |
 toMilliseconds :: Count -> Milliseconds
 toMilliseconds (Count counts) =
-  let freq    = 38    -- 38.0 kHz
-      msec10x = 10 * counts / freq
+  let period  = 0.026   -- 1 / 38kHz
   in
-  Milliseconds (Int.toNumber msec10x / 10.0)
+  Milliseconds (Int.toNumber counts * period)
 
 -- |
 data Bit
