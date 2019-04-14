@@ -666,7 +666,7 @@ infraredSignal code =
   where
 
   dt = HH.dt_
-  dd = HH.dd [ HP.classes [HB.p4, HB.row] ]
+  dd = HH.dd [ HP.classes [HB.pl4, HB.row] ]
 
   display = case _ of
     NEC irValue ->
