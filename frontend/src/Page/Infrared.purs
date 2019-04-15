@@ -649,7 +649,7 @@ infraredSignal =
       [ HH.dl_
         [ dt [ HH.text "protocol" ]
         , dd [ HH.text "NEC" ]
-        , dt [ HH.text "custom" ]
+        , dt [ HH.text "custom code" ]
         , dd [ HH.text $ showHex 4 (irValue.customHi <> irValue.customLo) ]
         , dt [ HH.text "data" ]
         , dd [ HH.text $ showHexAndDec 2 irValue.data ]
@@ -664,7 +664,7 @@ infraredSignal =
       [ HH.dl_
         [ dt [ HH.text "protocol" ]
         , dd [ HH.text "AEHA" ]
-        , dt [ HH.text "custom" ]
+        , dt [ HH.text "custom code" ]
         , dd [ HH.text $ showHex 4 (irValue.customHi <> irValue.customLo) ]
         , dt [ HH.text "parity" ]
         , dd [ HH.text $ showHexAndDec 1 irValue.parity ]

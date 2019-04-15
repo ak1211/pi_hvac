@@ -41,7 +41,8 @@ module InfraredCode
 
 import Prelude
 
-import Control.Monad.State (State)
+import Control.Monad.Except (ExceptT, runExceptT, throwError)
+import Control.Monad.State (State, evalState)
 import Control.Monad.State as State
 import Control.MonadZero (guard)
 import Data.Array ((..))
@@ -329,47 +330,45 @@ decodePhase2 tokens =
 -- | 入力リーダ部とビット配列から赤外線信号にする
 decodePhase3 :: Tuple InfraredLeader (Array Bit) -> Either ProcessError InfraredCodes
 decodePhase3 (Tuple leader bitarray) =
-  let (Tuple result state) = State.runState proto bitarray
-  in
-  result
+  evalState (runExceptT protocol) bitarray
   where
-  proto = case leader of
+  protocol = case leader of
     ProtoAeha _     -> aehaProtocol
     ProtoNec _      -> necProtocol
     ProtoSirc _     -> sircProtocol
     ProtoUnknown _  -> unknownProtocol
 
 -- |
-type BitArrayState a = State (Array Bit) (Either ProcessError a)
+type ProtocolDecoder a = ExceptT ProcessError (State (Array Bit)) a
 
 -- |
-takeBit :: ProcessError -> BitArrayState Bit
+takeBit :: ProcessError -> ProtocolDecoder Bit
 takeBit errmsg = do
   state <- State.get
   case Array.uncons state of
     Nothing ->
-      pure $ Left errmsg
+      throwError errmsg
     Just x -> do
       State.put x.tail
-      pure $ Right x.head
+      pure x.head
 
 -- |
-takeBits :: Int -> ProcessError -> BitArrayState (NonEmptyArray Bit)
+takeBits :: Int -> ProcessError -> ProtocolDecoder (NonEmptyArray Bit)
 takeBits n errmsg = do
   state <- State.get
   let bitarray  = Array.take n state
       nextState = Array.drop n state
   State.put nextState
-  pure $ maybe (Left errmsg) Right do
+  maybe (throwError errmsg) pure do
     guard (Array.length bitarray == n)
     NEA.fromArray bitarray
 
 -- |
-takeEnd :: ProcessError -> BitArrayState (NonEmptyArray Bit)
+takeEnd :: ProcessError -> ProtocolDecoder (NonEmptyArray Bit)
 takeEnd errmsg = do
   array <- State.get
   State.put []
-  pure $ maybe (Left errmsg) Right $ NEA.fromArray array
+  maybe (throwError errmsg) pure $ NEA.fromArray array
 
 -- |
 toNonEmptyArray2D :: forall a. Int -> Array a -> Array (NonEmptyArray a)
@@ -377,64 +376,53 @@ toNonEmptyArray2D n =
   Array.mapMaybe NEA.fromArray <<< toArray2D n
 
 -- |
-aehaProtocol :: BitArrayState InfraredCodes
+aehaProtocol :: ProtocolDecoder InfraredCodes
 aehaProtocol = do
   lo <- takeBits 8 "fail to read: custom code lower (AEHA)"
   hi <- takeBits 8 "fail to read: custom code higher (AEHA)"
   p_ <- takeBits 4 "fail to read: parity (AEHA)"
   d0 <- takeBits 4 "fail to read: data0 (AEHA)"
   d_ <- takeEnd "fail to read: data (AEHA)"
-  pure (result <$> lo <*> hi <*> p_ <*> d0 <*> d_)
-  where
-  result lo hi p d0 d =
-    let init = NEA.init d
-        last = NEA.last d
-        octets = toNonEmptyArray2D 8 init
-    in
-    AEHA
-    { customLo: LsbFirst lo
-    , customHi: LsbFirst hi
-    , parity: LsbFirst p
-    , data0: LsbFirst d0
-    , data: map LsbFirst octets
-    , stop: last
-    }
+  let init = NEA.init d_
+      last = NEA.last d_
+      octets = toNonEmptyArray2D 8 init
+  pure $ AEHA { customLo: LsbFirst lo
+              , customHi: LsbFirst hi
+              , parity: LsbFirst p_
+              , data0: LsbFirst d0
+              , data: map LsbFirst octets
+              , stop: last
+              }
+
 
 -- |
-necProtocol :: BitArrayState InfraredCodes
+necProtocol :: ProtocolDecoder InfraredCodes
 necProtocol = do
   lo <- takeBits 8 "fail to read: custom code lower (NEC)"
   hi <- takeBits 8 "fail to read: custom code higher (NEC)"
   d0 <- takeBits 8 "fail to read: data (NEC)"
   d1 <- takeBits 8 "fail to read: inv-data (NEC)"
   sb <- takeBit "fail to read: stop bit (NEC)"
-  pure (result <$> lo <*> hi <*> d0 <*> d1 <*> sb)
-  where
-  result lo hi d0 d1 sb =
-    NEC
-    { customLo: LsbFirst lo
-    , customHi: LsbFirst hi
-    , data: LsbFirst d0
-    , invData: LsbFirst d1
-    , stop: sb
-    }
+  pure $ NEC  { customLo: LsbFirst lo
+              , customHi: LsbFirst hi
+              , data: LsbFirst d0
+              , invData: LsbFirst d1
+              , stop: sb
+              }
 
 -- |
-sircProtocol :: BitArrayState InfraredCodes
+sircProtocol :: ProtocolDecoder InfraredCodes
 sircProtocol = do
   com <- takeBits 7 "fail to read: command code (SIRC)"
   add <- takeEnd "fail to read: address (SIRC)"
-  pure (result <$> com <*> add)
-  where
-  result com add =
-    SIRC
-    { command: LsbFirst com
-    , address: LsbFirst add
-    }
+  pure $ SIRC { command: LsbFirst com
+              , address: LsbFirst add
+              }
 
 -- |
-unknownProtocol :: BitArrayState InfraredCodes
+unknownProtocol :: ProtocolDecoder InfraredCodes
 unknownProtocol = do
   array <- State.get
   State.put []
-  pure (Right $ Unknown array)
+  pure $ Unknown array
+
