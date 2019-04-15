@@ -302,19 +302,6 @@ decodePhase2 tokens =
     Nothing ->
       Left "Unexpected end of input"
 
--- | 入力リーダ部とビット配列から赤外線信号にする
-decodePhase3 :: Tuple InfraredLeader (Array Bit) -> Either ProcessError InfraredCodes
-decodePhase3 (Tuple leader bitarray) =
-  evalState (runExceptT protocol) bitarray
-  where
-
-  protocol :: DecodeMonad ProcessError InfraredCodes
-  protocol = case leader of
-    ProtoAeha _     -> aehaProtocol
-    ProtoNec _      -> necProtocol
-    ProtoSirc _     -> sircProtocol
-    ProtoUnknown _  -> unknownProtocol
-
 -- |
 demodulate :: InfraredLeader -> Array Pulse -> Array Bit
 demodulate leader ps =
@@ -341,6 +328,19 @@ demodulate leader ps =
     case Array.any (_ == p.on) threshold of
       true -> Assert
       false -> Negate
+
+-- | 入力リーダ部とビット配列から赤外線信号にする
+decodePhase3 :: Tuple InfraredLeader (Array Bit) -> Either ProcessError InfraredCodes
+decodePhase3 (Tuple leader bitarray) =
+  evalState (runExceptT protocol) bitarray
+  where
+
+  protocol :: DecodeMonad ProcessError InfraredCodes
+  protocol = case leader of
+    ProtoAeha _     -> aehaProtocol
+    ProtoNec _      -> necProtocol
+    ProtoSirc _     -> sircProtocol
+    ProtoUnknown _  -> unknownProtocol
 
 -- |
 type DecodeMonad e a = ExceptT e (State (Array Bit)) a
@@ -397,7 +397,6 @@ aehaProtocol = do
               , data: map LsbFirst octets
               , stop: last
               }
-
 
 -- |
 necProtocol :: DecodeMonad ProcessError InfraredCodes
