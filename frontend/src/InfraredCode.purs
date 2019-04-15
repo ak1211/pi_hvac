@@ -226,6 +226,7 @@ deserialize :: LsbFirst -> Int
 deserialize (LsbFirst bits) =
   Array.foldl f 0 $ NEA.reverse bits
   where
+
   f :: Int -> Bit -> Int
   f acc Assert = acc * 2 + 1
   f acc Negate = acc * 2 + 0
@@ -300,38 +301,14 @@ decodePhase2 tokens =
 
     Nothing ->
       Left "Unexpected end of input"
-  where
-
-  demodulate :: InfraredLeader -> Array Pulse -> Array Bit
-  demodulate leader ps =
-    case leader of
-      ProtoSirc _ ->
-        map sircModulation ps
-      _ ->
-        map pulseDistanceModulation ps
-    where
-
-    -- | pulse distance modulation is NEC, AEHA
-    pulseDistanceModulation :: Pulse -> Bit
-    pulseDistanceModulation = case _ of
-      x | (Count 2 * x.on) <= x.off -> Assert
-        | otherwise                 -> Negate
-
-    sircModulation :: Pulse -> Bit
-    sircModulation p =
-      let threshold = withTolerance
-                        {upper: Milliseconds 0.1, lower: Milliseconds 0.1}
-                        (Milliseconds 1.2)
-      in
-      case Array.any (_ == p.on) threshold of
-        true -> Assert
-        false -> Negate
 
 -- | 入力リーダ部とビット配列から赤外線信号にする
 decodePhase3 :: Tuple InfraredLeader (Array Bit) -> Either ProcessError InfraredCodes
 decodePhase3 (Tuple leader bitarray) =
   evalState (runExceptT protocol) bitarray
   where
+
+  protocol :: DecodeMonad ProcessError InfraredCodes
   protocol = case leader of
     ProtoAeha _     -> aehaProtocol
     ProtoNec _      -> necProtocol
@@ -339,10 +316,37 @@ decodePhase3 (Tuple leader bitarray) =
     ProtoUnknown _  -> unknownProtocol
 
 -- |
-type ProtocolDecoder a = ExceptT ProcessError (State (Array Bit)) a
+demodulate :: InfraredLeader -> Array Pulse -> Array Bit
+demodulate leader ps =
+  case leader of
+    ProtoSirc _ ->
+      map sircModulation ps
+    _ ->
+      map pulseDistanceModulation ps
+  where
+
+  -- | pulse distance modulation is NEC, AEHA
+  pulseDistanceModulation :: Pulse -> Bit
+  pulseDistanceModulation = case _ of
+    x | (Count 2 * x.on) <= x.off -> Assert
+      | otherwise                 -> Negate
+
+  -- | pulse width modulation is SIRC
+  sircModulation :: Pulse -> Bit
+  sircModulation p =
+    let threshold = withTolerance
+                      {upper: Milliseconds 0.1, lower: Milliseconds 0.1}
+                      (Milliseconds 1.2)
+    in
+    case Array.any (_ == p.on) threshold of
+      true -> Assert
+      false -> Negate
 
 -- |
-takeBit :: ProcessError -> ProtocolDecoder Bit
+type DecodeMonad e a = ExceptT e (State (Array Bit)) a
+
+-- |
+takeBit :: ProcessError -> DecodeMonad ProcessError Bit
 takeBit errmsg = do
   state <- State.get
   case Array.uncons state of
@@ -353,7 +357,7 @@ takeBit errmsg = do
       pure x.head
 
 -- |
-takeBits :: Int -> ProcessError -> ProtocolDecoder (NonEmptyArray Bit)
+takeBits :: Int -> ProcessError -> DecodeMonad ProcessError (NonEmptyArray Bit)
 takeBits n errmsg = do
   state <- State.get
   let bitarray  = Array.take n state
@@ -364,7 +368,7 @@ takeBits n errmsg = do
     NEA.fromArray bitarray
 
 -- |
-takeEnd :: ProcessError -> ProtocolDecoder (NonEmptyArray Bit)
+takeEnd :: ProcessError -> DecodeMonad ProcessError (NonEmptyArray Bit)
 takeEnd errmsg = do
   array <- State.get
   State.put []
@@ -376,7 +380,7 @@ toNonEmptyArray2D n =
   Array.mapMaybe NEA.fromArray <<< toArray2D n
 
 -- |
-aehaProtocol :: ProtocolDecoder InfraredCodes
+aehaProtocol :: DecodeMonad ProcessError InfraredCodes
 aehaProtocol = do
   lo <- takeBits 8 "fail to read: custom code lower (AEHA)"
   hi <- takeBits 8 "fail to read: custom code higher (AEHA)"
@@ -396,7 +400,7 @@ aehaProtocol = do
 
 
 -- |
-necProtocol :: ProtocolDecoder InfraredCodes
+necProtocol :: DecodeMonad ProcessError InfraredCodes
 necProtocol = do
   lo <- takeBits 8 "fail to read: custom code lower (NEC)"
   hi <- takeBits 8 "fail to read: custom code higher (NEC)"
@@ -411,7 +415,7 @@ necProtocol = do
               }
 
 -- |
-sircProtocol :: ProtocolDecoder InfraredCodes
+sircProtocol :: DecodeMonad ProcessError InfraredCodes
 sircProtocol = do
   com <- takeBits 7 "fail to read: command code (SIRC)"
   add <- takeEnd "fail to read: address (SIRC)"
@@ -420,9 +424,8 @@ sircProtocol = do
               }
 
 -- |
-unknownProtocol :: ProtocolDecoder InfraredCodes
+unknownProtocol :: DecodeMonad ProcessError InfraredCodes
 unknownProtocol = do
   array <- State.get
   State.put []
   pure $ Unknown array
-
