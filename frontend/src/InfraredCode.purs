@@ -30,10 +30,12 @@ module InfraredCode
   , decodePhase2
   , decodePhase3
   , deserialize
+  , fromBoolean
   , fromMilliseconds
   , infraredHexStringParser
   , showBit
   , showLsbFirst
+  , toBoolean 
   , toMilliseconds
   , toStringLsbFirst
   , toStringLsbFirstWithHex
@@ -146,6 +148,16 @@ instance showBit'     :: Show Bit where
 showBit :: Bit -> String
 showBit Negate = "0"
 showBit Assert = "1"
+
+--|
+fromBoolean :: Boolean -> Bit
+fromBoolean false = Negate
+fromBoolean true = Assert
+
+--|
+toBoolean :: Bit -> Boolean
+toBoolean Negate = false
+toBoolean Assert = true
 
 -- |
 data InfraredLeader
@@ -332,9 +344,7 @@ demodulate leader ps =
                       {upper: Milliseconds 0.1, lower: Milliseconds 0.1}
                       (Milliseconds 1.2)
     in
-    case Array.any (_ == p.on) threshold of
-      true -> Assert
-      false -> Negate
+    fromBoolean $ Array.any (_ == p.on) threshold
 
 -- | 入力リーダ部とビット配列から赤外線信号にする
 decodePhase3 :: Tuple InfraredLeader (Array Bit) -> Either ProcessError InfraredCodes
