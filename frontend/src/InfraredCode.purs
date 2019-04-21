@@ -63,12 +63,12 @@ import Data.String.CodeUnits (fromCharArray)
 import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
-import Data.Unfoldable1 (unfoldr1)
+import Data.Unfoldable (unfoldr1)
 import Partial.Unsafe (unsafePartial)
 import Text.Parsing.Parser (Parser)
 import Text.Parsing.Parser.Combinators ((<?>))
 import Text.Parsing.Parser.Token (hexDigit)
-import Utils (toArray2D)
+import Utils (toArrayNonEmptyArray)
 
 -- | input infrared hexadecimal code
 type InfraredHexString = String
@@ -282,12 +282,19 @@ decodePhase1 (Baseband bb) =
 
   chop :: Array Pulse -> Tuple (Array Pulse) (Maybe (Array Pulse))
   chop xs = 
-    let x = Array.span (\c -> c.off < threshold) xs
-    in
-    case Array.drop 1 x.rest of
-      [] -> Tuple (x.init <> Array.take 1 x.rest) Nothing
-      a -> Tuple (x.init <> Array.take 1 x.rest) (Just a)
+    case frames xs of
+      { init: a, rest: [] } -> Tuple a Nothing
+      { init: a, rest: b_ } -> Tuple a (Just b_)
 
+  frames :: Array Pulse -> {init :: Array Pulse, rest :: Array Pulse}
+  frames pulses = 
+    let sep = Array.span (\count -> count.off < threshold) pulses
+    in
+    { init: sep.init <> Array.take 1 sep.rest
+    , rest: Array.drop 1 sep.rest
+    }
+
+  threshold :: Count
   threshold = fromMilliseconds (Milliseconds 8.0)
 
 -- | 入力フレームをリーダ部とビット配列にする
@@ -375,11 +382,6 @@ takeEnd errmsg = do
   maybe (throwError errmsg) pure $ NEA.fromArray array
 
 -- |
-toNonEmptyArray2D :: forall a. Int -> Array a -> Array (NonEmptyArray a)
-toNonEmptyArray2D n =
-  Array.mapMaybe NEA.fromArray <<< toArray2D n
-
--- |
 aehaProtocol :: DecodeMonad ProcessError InfraredCodes
 aehaProtocol = do
   lo <- takeBits 8 "fail to read: custom code lower (AEHA)"
@@ -389,7 +391,7 @@ aehaProtocol = do
   d_ <- takeEnd "fail to read: data (AEHA)"
   let init = NEA.init d_
       last = NEA.last d_
-      octets = toNonEmptyArray2D 8 init
+      octets = toArrayNonEmptyArray 8 init
   pure $ AEHA { customLo: LsbFirst lo
               , customHi: LsbFirst hi
               , parity: LsbFirst p_

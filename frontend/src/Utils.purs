@@ -17,12 +17,15 @@
 
 module Utils
   ( asiaTokyoDateTime
-  , toArray2D
+  , toArrayArray
+  , toArrayNonEmptyArray
   ) where
 
 import Prelude
 
 import Data.Array as Array
+import Data.Array.NonEmpty (NonEmptyArray)
+import Data.Array.NonEmpty as NEArray
 import Data.DateTime (DateTime)
 import Data.DateTime as DateTime
 import Data.Either (either)
@@ -31,7 +34,7 @@ import Data.Maybe (Maybe(..))
 import Data.String as String
 import Data.Time.Duration (Hours(..), fromDuration)
 import Data.Tuple (Tuple(..))
-import Data.Unfoldable1 (unfoldr1)
+import Data.Unfoldable (unfoldr1)
 
 --|
 asiaTokyoDateTime :: DateTime -> Maybe {date :: String, time :: String}
@@ -52,16 +55,25 @@ chopDateTime original =
       Nothing
 
 -- |
-toArray2D :: forall a. Int -> Array a -> Array (Array a)
-toArray2D width =
-  unfoldr1 (chop width)
+toArrayArray :: forall a. Int -> Array a -> Array (Array a)
+toArrayArray n =
+  unfoldr1 chop
   where
 
-  chop :: Int -> Array a -> Tuple (Array a) (Maybe (Array a))
-  chop n xs = 
-    case splitAt n xs of
-      Tuple a [] -> Tuple a Nothing
-      Tuple a b -> Tuple a (Just b)
+  chop :: Array a -> Tuple (Array a) (Maybe (Array a))
+  chop xs = 
+    let a = Array.take n xs
+        b = Array.drop n xs
+    in
+    if Array.null b then
+      Tuple a Nothing
+    else
+      Tuple a (Just b)
+
+-- |
+toArrayNonEmptyArray :: forall a. Int -> Array a -> Array (NonEmptyArray a)
+toArrayNonEmptyArray n =
+  Array.mapMaybe NEArray.fromArray <<< toArrayArray n
 
 -- |
 splitAt :: forall a. Int -> Array a -> Tuple (Array a) (Array a)

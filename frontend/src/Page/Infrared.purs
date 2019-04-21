@@ -63,7 +63,7 @@ import Page.Commons as Commons
 import Route (Route)
 import Route as Route
 import Text.Parsing.Parser (parseErrorMessage, runParser)
-import Utils (toArray2D)
+import Utils (toArrayArray)
 import Web.Event.Event (Event, EventType(..))
 import Web.Event.Event as Event
 import Web.Event.EventTarget (addEventListener, eventListener)
@@ -610,12 +610,12 @@ infraredBitpatterns (Tuple leader vs) =
     ProtoAeha _     ->
       [ HH.text "AEHA"
       , HH.br_
-      , row $ toArray2D 8 vs
+      , row $ toArrayArray 8 vs
       ]
     ProtoNec _      ->
       [ HH.text "NEC"
       , HH.br_
-      , row $ toArray2D 8 vs
+      , row $ toArrayArray 8 vs
       ]
     ProtoSirc _  ->
       let bit7 = Array.take 7 vs
@@ -623,12 +623,12 @@ infraredBitpatterns (Tuple leader vs) =
       in
       [ HH.text "SIRC"
       , HH.br_
-      , row (bit7 : toArray2D 8 left)
+      , row (bit7 : toArrayArray 8 left)
       ]
     ProtoUnknown _     ->
       [ HH.text "Unknown"
       , HH.br_
-      , row $ toArray2D 8 vs
+      , row $ toArrayArray 8 vs
       ]
   where
 

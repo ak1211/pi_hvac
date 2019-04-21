@@ -49,7 +49,7 @@ import Halogen.Themes.Bootstrap4 as HB
 import Page.Commons as Commons
 import Route (Route)
 import Route as Route
-import Utils (toArray2D)
+import Utils (toArrayArray)
 
 type DetectedAddresses = Either String (Array Int)
 
@@ -163,7 +163,7 @@ i2cDevices (Right detectedDeviceAddresses) =
       ]
       [ HH.caption_ [ HH.text "Hexadecimal addresses" ]
       , tableHeading addressTableRangeHeading
-      , tableBody addressTableRangeRowHeading $ toArray2D 16 detectedDevAddresses
+      , tableBody addressTableRangeRowHeading $ toArrayArray 16 detectedDevAddresses
       ]
     ]
   where
