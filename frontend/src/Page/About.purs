@@ -237,6 +237,16 @@ document =
         ]
       ]
     , HH.li_
+      [ HH.text "purescript-halogen-formless"
+      , HH.p_
+        [ HH.text "Licensed under the Apache License, Version 2.0"
+        , HH.br_
+        , HH.a
+          [ HP.href "https://github.com/thomashoneyman/purescript-halogen-formless" ]
+          [ HH.text "see LICENSE file for Details." ]
+        ]
+      ]
+    , HH.li_
       [ HH.text "purescript-now"
       , HH.p_
         [ HH.text "Copyright (c) 2014 Purescript"

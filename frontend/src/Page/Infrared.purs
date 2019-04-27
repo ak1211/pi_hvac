@@ -16,8 +16,9 @@
 -}
 
 module Page.Infrared
-  ( Query(..)
-  , SelectedTab(..)
+  ( IRInputForm
+  , Query
+  , SelectedTab
   , component
   ) where
 
@@ -40,8 +41,9 @@ import Data.Generic.Rep.Bounded (genericBottom, genericTop)
 import Data.Generic.Rep.Enum (genericCardinality, genericFromEnum, genericPred, genericSucc, genericToEnum)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
-import Data.Newtype (unwrap)
+import Data.Newtype (class Newtype, unwrap)
 import Data.String as String
+import Data.Symbol (SProxy(..))
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
@@ -50,6 +52,8 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (log)
 import Effect.Console (logShow)
 import Foreign (unsafeFromForeign)
+import Formless (FormFieldResult(..), Validation)
+import Formless as Formless
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.CSS (style)
@@ -62,7 +66,8 @@ import InfraredCode (Baseband(..), Bit, Count, InfraredCodes(..), InfraredHexStr
 import Page.Commons as Commons
 import Route (Route)
 import Route as Route
-import Text.Parsing.Parser (parseErrorMessage, runParser)
+import Text.Parsing.Parser (ParseError, parseErrorMessage, parseErrorPosition, runParser)
+import Text.Parsing.Parser.Pos (Position(..))
 import Utils (toArrayArray)
 import Web.Event.Event (Event, EventType(..))
 import Web.Event.Event as Event
@@ -102,6 +107,7 @@ data Query a
   = NavigateTo Route a
   | Initialize a
   | ChangedRoute Route a
+  | Formless (Formless.Message' IRInputForm) a
   | OnClickIRCodeDownload a
   | OnClickIRCodeUpload a
   | OnClickIRCodeTransmit a
@@ -113,6 +119,9 @@ data Query a
   | OnValueChangeLimits String a
   | OnChangeCSVFileSelect Event a
 
+type ChildQuery m = Formless.Query' IRInputForm m
+type ChildSlot = Unit
+
 -- | component
 component
   :: forall m
@@ -121,7 +130,7 @@ component
   => HasApiAccessible m
   => H.Component HH.HTML Query Route Void m
 component =
-  H.lifecycleComponent
+  H.lifecycleParentComponent
     { initialState: initialState
     , render
     , eval
@@ -162,7 +171,7 @@ component =
 
   csvFileInputLabel = H.RefLabel "CSVFileInput"
 
-  eval :: Query ~> H.ComponentDSL State Query Void m
+  eval :: Query ~> H.ParentDSL State Query (ChildQuery m) ChildSlot Void m
   eval = case _ of
     NavigateTo route next -> do
       H.liftEffect Commons.disposePopover
@@ -207,6 +216,18 @@ component =
         _ ->
           H.put state
       H.liftEffect Commons.enablePopover
+      pure next
+
+    Formless (Formless.Submitted formOutputs) next -> do
+      { buttonNumber } <- H.get
+      let irForm :: InfraredInput
+          irForm = Formless.unwrapOutputFields formOutputs
+          hexstr = String.toUpper irForm.ircode
+          val = Api.DatumInfraRed {button_number: buttonNumber, code: hexstr}
+      H.modify_ \st -> st { infraredValue = Right val }
+      pure next
+
+    Formless _ next ->
       pure next
 
     OnClickIRCodeDownload next -> do
@@ -394,7 +415,7 @@ component =
 --            H.subscribe $ HES.eventSource'
 
   --| render
-  render :: State -> H.ComponentHTML Query
+  render :: State -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   render state =
     HH.div
       [ HP.id_ "wrapper"
@@ -600,6 +621,7 @@ infraredBaseband (Baseband pulses) =
         ]
       ]
 
+  -- | nbsp - non-break spase
   nbsp =
     String.codePointFromChar $ fromMaybe '?' $ fromCharCode 0x00a0
 
@@ -783,19 +805,16 @@ irTransmitButton action isActive =
     HP.attr (HC.AttrName "disabled") "disabled"
 
 -- |
-renderInfraredRemoconCode :: forall p i. State -> H.HTML p i
+renderInfraredRemoconCode
+  :: forall m
+   . MonadAff m
+  => State
+  -> H.ParentHTML Query (ChildQuery m) ChildSlot m
 renderInfraredRemoconCode state =
   HH.div
     [ HP.class_ HB.formGroup ]
-    [ HH.h3_ [ HH.text "Baseband (Counts in 38kHz carrier)" ]
-    , HH.p
-      [ HP.classes [ HB.p3, HB.formControl, HC.ClassName "overflow-auto" ]
-      , style do
-        padding (px 10.0) (px 10.0) (px 10.0) (px 10.0)
-        minHeight (em 5.0)
-      ]
-      [ HH.text $ either identity (_.code <<< unwrap) $ state.infraredValue
-      ]
+    [ HH.h3_ [ HH.text "Infrared code" ]
+    , HH.slot unit Formless.component {initialInputs, validators, render: renderFormless} (HE.input Formless)
     , HH.p_
       $ case state.infraredValue of
         Left _ ->
@@ -806,7 +825,16 @@ renderInfraredRemoconCode state =
               bitPatterns = (traverse decodePhase2 <<< decodePhase1) =<< baseband
               signal      = traverse decodePhase3 =<< bitPatterns
           in
-          [ HH.h3_ [ HH.text "Baseband (Counts in milliseconds)" ]
+          [ HH.h3_ [ HH.text "Hexadecimal numbers" ]
+          , HH.p
+            [ HP.classes [ HB.p3, HC.ClassName "overflow-auto" ]
+            , style do
+              padding (px 10.0) (px 10.0) (px 10.0) (px 10.0)
+              minHeight (em 5.0)
+            ]
+            [ HH.text $ either identity (_.code <<< unwrap) $ state.infraredValue
+            ]
+          , HH.h3_ [ HH.text "Baseband in milliseconds" ]
           , HH.p
             [ HP.class_ HB.p3 ]
             [ either HH.text infraredBaseband baseband ]
@@ -963,4 +991,91 @@ popoverContents x =
         [ [ "Unkown"
           , show irValue
           ]
+        ]
+
+--
+-- Formless
+--
+
+type InfraredInput = {ircode :: InfraredHexString}
+
+data FieldError
+  = EmptyField
+  | InvalidInfraredCode ParseError
+
+newtype IRInputForm r f = IRInputForm (r
+  ( ircode :: f FieldError String InfraredHexString
+  ))
+
+derive instance newtypeIRInputForm :: Newtype (IRInputForm r f) _
+
+-- |
+initialInputs :: IRInputForm Record Formless.InputField
+initialInputs =
+  Formless.wrapInputFields {ircode: ""}
+
+-- |
+validators :: forall m. MonadAff m => IRInputForm Record (Formless.Validation IRInputForm m)
+validators =
+  IRInputForm {ircode: validateInfraredCode}
+
+-- |
+validateInfraredCode :: forall form m. MonadAff m => Validation form m FieldError String InfraredHexString
+validateInfraredCode =
+  Formless.hoistFnE_ go
+  where
+
+  go str = case runParser str infraredHexStringParser of
+    Right _ -> Right str
+    Left err -> Left (InvalidInfraredCode err)
+
+-- |
+renderFormless :: forall m. MonadAff m => Formless.State IRInputForm m -> Formless.HTML' IRInputForm m
+renderFormless state =
+  HH.div
+    [ HP.class_ HB.formGroup
+    , HE.onKeyUp $ HE.input_ Formless.submit
+    , HE.onPaste $ HE.input_ Formless.submit
+    ]
+    [ HH.label_ [ HH.text "on-off counts (count is based on 38kHz carrier)" ]
+    , textarea
+    , help $ Formless.getResult _textarea state.form
+    ]
+  where
+
+  _textarea = SProxy :: SProxy "ircode"
+
+  textarea =
+    HH.textarea
+      [ HP.class_ HB.formControl
+      , HP.rows 5
+      , HP.placeholder "Write an on-off pair count (32-bit little endianness) hexadecimal number or Click download button."
+      , HP.value $ Formless.getInput _textarea state.form
+      , HE.onValueInput $ HE.input $ Formless.setValidate _textarea
+      ]
+
+  help = case _ of
+    NotValidated                    -> initial
+    Validating                      -> good "validating..."
+    Error EmptyField                -> initial
+    Error (InvalidInfraredCode err) -> bad err
+    Success baseband                -> good "good"
+    where
+
+    initial =
+      good "write a infrared codes"
+
+    good str =
+      HH.p [] [ HH.text str ]
+
+    bad err =
+      let (Position p) = parseErrorPosition err
+          line = Int.toStringAs Int.decimal p.line
+          col = Int.toStringAs Int.decimal p.column
+          msg = parseErrorMessage err
+          pos = "line: " <> line <> " column: " <> col
+      in
+      HH.p_
+        [ HH.span [ HP.class_ HB.textDanger ] [ HH.text msg ]
+        , HH.text (" at " <> pos)
         ]

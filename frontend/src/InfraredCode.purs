@@ -69,6 +69,7 @@ import Data.Unfoldable (unfoldr1)
 import Partial.Unsafe (unsafePartial)
 import Text.Parsing.Parser (Parser)
 import Text.Parsing.Parser.Combinators ((<?>))
+import Text.Parsing.Parser.String (skipSpaces)
 import Text.Parsing.Parser.Token (hexDigit)
 import Utils (toArrayNonEmptyArray)
 
@@ -257,7 +258,7 @@ instance showInfraredCodes            :: Show InfraredCodes where
 -- |
 infraredHexStringParser:: Parser InfraredHexString Baseband
 infraredHexStringParser =
-  Baseband <$> Array.many pulse
+  Baseband <$> Array.many (pulse <* skipSpaces)
   where
 
   pulse = do
@@ -268,8 +269,8 @@ infraredHexStringParser =
 
   valueOf32Bit = do
     -- 入力値はLower -> Higherの順番
-    lower <- hexd16bit <?> "Lower-pair hex digit"
-    higher<- hexd16bit <?> "Higher-pair hex digit"
+    lower <- hexd16bit <?> "lower-pair hex digit"
+    higher<- hexd16bit <?> "higher-pair hex digit"
     -- ここは普通の数字の書き方(位取り記数法: 高位が前, 下位が後)
     let str = higher <> lower
         maybeNum = Int.fromStringAs Int.hexadecimal str
