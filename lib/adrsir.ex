@@ -149,11 +149,11 @@ defmodule ADRSIR.Driver do
   @type infrared_data :: [integer()]
 
   # Register Address
-  @adrsir_R1_write_ward   %{addr: 0x15}
+  @adrsir_R1_write_word   %{addr: 0x15}
   @adrsir_R2_read_len     %{addr: 0x25}
   @adrsir_R3_read_data    %{addr: 0x35}
   #
-  @adrsir_W1_write_ward   %{addr: 0x19}
+  @adrsir_W1_write_word   %{addr: 0x19}
   @adrsir_W2_write_len    %{addr: 0x29}
   @adrsir_W3_write_data   %{addr: 0x39}
   @adrsir_W4_write_nvmem  %{addr: 0x49}
@@ -164,7 +164,7 @@ defmodule ADRSIR.Driver do
   def read_irdata(i2c, memnum) do
     #
     set_read_memory_number = fn ->
-      ElixirALE.I2C.write(i2c, <<@adrsir_R1_write_ward.addr, memnum>>)
+      ElixirALE.I2C.write(i2c, <<@adrsir_R1_write_word.addr, memnum>>)
     end
     #
     get_data_length = fn ->
@@ -178,8 +178,8 @@ defmodule ADRSIR.Driver do
       Stream.resource(
         fn -> ElixirALE.I2C.write_read(i2c, <<@adrsir_R3_read_data.addr>>, 1) end,
         fn dummy ->
-          double_ward = ElixirALE.I2C.write_read(i2c, <<@adrsir_R3_read_data.addr>>, 4)
-          <<d0 :: 8, d1 :: 8, d2 :: 8, d3 :: 8>> = double_ward
+          double_word = ElixirALE.I2C.write_read(i2c, <<@adrsir_R3_read_data.addr>>, 4)
+          <<d0 :: 8, d1 :: 8, d2 :: 8, d3 :: 8>> = double_word
           {[d0, d1, d2, d3], dummy}
         end,
         fn _dummy -> :ok end
@@ -203,7 +203,7 @@ defmodule ADRSIR.Driver do
         {:error, "Empty data"}
 
       Integer.mod(len, 4) != 0 ->
-        {:error, "Bad data, Data must be 32-bit wards."}
+        {:error, "Bad data, Data must be 32-bit words."}
 
       true ->
         with  :ok <- set_write_memory_number(i2c, memnum),
@@ -225,7 +225,7 @@ defmodule ADRSIR.Driver do
         {:error, "Empty data"}
 
       Integer.mod(len, 4) != 0 ->
-        {:error, "Bad data, Data must be 32-bit wards."}
+        {:error, "Bad data, Data must be 32-bit words."}
 
       true ->
         with  :ok <- set_data_length(i2c, len),
@@ -241,7 +241,7 @@ defmodule ADRSIR.Driver do
 
   @spec set_write_memory_number(pid(), memory_number) :: :ok | {:error, term()}
   defp set_write_memory_number(i2c, memnum) do
-    ElixirALE.I2C.write(i2c, <<@adrsir_W1_write_ward.addr, memnum>>)
+    ElixirALE.I2C.write(i2c, <<@adrsir_W1_write_word.addr, memnum>>)
   end
 
   @spec set_data_length(pid(), pos_integer) :: :ok | {:error, term()}
