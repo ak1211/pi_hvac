@@ -152,7 +152,7 @@ renderFormless state =
   HH.div
     [ HP.class_ HB.formGroup
     , HE.onKeyUp $ HE.input_ Formless.submit
-    , HE.onPaste $ HE.input_ Formless.submit
+--    , HE.onPaste $ HE.input_ Formless.submit
     ]
     [ HH.label_ [ HH.text "on-off counts (count is based on 38kHz carrier)" ]
     , textarea
@@ -169,6 +169,7 @@ renderFormless state =
       , HP.placeholder "Write an on-off pair count (32-bit little endianness) hexadecimal number or Click download button."
       , HP.value $ Formless.getInput _textarea state.form
       , HE.onValueInput $ HE.input $ Formless.setValidate _textarea
+      , HE.onChange $ HE.input_ Formless.submit
       ]
 
   help = case _ of
