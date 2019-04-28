@@ -103,7 +103,7 @@ component =
 
   render :: State -> H.ParentHTML Query (ChildQuery m) ChildSlot m
   render state =
-    let ini = { initialInputs: initialInputs
+    let ini = { initialInputs: initialInputs state.text
               , validators
               , render: renderFormless
               }
@@ -127,9 +127,9 @@ newtype IRInputForm r f = IRInputForm (r
 derive instance newtypeIRInputForm :: Newtype (IRInputForm r f) _
 
 -- |
-initialInputs :: IRInputForm Record Formless.InputField
-initialInputs =
-  Formless.wrapInputFields {ircode: ""}
+initialInputs :: String -> IRInputForm Record Formless.InputField
+initialInputs str =
+  Formless.wrapInputFields {ircode: str}
 
 -- |
 validators :: forall m. MonadAff m => IRInputForm Record (Formless.Validation IRInputForm m)
