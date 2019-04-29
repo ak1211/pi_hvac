@@ -77,15 +77,15 @@ component
   => H.Component HH.HTML Query Input Output m
 component =
   H.parentComponent
-    { initialState: initialState
+    { initialState: const initialState
     , render
     , eval
     , receiver: HE.input HandleInput
     }
   where
 
-  initialState input = 
-    { text: input
+  initialState = 
+    { text: ""
     , formErrors: 0
     , formDirty: false
     }
@@ -112,8 +112,7 @@ component =
 
     OnClickReset next -> do
       _ <- H.query unit $ Formless.resetAll_
-      let hexstr = ""
-      H.put $ initialState hexstr
+      H.put initialState
       H.raise Reset
       pure next
 
