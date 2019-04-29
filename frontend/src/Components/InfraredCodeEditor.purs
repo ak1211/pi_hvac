@@ -118,7 +118,8 @@ component =
 
     OnClickSeparate32bits next -> do
       {text} <- H.get
-      let twoDimArr = toArrayArray 8 $ String.toCodePointArray text
+      let arr = String.toCodePointArray $ removeAllSpaces text
+          twoDimArr = toArrayArray 8 arr
           choped = String.joinWith " " $ map String.fromCodePointArray twoDimArr
       void $ H.query unit $ Formless.setAll_ {ircode: choped} 
       pure next
