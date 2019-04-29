@@ -450,8 +450,8 @@ component =
 
         Just TabIrdbTable ->
           [ tabControlPanel [], tabIrdbTable [HB.active] ]
-
     where
+
     tabControlPanel =
       item TabControlPanel "Control panel"
 
@@ -810,12 +810,12 @@ renderInfraredRemoconCode state =
     [ HP.class_ HB.formGroup ]
     $ case state.infraredValue of
       Left _ ->
-        [ HH.h3_ [ HH.text "Infrared code" ]
+        [ HH.h3_ [ HH.text "Edit codes" ]
         , HH.slot unit Editor.component "" (HE.input HandleEditorUpdate)
         ]
 
       Right (Api.DatumInfraRed ir) ->
-        [ HH.h3_ [ HH.text "Infrared code" ]
+        [ HH.h3_ [ HH.text "Edit codes" ]
         , HH.slot unit Editor.component ir.code (HE.input HandleEditorUpdate)
         , display ir
         ]
