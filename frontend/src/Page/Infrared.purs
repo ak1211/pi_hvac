@@ -221,6 +221,10 @@ component =
       H.modify_ \st -> st { infraredValue = Right val }
       pure next
 
+    HandleEditorUpdate Editor.Reset next -> do
+      H.modify_ \st -> st { infraredValue = Left "reset" }
+      pure next
+
     OnClickIRCodeDownload next -> do
       url <- getApiBaseURL
       millisec <- getApiTimeout
@@ -768,10 +772,10 @@ irUploadButton action isActive =
     ]
     [ HH.text "Upload" ]
   where
-  appendix true = 
-    HP.attr (HC.AttrName "active") "active"
-  appendix false = 
-    HP.attr (HC.AttrName "disabled") "disabled"
+
+  appendix = case _ of
+    true -> HP.attr (HC.AttrName "active") "active"
+    false -> HP.attr (HC.AttrName "disabled") "disabled"
 
 -- |
 irTransmitButton :: forall p f. HQ.Action f -> Boolean -> H.HTML p f
@@ -823,7 +827,7 @@ renderInfraredRemoconCode state =
           signal      = traverse decodePhase3 =<< bitPatterns
       in
       HH.p_
-        [ HH.h3_ [ HH.text "Hexadecimal numbers" ]
+        [ HH.h3_ [ HH.text "Binary" ]
         , HH.p
           [ HP.classes [ HB.p3, HC.ClassName "overflow-auto" ]
           , style do

@@ -35,29 +35,37 @@ import Formless (FormFieldResult(..), Validation)
 import Formless as Formless
 import Halogen as H
 import Halogen.HTML as HH
+import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Halogen.Query as HQ
 import Halogen.Themes.Bootstrap4 as HB
 import InfraredCode (InfraredHexString, infraredHexStringParser)
 import Text.Parsing.Parser (ParseError, parseErrorMessage, parseErrorPosition, runParser)
 import Text.Parsing.Parser.Pos (Position(..))
+import Utils (toArrayArray)
 
 -- |
 type State =
-  { text ::String
+  { text        :: String
+  , formErrors  :: Int
+  , formDirty   :: Boolean
   }
 
 -- |
 data Query a
   = Formless (Formless.Message' IRInputForm) a
-  | Reset a
+  | OnClickReset a
+  | OnClickSeparate32bits a
   | HandleInput Input a
 
 -- |
 type Input = String
 
 -- |
-data Output = TextChanged String
+data Output
+  = TextChanged String
+  | Reset
 
 type ChildQuery m = Formless.Query' IRInputForm m
 type ChildSlot = Unit
@@ -69,15 +77,24 @@ component
   => H.Component HH.HTML Query Input Output m
 component =
   H.parentComponent
-    { initialState: \x -> {text: x}
+    { initialState: initialState
     , render
     , eval
     , receiver: HE.input HandleInput
     }
   where
 
+  initialState input = 
+    { text: input
+    , formErrors: 0
+    , formDirty: false
+    }
+
   eval :: Query ~> H.ParentDSL State Query (ChildQuery m) ChildSlot Output m
   eval = case _ of
+
+    Formless (Formless.Emit _) next -> do
+      pure next
 
     Formless (Formless.Submitted formOutputs) next -> do
       let irForm :: InfraredInput
@@ -87,17 +104,30 @@ component =
       H.raise $ TextChanged hexstr
       pure next
 
-    Formless _ next ->
+    Formless (Formless.Changed fstate) next -> do
+      H.modify_ _ { formErrors = fstate.errors
+                  , formDirty = fstate.dirty
+                  }
       pure next
 
-    Reset next -> do
+    OnClickReset next -> do
       _ <- H.query unit $ Formless.resetAll_
-      H.modify_ _ {text = ""}
+      let hexstr = ""
+      H.put $ initialState hexstr
+      H.raise Reset
+      pure next
+
+    OnClickSeparate32bits next -> do
+      {text} <- H.get
+      let twoDimArr = toArrayArray 8 $ String.toCodePointArray text
+          choped = String.joinWith " " $ map String.fromCodePointArray twoDimArr
+      void $ H.query unit $ Formless.setAll_ {ircode: choped} 
       pure next
 
     HandleInput input next -> do
       {text} <- H.get
       when (text /= input) do
+        H.modify_ \st -> st {text = input}
         void $ H.query unit $ Formless.setAll_ {ircode: input} 
       pure next
 
@@ -108,7 +138,50 @@ component =
               , render: renderFormless
               }
     in
-    HH.slot unit Formless.component ini (HE.input Formless)
+    HH.div_
+      [ resetButton OnClickReset state.formDirty
+      , separate32bitsButton OnClickSeparate32bits state.formDirty
+      , HH.slot unit Formless.component ini (HE.input Formless)
+      ]
+
+-- |
+separate32bitsButton :: forall p f. HQ.Action f -> Boolean -> H.HTML p f
+separate32bitsButton action isActive =
+  HH.button
+    [ HP.classes
+      [ HB.m1
+      , HB.btn
+      , HB.btnLight
+      , HB.justifyContentCenter
+      ]
+    , HE.onClick $ HE.input_ action
+    , appendix isActive
+    ]
+    [ HH.text "separate to 32bits" ]
+  where
+
+  appendix = case _ of
+    true -> HP.attr (HC.AttrName "active") "active"
+    false -> HP.attr (HC.AttrName "disabled") "disabled"
+
+-- |
+resetButton :: forall p f. HQ.Action f -> Boolean -> H.HTML p f
+resetButton action isActive =
+  HH.button
+    [ HP.classes
+      [ HB.btn
+      , HB.btnLight
+      , HB.justifyContentCenter
+      ]
+    , HE.onClick $ HE.input_ action
+    , appendix isActive
+    ]
+    [ HH.text "Reset" ]
+  where
+
+  appendix = case _ of
+    true -> HP.attr (HC.AttrName "active") "active"
+    false -> HP.attr (HC.AttrName "disabled") "disabled"
 
 --
 -- Formless
@@ -152,7 +225,7 @@ renderFormless state =
   HH.div
     [ HP.class_ HB.formGroup
     , HE.onKeyUp $ HE.input_ Formless.submit
---    , HE.onPaste $ HE.input_ Formless.submit
+    , HE.onPaste $ HE.input_ Formless.submit
     ]
     [ HH.label_ [ HH.text "on-off counts (count is based on 38kHz carrier)" ]
     , textarea
