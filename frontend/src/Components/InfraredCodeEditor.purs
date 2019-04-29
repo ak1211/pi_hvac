@@ -169,7 +169,8 @@ resetButton :: forall p f. HQ.Action f -> Boolean -> H.HTML p f
 resetButton action isActive =
   HH.button
     [ HP.classes
-      [ HB.btn
+      [ HB.m1
+      , HB.btn
       , HB.btnLight
       , HB.justifyContentCenter
       ]
