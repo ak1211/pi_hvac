@@ -237,7 +237,7 @@ renderFormless state =
 
   textarea =
     HH.textarea
-      [ HP.class_ HB.formControl
+      [ HP.classes [ HB.formControl, HB.textMonospace ]
       , HP.rows 5
       , HP.placeholder "Write an on-off pair count (32-bit little endianness) hexadecimal number or Click download button."
       , HP.value $ Formless.getInput _textarea state.form
