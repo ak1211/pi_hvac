@@ -17,6 +17,7 @@
 
 module Utils
   ( asiaTokyoDateTime
+  , removeAllSpaces 
   , toArrayArray
   , toArrayNonEmptyArray
   ) where
@@ -79,3 +80,8 @@ toArrayNonEmptyArray n =
 splitAt :: forall a. Int -> Array a -> Tuple (Array a) (Array a)
 splitAt n xs = 
   Tuple (Array.take n xs) (Array.drop n xs)
+
+-- |
+removeAllSpaces :: String -> String
+removeAllSpaces =
+  String.joinWith "" <<< String.split (String.Pattern " ")

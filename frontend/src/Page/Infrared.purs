@@ -216,7 +216,7 @@ component =
 
     HandleEditorUpdate (Editor.TextChanged hexstr) next -> do
       { buttonNumber } <- H.get
-      let code = String.toUpper hexstr
+      let code = hexstr
           val = Api.DatumInfraRed {button_number: buttonNumber, code: code}
       H.modify_ \st -> st { infraredValue = Right val }
       pure next

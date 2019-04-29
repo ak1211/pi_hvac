@@ -43,7 +43,7 @@ import Halogen.Themes.Bootstrap4 as HB
 import InfraredCode (InfraredHexString, infraredHexStringParser)
 import Text.Parsing.Parser (ParseError, parseErrorMessage, parseErrorPosition, runParser)
 import Text.Parsing.Parser.Pos (Position(..))
-import Utils (toArrayArray)
+import Utils (removeAllSpaces, toArrayArray)
 
 -- |
 type State =
@@ -99,7 +99,7 @@ component =
     Formless (Formless.Submitted formOutputs) next -> do
       let irForm :: InfraredInput
           irForm = Formless.unwrapOutputFields formOutputs
-          hexstr = String.toUpper irForm.ircode
+          hexstr = String.toUpper $ removeAllSpaces irForm.ircode
       H.modify_ _ {text = hexstr}
       H.raise $ TextChanged hexstr
       pure next
