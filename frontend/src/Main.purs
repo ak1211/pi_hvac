@@ -110,7 +110,7 @@ main = HA.runHalogenAff do
   --
   let env = { psInterface: psInterface
             , apiBaseURL: Api.BaseURL baseurl
-            , apiTimeout: Milliseconds 5000.0
+            , apiTimeout: Milliseconds 3600.0
             }
   --
   halogenIO <- runUI
