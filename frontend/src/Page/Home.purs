@@ -37,30 +37,37 @@ import Data.Int as Int
 import Data.Maybe (Maybe(..), maybe)
 import Data.Newtype (unwrap, wrap)
 import Data.Time.Duration (Milliseconds(..))
+import Effect (Effect)
 import Effect.Aff (delay, sequential, parallel)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Now (now)
+import Effect.Timer as Timer
 import Halogen as H
 import Halogen.Component.ChildPath as ChildPath
 import Halogen.HTML as HH
 import Halogen.HTML.CSS (style)
-
+import Halogen.HTML.Core as HC
+import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
+import Halogen.Query as HQ
 import Halogen.Themes.Bootstrap4 as HB
 import Page.Commons as Commons
 import Route (Route)
 import Route as Route
 import Utils as Utils
+import Web.HTML (HTMLElement)
+import Web.HTML.HTMLElement as HTMLElement
 
 type NonEmptyValues = NEA.NonEmptyArray Api.MeasEnvironment
 
 type State =
-  { measValues :: Either String NonEmptyValues
+  { measValues :: Maybe (Either String NonEmptyValues)
   , nowTime :: Milliseconds
   }
 
 data Query a
   = NavigateTo Route a
+  | Initialize a
   | Update a
 
 type ChildQuery = Coproduct3 RadialGauge.Query RadialGauge.Query RadialGauge.Query
@@ -78,23 +85,37 @@ component =
     { initialState: const initialState
     , render
     , eval
-    , initializer: Just (H.action Update)
+    , initializer: Just (H.action Initialize)
     , finalizer: Nothing
     , receiver: const Nothing
     }
   where
 
-  initialMeasValues = Left "測定データがありません"
-
   initialState =
-    { measValues: initialMeasValues
+    { measValues: Nothing
     , nowTime: Milliseconds 0.0
     }
+
+  timerHandler :: HTMLElement -> Effect Unit
+  timerHandler button =
+    HTMLElement.click button
 
   eval :: Query ~> H.ParentDSL State Query ChildQuery ChildSlot Void m
   eval = case _ of
     NavigateTo route next -> do
       navigate route
+      pure next
+
+    Initialize next -> do
+      time <- unInstant <$> H.liftEffect now
+      H.modify_ \st -> st { nowTime = time }
+      H.liftEffect $ Commons.showToast
+      maybeElem <- H.getHTMLElementRef updateButtonLabel
+      case maybeElem of
+        Nothing ->
+          pure unit
+        Just elem ->
+          void $ H.liftEffect $ Timer.setTimeout 100 (timerHandler elem)
       pure next
 
     Update next -> do
@@ -104,12 +125,12 @@ component =
               let param = {baseurl: url, limits: Nothing}
                   request = Api.getApiV1Measurements param
                   timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
-                  nonEmptyVal = maybe initialMeasValues Right <<< NEA.fromArray
+                  nonEmptyVal = maybe (Left "測定値がありません") Right <<< NEA.fromArray
                   response r = nonEmptyVal =<< r.body
               in
               sequential $ parallel (response <$> request) <|> parallel timeout
       time <- unInstant <$> H.liftEffect now
-      H.modify_ \st -> st { measValues = val, nowTime = time }
+      H.modify_ \st -> st { measValues = Just val, nowTime = time }
       H.liftEffect $ Commons.showToast
       pure next
 
@@ -125,7 +146,8 @@ component =
       , HH.main
         [ HP.class_ HB.container
         ]
-        [ HH.div
+        [ updateButton Update true
+        , HH.div
           [ HP.class_ HB.row
           , style do
             marginTop (px 30.0)
@@ -145,19 +167,51 @@ component =
       HH.div [ HP.class_ HB.colSm ] [ x ]
 
 -- |
+updateButtonLabel :: H.RefLabel
+updateButtonLabel = H.RefLabel "updatebutton"
+
+-- |
+updateButton :: forall p f. HQ.Action f -> Boolean -> H.HTML p f
+updateButton action isActive =
+  HH.button
+    [ HP.ref updateButtonLabel
+    , HP.classes
+      [ HB.m1
+      , HB.btn
+      , HB.btnLight
+      , HB.justifyContentCenter
+      ]
+    , HE.onClick $ HE.input_ action
+    , appendix isActive
+    ]
+    [ Commons.icon "fas fa-sync" ]
+  where
+
+  appendix = case _ of
+    true -> HP.attr (HC.AttrName "active") "active"
+    false -> HP.attr (HC.AttrName "disabled") "disabled"
+
+-- |
 latestValue
   :: forall p i
   . State
   -> {t :: RadialGauge.Input, p :: RadialGauge.Input, h :: RadialGauge.Input, msg :: H.HTML p i}
 latestValue state = case state.measValues of
-  Left err ->
+  Nothing ->
+    { t: temperature 0.0
+    , p: pressure 0.0
+    , h: hygro 0.0
+    , msg: Commons.snackbarItem "Now on accessing..."
+    }
+
+  Just (Left err) ->
     { t: temperature 0.0
     , p: pressure 0.0
     , h: hygro 0.0
     , msg: msgFailToAccess err
     }
 
-  Right measValues ->
+  Just (Right measValues) ->
     let v = unwrap $ NEA.last measValues
     in
     { t: temperature v.degc

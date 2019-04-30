@@ -15,6 +15,7 @@
     "halogen-bootstrap4",
     "halogen-css",
     "halogen-formless",
+    "js-timers",
     "now",
     "numbers",
     "parsing",

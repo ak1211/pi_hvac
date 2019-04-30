@@ -247,6 +247,18 @@ document =
         ]
       ]
     , HH.li_
+      [ HH.text "purescript-js-timers"
+      , HH.p_
+        [ HH.text "Copyright (c) 2016 PureScript"
+        , HH.br_
+        , HH.text "Licensed under the MIT license."
+        , HH.br_
+        , HH.a
+          [ HP.href "https://github.com/purescript-contrib/purescript-js-timers" ]
+          [ HH.text "see LICENSE file for Details." ]
+        ]
+      ]
+    , HH.li_
       [ HH.text "purescript-now"
       , HH.p_
         [ HH.text "Copyright (c) 2014 Purescript"
