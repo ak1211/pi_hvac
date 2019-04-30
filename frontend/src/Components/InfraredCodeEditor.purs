@@ -43,7 +43,7 @@ import Halogen.Themes.Bootstrap4 as HB
 import InfraredCode (InfraredHexString, infraredHexStringParser)
 import Text.Parsing.Parser (ParseError, parseErrorMessage, parseErrorPosition, runParser)
 import Text.Parsing.Parser.Pos (Position(..))
-import Utils (removeAllSpaces, toArrayArray)
+import Utils as Utils
 
 -- |
 type State =
@@ -99,7 +99,7 @@ component =
     Formless (Formless.Submitted formOutputs) next -> do
       let irForm :: InfraredInput
           irForm = Formless.unwrapOutputFields formOutputs
-          hexstr = String.toUpper $ removeAllSpaces irForm.ircode
+          hexstr = toBinaries irForm.ircode
       H.modify_ _ {text = hexstr}
       H.raise $ TextChanged hexstr
       pure next
@@ -118,10 +118,7 @@ component =
 
     OnClickSeparate32bits next -> do
       {text} <- H.get
-      let arr = String.toCodePointArray $ removeAllSpaces text
-          twoDimArr = toArrayArray 8 arr
-          choped = String.joinWith " " $ map String.fromCodePointArray twoDimArr
-      void $ H.query unit $ Formless.setAll_ {ircode: choped} 
+      void $ H.query unit $ Formless.setAll_ {ircode: formatTo32bits text} 
       pure next
 
     HandleInput input next -> do
@@ -143,6 +140,26 @@ component =
       , separate32bitsButton OnClickSeparate32bits state.formDirty
       , HH.slot unit Formless.component ini (HE.input Formless)
       ]
+
+-- |
+toBinaries :: String -> String
+toBinaries =
+  String.joinWith "" <<< Utils.lines <<< Utils.removeAllSpaces <<< String.toUpper
+
+-- |
+formatTo32bits :: String -> String
+formatTo32bits =
+  Utils.unlines <<< map go <<< Utils.lines
+  where
+
+  go :: String -> String
+  go in_ =
+    let text = Utils.removeAllSpaces in_
+        arr = String.toCodePointArray text
+        arrarr = Utils.toArrayArray 8 arr
+        strArrArr = map String.fromCodePointArray arrarr
+    in
+    String.joinWith " " strArrArr
 
 -- |
 separate32bitsButton :: forall p f. HQ.Action f -> Boolean -> H.HTML p f

@@ -17,9 +17,11 @@
 
 module Utils
   ( asiaTokyoDateTime
+  , lines
   , removeAllSpaces 
   , toArrayArray
   , toArrayNonEmptyArray
+  , unlines
   ) where
 
 import Prelude
@@ -80,6 +82,16 @@ toArrayNonEmptyArray n =
 splitAt :: forall a. Int -> Array a -> Tuple (Array a) (Array a)
 splitAt n xs = 
   Tuple (Array.take n xs) (Array.drop n xs)
+
+-- |
+lines :: String -> Array String
+lines =
+  String.split (String.Pattern "\n")
+
+-- |
+unlines :: Array String -> String
+unlines =
+  String.joinWith "\n"
 
 -- |
 removeAllSpaces :: String -> String
