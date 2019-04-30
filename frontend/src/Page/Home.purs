@@ -115,7 +115,7 @@ component =
         Nothing ->
           pure unit
         Just elem ->
-          void $ H.liftEffect $ Timer.setTimeout 100 (timerHandler elem)
+          void $ H.liftEffect $ Timer.setTimeout 10 (timerHandler elem)
       pure next
 
     Update next -> do
