@@ -395,8 +395,8 @@ takeEnd errmsg = do
 -- |
 aehaProtocol :: DecodeMonad ProcessError InfraredCodes
 aehaProtocol = do
-  lo <- takeBits 8 "fail to read: custom code lower (AEHA)"
   hi <- takeBits 8 "fail to read: custom code higher (AEHA)"
+  lo <- takeBits 8 "fail to read: custom code lower (AEHA)"
   p_ <- takeBits 4 "fail to read: parity (AEHA)"
   d0 <- takeBits 4 "fail to read: data0 (AEHA)"
   d_ <- takeEnd "fail to read: data (AEHA)"
@@ -414,8 +414,8 @@ aehaProtocol = do
 -- |
 necProtocol :: DecodeMonad ProcessError InfraredCodes
 necProtocol = do
-  lo <- takeBits 8 "fail to read: custom code lower (NEC)"
   hi <- takeBits 8 "fail to read: custom code higher (NEC)"
+  lo <- takeBits 8 "fail to read: custom code lower (NEC)"
   d0 <- takeBits 8 "fail to read: data (NEC)"
   d1 <- takeBits 8 "fail to read: inv-data (NEC)"
   sb <- takeBit "fail to read: stop bit (NEC)"
