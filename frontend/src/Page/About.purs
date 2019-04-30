@@ -16,7 +16,7 @@
 -}
 
 module Page.About
-  ( Query(..)
+  ( Query
   , component
   ) where
 

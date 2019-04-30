@@ -16,7 +16,7 @@
 -}
 
 module Page.Plotdata
-  ( Query(..)
+  ( Query
   , component
   ) where
 
