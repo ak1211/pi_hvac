@@ -16,19 +16,20 @@
 -}
 
 module Component.RadialGauge
-  ( Query(..)
+  ( Query
   , Input
   , component
   ) where
 
-import Data.Maybe (Maybe(..), maybe)
+import Prelude
+
+import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
-import Foreign.CanvasGauges (GaugeJsInstance, RadialGaugeOptions, destroyGauge, drawRadialGauge) 
+import Foreign.CanvasGauges (GaugeJsInstance, RadialGaugeOptions, drawRadialGauge, redrawRadialGauge)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Prelude
 
 type State =
   { refLabel :: H.RefLabel
@@ -36,7 +37,9 @@ type State =
   , gaugeInstance :: Maybe GaugeJsInstance
   }
 
-data Query a = HandleInput Input a
+data Query a
+  = Initialize a
+  | HandleInput Input a
 
 -- |
 type Input =
@@ -51,7 +54,7 @@ component =
     { initialState: initialState
     , render
     , eval
-    , initializer: Nothing
+    , initializer: Just (H.action Initialize)
     , finalizer: Nothing
     , receiver: HE.input HandleInput
     }
@@ -68,17 +71,27 @@ component =
  
   eval :: Query ~> H.ComponentDSL State Query Void m
   eval = case _ of
-    HandleInput input next -> do
+    Initialize next -> do
       state <- H.get
-      maybeElem <- H.getHTMLElementRef input.refLabel
-      newInstance <- H.liftEffect $ case maybeElem of
+      maybeElem <- H.getHTMLElementRef state.refLabel
+      case maybeElem of
         Nothing ->
-          pure Nothing
+          pure next
+
         Just elem -> do
-          maybe (pure unit) destroyGauge state.gaugeInstance
-          Just <$> drawRadialGauge elem input.options
-      H.put { refLabel: input.refLabel
-            , options: input.options
-            , gaugeInstance: newInstance
-            }
+          gauge <- H.liftEffect $ drawRadialGauge elem state.options
+          H.modify_ \st -> st {gaugeInstance = Just gauge}
+          pure next
+
+    HandleInput input next -> do
+      {gaugeInstance} <- H.get
+      case gaugeInstance of
+        Nothing ->
+          pure unit 
+
+        Just gauge -> do
+          H.liftEffect $ redrawRadialGauge gauge input.options
+      H.modify_ \st -> st { refLabel = input.refLabel
+                          , options = input.options
+                          }
       pure next

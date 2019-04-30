@@ -8,18 +8,24 @@ exports.destroyGaugeInstance = function (gaugeJsInstance) {
   };
 };
 
-exports.radialGauge = function (element) {
+exports.createRadialGauge = function (element) {
   return function (options) {
     return function () {
       options.renderTo = element;
-      var value = options.value;
-      options.value = options.minValue;
       var gauge = new CanvasGauges.RadialGauge(options);
       gauge.draw();
-      gauge.value = value;
       return gauge;
     };
   };
 };
 
-
+exports.updateRadialGauge = function (gaugeJsInstance) {
+  return function (options) {
+    return function () {
+      for (var optname in options) {
+        gaugeJsInstance[optname] = options[optname];
+      }
+      gaugeJsInstance.update();
+    };
+  };
+};

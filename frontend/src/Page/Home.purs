@@ -34,7 +34,7 @@ import Data.Either.Nested (Either3)
 import Data.Foldable (intercalate)
 import Data.Functor.Coproduct.Nested (Coproduct3)
 import Data.Int as Int
-import Data.Maybe (Maybe(..), maybe)
+import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Newtype (unwrap, wrap)
 import Data.Time.Duration (Milliseconds(..))
 import Effect (Effect)
@@ -115,7 +115,7 @@ component =
         Nothing ->
           pure unit
         Just elem ->
-          void $ H.liftEffect $ Timer.setTimeout 20 (timerHandler elem)
+          void $ H.liftEffect $ Timer.setTimeout 60 (timerHandler elem)
       pure next
 
     Update next -> do
@@ -198,25 +198,25 @@ latestValue
   -> {t :: RadialGauge.Input, p :: RadialGauge.Input, h :: RadialGauge.Input, msg :: H.HTML p i}
 latestValue state = case state.measValues of
   Nothing ->
-    { t: temperature 0.0
-    , p: pressure 0.0
-    , h: hygro 0.0
+    { t: temperature Nothing
+    , p: pressure Nothing
+    , h: hygro Nothing
     , msg: Commons.snackbarItem "Now on accessing..."
     }
 
   Just (Left err) ->
-    { t: temperature 0.0
-    , p: pressure 0.0
-    , h: hygro 0.0
+    { t: temperature Nothing
+    , p: pressure Nothing
+    , h: hygro Nothing
     , msg: msgFailToAccess err
     }
 
   Just (Right measValues) ->
     let v = unwrap $ NEA.last measValues
     in
-    { t: temperature v.degc
-    , p: pressure v.hpa
-    , h: hygro v.rh
+    { t: temperature (Just v.degc)
+    , p: pressure (Just v.hpa)
+    , h: hygro (Just v.rh)
     , msg: msgLastUpdatedAt state v.measured_at
     }
 
@@ -254,55 +254,55 @@ msgLastUpdatedAt state (Api.MeasDateTime utc) =
       ]
 
 -- |
-temperature :: Number ->  RadialGauge.Input
+temperature :: Maybe Number ->  RadialGauge.Input
 temperature val =
   { refLabel: H.RefLabel "temp"
   , options:  { width: 300
               , height: 300
               , units: "°C"
               , title: "Temprature"
-              , value: val
+              , value: fromMaybe 0.0 val
               , minValue: -30.0
               , maxValue: 60.0
               , majorTicks: [-30, -20, -10, 0, 10, 20, 30, 40, 50, 60]
               , minorTicks: 10
               , animationRule: "dequint"
-              , animationDuration: 1000
+              , animationDuration: 800
               }
   }
 
 -- |
-pressure :: Number ->  RadialGauge.Input
+pressure :: Maybe Number ->  RadialGauge.Input
 pressure val =
   { refLabel: H.RefLabel "pres"
   , options:  { width: 300
               , height: 300
               , units: "hPa"
               , title: "Pressure"
-              , value: val
+              , value: fromMaybe 950.0 val
               , minValue: 950.0
               , maxValue: 1050.0
               , majorTicks: [950, 960, 970, 980, 990, 1000, 1010, 1020, 1030, 1040, 1050]
               , minorTicks: 10
               , animationRule: "dequint"
-              , animationDuration: 1000
+              , animationDuration: 800
               }
   }
 
 -- |
-hygro :: Number ->  RadialGauge.Input
+hygro :: Maybe Number ->  RadialGauge.Input
 hygro val =
   { refLabel: H.RefLabel "hygro"
   , options:  { width: 300
               , height: 300
               , units: "%"
               , title: "Hygro"
-              , value: val
+              , value: fromMaybe 0.0 val
               , minValue: 0.0
               , maxValue: 100.0
               , majorTicks: [0, 20, 40, 60, 80, 100]
               , minorTicks: 10
               , animationRule: "dequint"
-              , animationDuration: 1000
+              , animationDuration: 800
               }
   }

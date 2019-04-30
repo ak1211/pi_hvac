@@ -19,7 +19,7 @@ module Components.InfraredCodeEditor
   ( IRInputForm
   , Input
   , Output(..)
-  , Query(..)
+  , Query
   , component
   ) where
 

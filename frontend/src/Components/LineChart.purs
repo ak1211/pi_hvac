@@ -16,7 +16,7 @@
 -}
 
 module Component.LineChart
-  ( Query(..)
+  ( Query
   , Input
   , component
   ) where

@@ -18,8 +18,9 @@
 module Foreign.CanvasGauges
   ( RadialGaugeOptions
   , GaugeJsInstance
-  , drawRadialGauge
   , destroyGauge
+  , drawRadialGauge
+  , redrawRadialGauge
   ) where
 
 import Effect (Effect)
@@ -44,7 +45,8 @@ type RadialGaugeOptions =
 foreign import data GaugeJsInstance :: Type
 
 foreign import destroyGaugeInstance :: GaugeJsInstance -> Effect Unit
-foreign import radialGauge :: HTMLElement -> RadialGaugeOptions -> Effect GaugeJsInstance
+foreign import createRadialGauge :: HTMLElement -> RadialGaugeOptions -> Effect GaugeJsInstance
+foreign import updateRadialGauge :: GaugeJsInstance -> RadialGaugeOptions -> Effect Unit
 
 --|
 destroyGauge :: GaugeJsInstance -> Effect Unit
@@ -52,4 +54,8 @@ destroyGauge = destroyGaugeInstance
 
 --|
 drawRadialGauge :: HTMLElement -> RadialGaugeOptions -> Effect GaugeJsInstance
-drawRadialGauge = radialGauge
+drawRadialGauge = createRadialGauge
+
+--|
+redrawRadialGauge :: GaugeJsInstance -> RadialGaugeOptions -> Effect Unit
+redrawRadialGauge = updateRadialGauge
