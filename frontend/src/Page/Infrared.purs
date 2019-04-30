@@ -827,7 +827,7 @@ renderInfraredRemoconCode state =
           signal      = traverse decodePhase3 =<< bitPatterns
       in
       HH.p_
-        [ HH.h3_ [ HH.text "Binary" ]
+        [ HH.h3_ [ HH.text "Binaries" ]
         , HH.p
           [ HP.classes [ HB.p3, HC.ClassName "overflow-auto" ]
           , style do
