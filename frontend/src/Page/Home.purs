@@ -115,7 +115,7 @@ component =
         Nothing ->
           pure unit
         Just elem ->
-          void $ H.liftEffect $ Timer.setTimeout 10 (timerHandler elem)
+          void $ H.liftEffect $ Timer.setTimeout 20 (timerHandler elem)
       pure next
 
     Update next -> do
@@ -266,6 +266,8 @@ temperature val =
               , maxValue: 60.0
               , majorTicks: [-30, -20, -10, 0, 10, 20, 30, 40, 50, 60]
               , minorTicks: 10
+              , animationRule: "dequint"
+              , animationDuration: 1000
               }
   }
 
@@ -282,6 +284,8 @@ pressure val =
               , maxValue: 1050.0
               , majorTicks: [950, 960, 970, 980, 990, 1000, 1010, 1020, 1030, 1040, 1050]
               , minorTicks: 10
+              , animationRule: "dequint"
+              , animationDuration: 1000
               }
   }
 
@@ -298,5 +302,7 @@ hygro val =
               , maxValue: 100.0
               , majorTicks: [0, 20, 40, 60, 80, 100]
               , minorTicks: 10
+              , animationRule: "dequint"
+              , animationDuration: 1000
               }
   }

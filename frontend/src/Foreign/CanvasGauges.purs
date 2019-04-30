@@ -37,6 +37,8 @@ type RadialGaugeOptions =
   , maxValue :: Number
   , majorTicks :: Array Int
   , minorTicks :: Int
+  , animationRule :: String
+  , animationDuration :: Int
   }
 -- |
 foreign import data GaugeJsInstance :: Type
