@@ -240,8 +240,9 @@ component =
       millisec <- getApiTimeout
       state <- H.get
       case state.infraredValue of
-        Just (Right ircode) -> do
-          let accessor = Api.postApiV1InfraRed {baseurl: url, datum: ircode}
+        Just (Right (Api.DatumInfraRed d)) -> do
+          let newD = Api.DatumInfraRed {button_number: state.buttonNumber, code: d.code}
+              accessor = Api.postApiV1InfraRed {baseurl: url, datum: newD}
           response <- accessToBackend millisec accessor
           H.liftEffect $ logShow response
           pure next
