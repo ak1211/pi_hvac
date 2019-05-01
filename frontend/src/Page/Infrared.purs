@@ -530,37 +530,49 @@ renderIrdbTable
   => State
   -> H.ParentHTML Query ChildQuery ChildSlot m
 renderIrdbTable state =
-  HH.div_
-    [ case state.irdbManufacturers of
-        Just (Right manuf) ->
-          HH.div_ [ dropdownManuf manuf, dropdownLimits ]
+  case state.irdbManufacturers of
+    Nothing ->
+      nowreading
 
-        _ ->
-          HH.div_ []
-    , case state.irdb of
-        Nothing ->
-          HH.p
-            [ HP.classes [ HB.alert, HB.alertInfo ] ]
-            [ HH.text "Now on reading..." ]
+    Just (Left reason) ->
+      error reason
 
-        Just (Left reason) ->
-          HH.p
-            [ HP.classes [ HB.alert, HB.alertDanger, HB.textCenter ] ]
-            [ HH.text reason ]
-
-        Just (Right irdb) ->
-          HH.div_
-            [ HH.h2_ [ HH.text "Infrared code database" ]
-            , HH.div_
-              [ HH.div
-                [ HP.class_ HB.formGroup ]
-                [ irdbPagination OnClickIrdbPagination irdb
-                , irdbTable OnClickIrdbTable OnClickIrdbTableCode irdb
-                ]
-              ]
-            ]
-    ]
+    Just (Right manuf) ->
+      HH.div_
+        [ dropdownManuf manuf
+        , dropdownLimits
+        , table state.irdb
+        ]
   where
+
+  table = case _ of
+    Nothing ->
+      nowreading
+
+    Just (Left reason) ->
+      error reason
+
+    Just (Right irdb) ->
+      HH.div_
+        [ HH.h2_ [ HH.text "Infrared code database" ]
+        , HH.div_
+          [ HH.div
+            [ HP.class_ HB.formGroup ]
+            [ irdbPagination OnClickIrdbPagination irdb
+            , irdbTable OnClickIrdbTable OnClickIrdbTableCode irdb
+            ]
+          ]
+        ]
+
+  nowreading =
+    HH.p
+      [ HP.classes [ HB.alert, HB.alertInfo ] ]
+      [ HH.text "Now on reading..." ]
+
+  error reason =
+    HH.p
+      [ HP.classes [ HB.alert, HB.alertDanger, HB.textCenter ] ]
+      [ HH.text reason ]
 
   dropdownLimits =
     HH.div
