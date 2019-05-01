@@ -714,7 +714,7 @@ infraredSignal =
         [ dt [ HH.text "protocol" ]
         , dd [ HH.text "NEC" ]
         , dt [ HH.text "custom code" ]
-        , dd [ HH.text $ showHex 4 (irValue.customHi <> irValue.customLo) ]
+        , dd [ HH.text $ showHex 4 irValue.custom ]
         , dt [ HH.text "data" ]
         , dd [ HH.text $ showHexAndDec 2 irValue.data ]
         , dt [ HH.span [ style do textDecoration overline ] [ HH.text "data" ] ]
@@ -729,7 +729,7 @@ infraredSignal =
         [ dt [ HH.text "protocol" ]
         , dd [ HH.text "AEHA" ]
         , dt [ HH.text "custom code" ]
-        , dd [ HH.text $ showHex 4 (irValue.customHi <> irValue.customLo) ]
+        , dd [ HH.text $ showHex 4 irValue.custom ]
         , dt [ HH.text "parity" ]
         , dd [ HH.text $ showHexAndDec 1 irValue.parity ]
         , dt [ HH.text "data0" ]
@@ -1006,7 +1006,7 @@ popoverContents x =
     NEC irValue ->
       String.joinWith " "
         [ "NEC"
-        , showHex 4 (irValue.customHi <> irValue.customLo)
+        , showHex 4 irValue.custom
         , showHex 2 irValue.data
         , showHex 2 irValue.invData
         ]
@@ -1014,7 +1014,7 @@ popoverContents x =
     AEHA irValue ->
       String.joinWith " " $ Array.concat
         [ [ "AEHA"
-          , showHex 4 (irValue.customHi <> irValue.customLo)
+          , showHex 4 irValue.custom
           , showHex 1 irValue.parity
           , showHex 1 irValue.data0
           ]

@@ -247,8 +247,8 @@ deserialize (LsbFirst bits) =
 -- |
 data InfraredCodes
   = Unknown (Array Bit)
-  | AEHA {customLo :: LsbFirst, customHi :: LsbFirst, parity :: LsbFirst, data0 :: LsbFirst, data :: Array LsbFirst, stop :: Bit}
-  | NEC  {customLo :: LsbFirst, customHi :: LsbFirst, data :: LsbFirst, invData :: LsbFirst, stop :: Bit}
+  | AEHA {custom :: LsbFirst, parity :: LsbFirst, data0 :: LsbFirst, data :: Array LsbFirst, stop :: Bit}
+  | NEC  {custom :: LsbFirst, data :: LsbFirst, invData :: LsbFirst, stop :: Bit}
   | SIRC {command :: LsbFirst, address :: LsbFirst}
 derive instance genericInfraredCodes  :: Generic InfraredCodes _
 derive instance eqInfraredCodes       :: Eq InfraredCodes
@@ -395,16 +395,14 @@ takeEnd errmsg = do
 -- |
 aehaProtocol :: DecodeMonad ProcessError InfraredCodes
 aehaProtocol = do
-  hi <- takeBits 8 "fail to read: custom code higher (AEHA)"
-  lo <- takeBits 8 "fail to read: custom code lower (AEHA)"
+  cu <- takeBits 16 "fail to read: custom code (AEHA)"
   p_ <- takeBits 4 "fail to read: parity (AEHA)"
   d0 <- takeBits 4 "fail to read: data0 (AEHA)"
   d_ <- takeEnd "fail to read: data (AEHA)"
   let init = NEA.init d_
       last = NEA.last d_
       octets = toArrayNonEmptyArray 8 init
-  pure $ AEHA { customLo: LsbFirst lo
-              , customHi: LsbFirst hi
+  pure $ AEHA { custom: LsbFirst cu
               , parity: LsbFirst p_
               , data0: LsbFirst d0
               , data: map LsbFirst octets
@@ -414,13 +412,11 @@ aehaProtocol = do
 -- |
 necProtocol :: DecodeMonad ProcessError InfraredCodes
 necProtocol = do
-  hi <- takeBits 8 "fail to read: custom code higher (NEC)"
-  lo <- takeBits 8 "fail to read: custom code lower (NEC)"
+  cu <- takeBits 16 "fail to read: custom code (NEC)"
   d0 <- takeBits 8 "fail to read: data (NEC)"
   d1 <- takeBits 8 "fail to read: inv-data (NEC)"
   sb <- takeBit "fail to read: stop bit (NEC)"
-  pure $ NEC  { customLo: LsbFirst lo
-              , customHi: LsbFirst hi
+  pure $ NEC  { custom: LsbFirst cu
               , data: LsbFirst d0
               , invData: LsbFirst d1
               , stop: sb
