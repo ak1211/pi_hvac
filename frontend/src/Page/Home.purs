@@ -201,7 +201,7 @@ latestValue state = case state.measValues of
     { t: temperature Nothing
     , p: pressure Nothing
     , h: hygro Nothing
-    , msg: Commons.snackbarItem "Now on accessing..."
+    , msg: Commons.snackbarItem "Now on reading..."
     }
 
   Just (Left err) ->

@@ -54,8 +54,8 @@ import Utils (toArrayArray)
 type DetectedAddresses = Either String (Array Int)
 
 type State =
-  { urlApiV1IRCSV :: String
-  , detectedAddresses :: DetectedAddresses
+  { urlApiV1IRCSV     :: String
+  , detectedAddresses :: Maybe DetectedAddresses
   }
 
 data Query a
@@ -83,7 +83,7 @@ component =
 
   initialState =
     { urlApiV1IRCSV: ""
-    , detectedAddresses: Left "Click Search button to detect devices."
+    , detectedAddresses: Nothing
     }
 
   eval :: Query ~> H.ComponentDSL State Query Void m
@@ -107,7 +107,7 @@ component =
                   response r = Bifunctor.rmap (\(Api.RespGetI2cDevices ds) -> ds.data) r.body
               in
               sequential $ parallel (response <$> request) <|> parallel timeout
-      H.modify_ \st -> st { detectedAddresses = val }
+      H.modify_ \st -> st { detectedAddresses = Just val }
       pure next
 
 
@@ -149,23 +149,29 @@ i2c =
   HH.span_ [ HH.text "I", HH.sup_ [ HH.text "2"], HH.text "C" ]
 
 -- |
-i2cDevices :: forall p i. DetectedAddresses -> H.HTML p i
-i2cDevices (Left reason) =
-  HH.p
-    [ HP.classes [ HB.alert, HB.alertDanger ] ]
-    [ HH.text reason ]
+i2cDevices :: forall p i. Maybe DetectedAddresses -> H.HTML p i
+i2cDevices = case _ of
+  Nothing ->
+    HH.p
+      [ HP.classes [ HB.alert, HB.alertInfo ] ]
+      [ HH.text "Click Search button to detect devices." ]
 
-i2cDevices (Right detectedDeviceAddresses) =
-  HH.p
-    []
-    [ HH.table
-      [ HP.classes [ HB.table, HB.tableHover ]
+  Just (Left reason) ->
+    HH.p
+      [ HP.classes [ HB.alert, HB.alertDanger, HB.textCenter ] ]
+      [ HH.text reason ]
+
+  Just (Right addresses) ->
+    HH.p
+      []
+      [ HH.table
+        [ HP.classes [ HB.table, HB.tableHover ]
+        ]
+        [ HH.caption_ [ HH.text "Hexadecimal addresses" ]
+        , tableHeading addressTableRangeHeading
+        , tableBody addressTableRangeRowHeading $ toArrayArray 16 $ detectedDevAddresses addresses
+        ]
       ]
-      [ HH.caption_ [ HH.text "Hexadecimal addresses" ]
-      , tableHeading addressTableRangeHeading
-      , tableBody addressTableRangeRowHeading $ toArrayArray 16 detectedDevAddresses
-      ]
-    ]
   where
 
   addressTableRange :: Array Int
@@ -177,20 +183,20 @@ i2cDevices (Right detectedDeviceAddresses) =
   addressTableRangeRowHeading :: Array Int
   addressTableRangeRowHeading = (_ * 0x10) <$> 0x0..0xf
 
-  detectedDevAddresses :: Array String
-  detectedDevAddresses =
+  detectedDevAddresses :: Array Int -> Array String
+  detectedDevAddresses addresses =
     map f addressTableRange
     where
     f x =
-      fromMaybe (cellFiller x) $ Map.lookup x devices
+      fromMaybe (cellFiller x) $ Map.lookup x (devices addresses)
 
   cellFiller :: Int -> String
   cellFiller addr | Array.any (_ == addr) $ 0x03..0x77 = "•"
                   | otherwise = " "
 
-  devices :: Map Int String
-  devices =
-    Map.fromFoldable $ map f detectedDeviceAddresses
+  devices :: Array Int -> Map Int String
+  devices xs =
+    Map.fromFoldable $ map f xs
     where
     f :: Int -> Tuple Int String
     f n = Tuple n (toHexS n)

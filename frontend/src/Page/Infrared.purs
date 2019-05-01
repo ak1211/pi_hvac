@@ -93,9 +93,9 @@ instance boundedEnumSelectedTab :: BoundedEnum SelectedTab where
 -- |
 type State =
   { queryParams       :: Route.InfraredQueryParams
-  , infraredValue     :: Either String Api.DatumInfraRed
-  , irdb              :: Either String Api.RespGetIrdb
-  , irdbManufacturers :: Either String Api.RespGetIrdbManufacturers
+  , infraredValue     :: Maybe (Either String Api.DatumInfraRed)
+  , irdb              :: Maybe (Either String Api.RespGetIrdb)
+  , irdbManufacturers :: Maybe (Either String Api.RespGetIrdbManufacturers)
   , buttonNumber      :: Int
   }
 
@@ -160,9 +160,9 @@ component =
                 _ -> initialQueryParams
     in
     { queryParams: qry
-    , infraredValue: Left "Click Download button to show."
-    , irdb: Left "データがありません"
-    , irdbManufacturers: Left "データがありません"
+    , infraredValue: Nothing
+    , irdb: Nothing
+    , irdbManufacturers: Nothing
     , buttonNumber: 1
     }
 
@@ -200,14 +200,14 @@ component =
           millisec <- getApiTimeout
           let accessor = Api.getApiV1IrdbManufacturers {baseurl: url}
           response <- accessToBackend millisec accessor
-          H.put state {irdbManufacturers = response}
+          H.put state {irdbManufacturers = Just response}
           case response of
             Left _ ->
               pure unit
 
             Right x -> do
               irdb <- getIrdb state.queryParams x
-              H.modify_ \st -> st {irdb = irdb}
+              H.modify_ \st -> st {irdb = Just irdb}
 
         _ ->
           pure unit
@@ -219,11 +219,11 @@ component =
       { buttonNumber } <- H.get
       let code = hexstr
           val = Api.DatumInfraRed {button_number: buttonNumber, code: code}
-      H.modify_ \st -> st { infraredValue = Right val }
+      H.modify_ \st -> st { infraredValue = Just (Right val) }
       pure next
 
     HandleEditorUpdate Editor.Reset next -> do
-      H.modify_ \st -> st { infraredValue = Left "reset" }
+      H.modify_ \st -> st { infraredValue = Nothing }
       pure next
 
     OnClickIRCodeDownload next -> do
@@ -232,7 +232,7 @@ component =
       { buttonNumber } <- H.get
       let accessor = Api.getApiV1InfraRed {baseurl: url, buttonNumber: buttonNumber}
       response <- accessToBackend millisec accessor
-      H.modify_ \st -> st {infraredValue = response}
+      H.modify_ \st -> st {infraredValue = Just response}
       pure next
 
     OnClickIRCodeUpload next -> do
@@ -240,13 +240,13 @@ component =
       millisec <- getApiTimeout
       state <- H.get
       case state.infraredValue of
-        Left _ ->
-          pure next
-
-        Right ircode -> do
+        Just (Right ircode) -> do
           let accessor = Api.postApiV1InfraRed {baseurl: url, datum: ircode}
           response <- accessToBackend millisec accessor
           H.liftEffect $ logShow response
+          pure next
+
+        _ ->
           pure next
 
     OnClickIRCodeTransmit next -> do
@@ -254,13 +254,13 @@ component =
       millisec <- getApiTimeout
       state <- H.get
       case state.infraredValue of
-        Left _ ->
-          pure next
-
-        Right ircode -> do
+        Just (Right ircode) -> do
           let accessor = Api.postApiV1TransIR {baseurl: url, datum: ircode}
           response <- accessToBackend millisec accessor
           H.liftEffect $ logShow response
+          pure next
+
+        _ ->
           pure next
 
     OnClickIrdbPagination page next -> do
@@ -269,12 +269,12 @@ component =
       let qp = state.queryParams {page = Just page}
       newState <- H.modify _ {queryParams = qp}
       case newState.irdbManufacturers of
-        Left _ ->
-          pure unit
-
-        Right x -> do
+        Just (Right x) -> do
           irdb <- getIrdb newState.queryParams x
-          H.modify_ \st -> st {irdb = irdb}
+          H.modify_ \st -> st {irdb = Just irdb}
+
+        _ ->
+          pure unit
       navigate $ Route.Infrared (Just qp)
       H.liftEffect Commons.enablePopover
       pure next
@@ -285,7 +285,7 @@ component =
       let irval = Api.DatumInfraRed {button_number: state.buttonNumber, code: code}
           newTab = Just $ fromEnum TabControlPanel
           qp = state.queryParams {tab = newTab}
-      H.modify_ _ {infraredValue = Right irval, queryParams = qp}
+      H.modify_ _ {infraredValue = Just (Right irval), queryParams = qp}
       navigate $ Route.Infrared (Just qp)
       pure next
 
@@ -306,10 +306,11 @@ component =
     OnValueChangeManufacturer text next -> do
       H.liftEffect Commons.disposePopover
       state <- H.get
-      let maybeManuf = either
-                        (const Nothing)
-                        (\(Api.RespGetIrdbManufacturers x) -> Just x.manufacturers)
-                        state.irdbManufacturers
+      let maybeManuf = case state.irdbManufacturers of
+                        Just (Right (Api.RespGetIrdbManufacturers x)) ->
+                          Just x.manufacturers
+                        _ ->
+                          Nothing
           maybeIndex = Array.elemIndex text =<< maybeManuf
           newQry = state.queryParams
                     { manuf = maybeIndex <|> initialQueryParams.manuf
@@ -317,12 +318,12 @@ component =
                     }
       newState <- H.modify _{queryParams = newQry}
       case newState.irdbManufacturers of
-        Left _ ->
-          pure unit
-
-        Right x -> do
+        Just (Right x) -> do
           irdb <- getIrdb newState.queryParams x
-          H.modify_ \st -> st {irdb = irdb}
+          H.modify_ \st -> st {irdb = Just irdb}
+
+        _ ->
+          pure unit
       navigate $ Route.Infrared (Just newQry)
       H.liftEffect Commons.enablePopover
       pure next
@@ -337,12 +338,12 @@ component =
                     }
       newState <- H.modify _{queryParams = newQry}
       case newState.irdbManufacturers of
-        Left _ ->
-          pure unit
-
-        Right x -> do
+        Just (Right x) -> do
           irdb <- getIrdb newState.queryParams x
-          H.modify_ \st -> st {irdb = irdb}
+          H.modify_ \st -> st {irdb = Just irdb}
+
+        _ ->
+          pure unit
       navigate $ Route.Infrared (Just newQry)
       H.liftEffect Commons.enablePopover
       pure next
@@ -516,8 +517,8 @@ renderControlPanel state =
       , HH.div
         [ HP.classes [ HB.m3, HB.formGroup ] ]
         [ irDownloadButton OnClickIRCodeDownload
-        , irUploadButton OnClickIRCodeUpload $ isRight state.infraredValue 
-        , irTransmitButton OnClickIRCodeTransmit $ isRight state.infraredValue
+        , irUploadButton OnClickIRCodeUpload $ maybe false isRight $ state.infraredValue 
+        , irTransmitButton OnClickIRCodeTransmit $ maybe false isRight $ state.infraredValue
         ]
       ]
     , renderInfraredRemoconCode state
@@ -532,18 +533,23 @@ renderIrdbTable
 renderIrdbTable state =
   HH.div_
     [ case state.irdbManufacturers of
-        Left reason ->
+        Just (Right manuf) ->
+          HH.div_ [ dropdownManuf manuf, dropdownLimits ]
+
+        _ ->
+          HH.div_ []
+    , case state.irdb of
+        Nothing ->
           HH.p
-            [ HP.classes [ HB.alert, HB.alertDanger ] ]
+            [ HP.classes [ HB.alert, HB.alertInfo ] ]
+            [ HH.text "Now on reading..." ]
+
+        Just (Left reason) ->
+          HH.p
+            [ HP.classes [ HB.alert, HB.alertDanger, HB.textCenter ] ]
             [ HH.text reason ]
 
-        Right manuf ->
-          HH.div_ [ dropdownManuf manuf, dropdownLimits ]
-    , case state.irdb of
-        Left _ ->
-          HH.div_ []
-
-        Right irdb ->
+        Just (Right irdb) ->
           HH.div_
             [ HH.h2_ [ HH.text "Infrared code database" ]
             , HH.div_
@@ -838,12 +844,17 @@ renderInfraredRemoconCode state =
   HH.div
     [ HP.class_ HB.formGroup ]
     $ case state.infraredValue of
-      Left _ ->
+      Nothing ->
         [ HH.h3_ [ HH.text "Edit codes" ]
         , HH.slot unit Editor.component "" (HE.input HandleEditorUpdate)
         ]
 
-      Right (Api.DatumInfraRed ir) ->
+      Just (Left _) ->
+        [ HH.h3_ [ HH.text "Edit codes" ]
+        , HH.slot unit Editor.component "" (HE.input HandleEditorUpdate)
+        ]
+
+      Just (Right (Api.DatumInfraRed ir)) ->
         [ HH.h3_ [ HH.text "Edit codes" ]
         , HH.slot unit Editor.component ir.code (HE.input HandleEditorUpdate)
         , display ir
@@ -863,7 +874,10 @@ renderInfraredRemoconCode state =
             padding (px 10.0) (px 10.0) (px 10.0) (px 10.0)
             minHeight (em 5.0)
           ]
-          [ HH.text $ either identity (_.code <<< unwrap) $ state.infraredValue
+          [ case state.infraredValue of
+              Nothing -> HH.text ""
+              Just (Left x) -> HH.text x
+              Just (Right x) -> HH.text (unwrap x).code
           ]
         , HH.h3_ [ HH.text "Baseband in milliseconds" ]
         , HH.p
