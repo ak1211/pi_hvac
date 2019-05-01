@@ -306,11 +306,10 @@ component =
     OnValueChangeManufacturer text next -> do
       H.liftEffect Commons.disposePopover
       state <- H.get
-      let maybeManuf = case state.irdbManufacturers of
-                        Just (Right (Api.RespGetIrdbManufacturers x)) ->
-                          Just x.manufacturers
-                        _ ->
-                          Nothing
+      let maybeManuf = either
+                        (const Nothing)
+                        (\x -> Just (unwrap x).manufacturers)
+                        =<< state.irdbManufacturers
           maybeIndex = Array.elemIndex text =<< maybeManuf
           newQry = state.queryParams
                     { manuf = maybeIndex <|> initialQueryParams.manuf
