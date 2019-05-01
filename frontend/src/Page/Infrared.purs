@@ -23,6 +23,7 @@ module Page.Infrared
 
 import Prelude
 
+import Affjax as AX
 import Api as Api
 import AppM (class HasApiAccessible, class Navigate, getApiBaseURL, getApiTimeout, navigate)
 import CSS (em, margin, marginBottom, marginTop, minHeight, overline, padding, px, rem, textDecoration, width)
@@ -46,7 +47,7 @@ import Data.String as String
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Effect (Effect)
-import Effect.Aff (delay, parallel, sequential)
+import Effect.Aff (Aff, Milliseconds, delay, parallel, sequential)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class.Console (log)
 import Effect.Console (logShow)
@@ -182,35 +183,35 @@ component =
 
     ChangedRoute route next -> do
       H.liftEffect Commons.disposePopover
-      curState <- H.get
       --
-      let state = case route of
-                    Route.Infrared Nothing ->
-                      curState { queryParams = initialQueryParams}
+      state <- case route of
+                Route.Infrared Nothing -> do
+                  H.modify _{queryParams = initialQueryParams}
 
-                    Route.Infrared (Just qry) ->
-                      curState { queryParams = qry }
+                Route.Infrared (Just qry) -> do
+                  H.modify _{queryParams = qry}
 
-                    _ -> curState
+                _ ->
+                  H.get
       --
       case toEnum =<< state.queryParams.tab of
         Just TabIrdbTable -> do
           url <- getApiBaseURL
           millisec <- getApiTimeout
-          val <- H.liftAff $
-                let param = {baseurl: url}
-                    request = Api.getApiV1IrdbManufacturers param
-                    timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
-                    response r = r.body
-                in
-                sequential $ parallel (response <$> request) <|> parallel timeout
-          H.put state { irdbManufacturers = val
-                      }
-          --
-          fetchIrdb
+          let accessor = Api.getApiV1IrdbManufacturers {baseurl: url}
+          response <- accessToBackend millisec accessor
+          H.put state {irdbManufacturers = response}
+          case response of
+            Left _ ->
+              pure unit
+
+            Right x -> do
+              irdb <- getIrdb state.queryParams x
+              H.modify_ \st -> st {irdb = irdb}
 
         _ ->
-          H.put state
+          pure unit
+      --
       H.liftEffect Commons.enablePopover
       pure next
 
@@ -229,14 +230,9 @@ component =
       url <- getApiBaseURL
       millisec <- getApiTimeout
       { buttonNumber } <- H.get
-      val <- H.liftAff $
-            let param = {baseurl: url, buttonNumber: buttonNumber}
-                request = Api.getApiV1InfraRed param
-                timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
-                response r = r.body
-            in
-            sequential $ parallel (response <$> request) <|> parallel timeout
-      H.modify_ \st -> st { infraredValue = val }
+      let accessor = Api.getApiV1InfraRed {baseurl: url, buttonNumber: buttonNumber}
+      response <- accessToBackend millisec accessor
+      H.modify_ \st -> st {infraredValue = response}
       pure next
 
     OnClickIRCodeUpload next -> do
@@ -245,18 +241,13 @@ component =
       state <- H.get
       case state.infraredValue of
         Left _ ->
-          pure unit
+          pure next
 
         Right ircode -> do
-          res <- H.liftAff $
-              let param = {baseurl: url, datum: ircode}
-                  request = Api.postApiV1InfraRed param
-                  timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
-                  response r = r.body
-              in
-              sequential $ parallel (response <$> request) <|> parallel timeout
-          H.liftEffect $ logShow res
-      pure next
+          let accessor = Api.postApiV1InfraRed {baseurl: url, datum: ircode}
+          response <- accessToBackend millisec accessor
+          H.liftEffect $ logShow response
+          pure next
 
     OnClickIRCodeTransmit next -> do
       url <- getApiBaseURL
@@ -264,25 +255,26 @@ component =
       state <- H.get
       case state.infraredValue of
         Left _ ->
-          pure unit
+          pure next
 
         Right ircode -> do
-          res <- H.liftAff $
-                let param = {baseurl: url, datum: ircode}
-                    request = Api.postApiV1TransIR param
-                    timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
-                    response r = r.body
-                in
-                sequential $ parallel (response <$> request) <|> parallel timeout
-          H.liftEffect $ logShow res
-      pure next
+          let accessor = Api.postApiV1TransIR {baseurl: url, datum: ircode}
+          response <- accessToBackend millisec accessor
+          H.liftEffect $ logShow response
+          pure next
 
     OnClickIrdbPagination page next -> do
       H.liftEffect Commons.disposePopover
       state <- H.get
       let qp = state.queryParams {page = Just page}
-      H.modify_ _ {queryParams = qp}
-      fetchIrdb
+      newState <- H.modify _ {queryParams = qp}
+      case newState.irdbManufacturers of
+        Left _ ->
+          pure unit
+
+        Right x -> do
+          irdb <- getIrdb newState.queryParams x
+          H.modify_ \st -> st {irdb = irdb}
       navigate $ Route.Infrared (Just qp)
       H.liftEffect Commons.enablePopover
       pure next
@@ -323,8 +315,14 @@ component =
                     { manuf = maybeIndex <|> initialQueryParams.manuf
                     , page = Just 1
                     }
-      H.modify_ _ {queryParams = newQry}
-      fetchIrdb
+      newState <- H.modify _{queryParams = newQry}
+      case newState.irdbManufacturers of
+        Left _ ->
+          pure unit
+
+        Right x -> do
+          irdb <- getIrdb newState.queryParams x
+          H.modify_ \st -> st {irdb = irdb}
       navigate $ Route.Infrared (Just newQry)
       H.liftEffect Commons.enablePopover
       pure next
@@ -337,8 +335,14 @@ component =
                     { limits = maybeLimits <|> initialQueryParams.limits
                     , page = Just 1
                     }
-      H.modify_ _ {queryParams = newQry}
-      fetchIrdb
+      newState <- H.modify _{queryParams = newQry}
+      case newState.irdbManufacturers of
+        Left _ ->
+          pure unit
+
+        Right x -> do
+          irdb <- getIrdb newState.queryParams x
+          H.modify_ \st -> st {irdb = irdb}
       navigate $ Route.Infrared (Just newQry)
       H.liftEffect Commons.enablePopover
       pure next
@@ -356,30 +360,6 @@ component =
             let file = FileList.item 0 filelist
             maybe (pure unit) readCSVFile file
       pure next
-    where
-
-      fetchIrdb = do
-        url <- getApiBaseURL
-        millisec <- getApiTimeout
-        state <- H.get
-        case state.irdbManufacturers of
-          Left _ ->
-            pure unit
-
-          Right (Api.RespGetIrdbManufacturers xs) -> do
-            val <- H.liftAff $
-                  let param = { baseurl: url
-                              , manufacturer: Array.index xs.manufacturers =<< state.queryParams.manuf
-                              , product: Nothing
-                              , limits: state.queryParams.limits
-                              , page: state.queryParams.page
-                              }
-                      request = Api.getApiV1Irdb param
-                      timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
-                      response r = r.body
-                  in
-                  sequential $ parallel (response <$> request) <|> parallel timeout
-            H.modify_ \st -> st { irdb = val }
 
   -- |
 --  readCSVFile :: File -> Effect Unit
@@ -409,26 +389,66 @@ component =
             pure $ Just $ unsafeFromForeign v
 --            H.subscribe $ HES.eventSource'
 
-  --| render
-  render :: State -> H.ParentHTML Query ChildQuery ChildSlot m
-  render state =
-    HH.div
-      [ HP.id_ "wrapper"
-      ]
-      [ Commons.navbar NavigateTo (Route.Infrared Nothing)
-      , HH.main
-        [ HP.class_ HB.container
-        ]
-        [ renderTab state
-        , case toEnum =<< state.queryParams.tab of
-            Nothing               -> renderControlPanel state
-            Just TabControlPanel  -> renderControlPanel state
-            Just TabIrdbTable     -> renderIrdbTable state
-        ]
-      , Commons.footer
-      ]
+-- |
+getIrdb
+  :: forall m
+   . MonadAff m
+  => HasApiAccessible m
+  => Route.InfraredQueryParams
+  -> Api.RespGetIrdbManufacturers
+  -> m (Either String Api.RespGetIrdb)
+getIrdb queryParams (Api.RespGetIrdbManufacturers xs) = do
+  url <- getApiBaseURL
+  millisec <- getApiTimeout
+  let param = { baseurl: url
+              , manufacturer: Array.index xs.manufacturers =<< queryParams.manuf
+              , product: Nothing
+              , limits: queryParams.limits
+              , page: queryParams.page
+              }
+  accessToBackend millisec (Api.getApiV1Irdb param)
 
-  renderTab state =
+--|
+accessToBackend
+  :: forall a m
+   . MonadAff m
+  => Milliseconds
+  -> Aff (AX.Response (Either String a))
+  -> m (Either String a)
+accessToBackend millisec accessor =
+  H.liftAff $ sequential
+    $ parallel (response accessor)
+  <|> parallel timeout
+  where
+
+  response f = _.body <$> f
+  timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
+
+--| render
+render
+  :: forall m
+   . MonadAff m
+  => State
+  -> H.ParentHTML Query ChildQuery ChildSlot m
+render state =
+  HH.div
+    [ HP.id_ "wrapper"
+    ]
+    [ Commons.navbar NavigateTo (Route.Infrared Nothing)
+    , HH.main
+      [ HP.class_ HB.container
+      ]
+      [ renderTab
+      , case toEnum =<< state.queryParams.tab of
+          Nothing               -> renderControlPanel state
+          Just TabControlPanel  -> renderControlPanel state
+          Just TabIrdbTable     -> renderIrdbTable state
+      ]
+    , Commons.footer
+    ]
+  where
+
+  renderTab =
     HH.ul
       [ HP.classes
         [ HB.nav
@@ -472,115 +492,124 @@ component =
           ]
         ]
 
-  renderControlPanel state =
-    HH.div_
+-- |
+renderControlPanel
+  :: forall m
+   . MonadAff m
+  => State
+  -> H.ParentHTML Query ChildQuery ChildSlot m
+renderControlPanel state =
+  HH.div_
+    [ HH.div
+      [ HP.class_ HB.formInline ]
       [ HH.div
-        [ HP.class_ HB.formInline ]
-        [ HH.div
-          [ HP.classes [ HB.formGroup ]
-          ]
-          [ HH.label_ [ HH.text "Button Number" ]
-          , HH.select
-            [ HP.classes [ HB.m3, HB.formControl ]
-            , HE.onValueChange $ HE.input OnValueChangeButtonNumber
-            ]
-            $ map (HH.option_ <<< Array.singleton <<< HH.text <<< Int.toStringAs Int.decimal)
-            $ 1..10
-          ]
-        , HH.div
-          [ HP.classes [ HB.m3, HB.formGroup ] ]
-          [ irDownloadButton OnClickIRCodeDownload
-          , irUploadButton OnClickIRCodeUpload $ isRight state.infraredValue 
-          , irTransmitButton OnClickIRCodeTransmit $ isRight state.infraredValue
-          ]
+        [ HP.classes [ HB.formGroup ]
         ]
-      , renderInfraredRemoconCode state
-      ]
-
-  renderIrdbTable state =
-    HH.div_
-      [ HH.div_
-        [ case state.irdbManufacturers of
-            Left reason ->
-              HH.p
-                [ HP.classes [ HB.alert, HB.alertDanger ] ]
-                [ HH.text reason ]
-
-            Right manuf ->
-              dropdownManuf manuf
-        , dropdownLimits
-        ]
-      , HH.h2_ [ HH.text "Infrared code database" ]
-      , HH.div_
-        [ HH.div
-          [ HP.class_ HB.formGroup ]
---            [ HH.label_ [ HH.text "IR-code file input" ]
---            , HH.input
---              [ HP.ref csvFileInputLabel
---              , HP.class_ HB.formControlFile
---              , HP.type_ InputFile
---              , HE.onChange $ HE.input OnChangeCSVFileSelect
---              ]
-          [ irdbPagination OnClickIrdbPagination state
-          , irdbTable OnClickIrdbTable OnClickIrdbTableCode state.irdb
+        [ HH.label_ [ HH.text "Button Number" ]
+        , HH.select
+          [ HP.classes [ HB.m3, HB.formControl ]
+          , HE.onValueChange $ HE.input OnValueChangeButtonNumber
           ]
+          $ map (HH.option_ <<< Array.singleton <<< HH.text <<< Int.toStringAs Int.decimal)
+          $ 1..10
+        ]
+      , HH.div
+        [ HP.classes [ HB.m3, HB.formGroup ] ]
+        [ irDownloadButton OnClickIRCodeDownload
+        , irUploadButton OnClickIRCodeUpload $ isRight state.infraredValue 
+        , irTransmitButton OnClickIRCodeTransmit $ isRight state.infraredValue
         ]
       ]
-    where
+    , renderInfraredRemoconCode state
+    ]
 
-    dropdownLimits =
-      HH.div
-        [ HP.classes [ HB.formGroup, HB.row ]
-        ]
-        [ HH.label
-          [ HP.class_ HB.colSm2 ]
-          [ HH.text "limits" ]
-        , HH.div
-          [ HP.class_ HB.colSm10
-          ]
-          [ HH.select
-            [ HP.classes [ HB.formControl ]
-            , HE.onValueChange $ HE.input OnValueChangeLimits
+-- |
+renderIrdbTable
+  :: forall m
+   . MonadAff m
+  => State
+  -> H.ParentHTML Query ChildQuery ChildSlot m
+renderIrdbTable state =
+  HH.div_
+    [ case state.irdbManufacturers of
+        Left reason ->
+          HH.p
+            [ HP.classes [ HB.alert, HB.alertDanger ] ]
+            [ HH.text reason ]
+
+        Right manuf ->
+          HH.div_ [ dropdownManuf manuf, dropdownLimits ]
+    , case state.irdb of
+        Left _ ->
+          HH.div_ []
+
+        Right irdb ->
+          HH.div_
+            [ HH.h2_ [ HH.text "Infrared code database" ]
+            , HH.div_
+              [ HH.div
+                [ HP.class_ HB.formGroup ]
+                [ irdbPagination OnClickIrdbPagination irdb
+                , irdbTable OnClickIrdbTable OnClickIrdbTableCode irdb
+                ]
+              ]
             ]
-            [ item 10
-            , item 25
-            , item 50
-            , item 100
-            ]
+    ]
+  where
+
+  dropdownLimits =
+    HH.div
+      [ HP.classes [ HB.formGroup, HB.row ]
+      ]
+      [ HH.label
+        [ HP.class_ HB.colSm2 ]
+        [ HH.text "limits" ]
+      , HH.div
+        [ HP.class_ HB.colSm10
+        ]
+        [ HH.select
+          [ HP.classes [ HB.formControl ]
+          , HE.onValueChange $ HE.input OnValueChangeLimits
+          ]
+          [ item 10
+          , item 25
+          , item 50
+          , item 100
           ]
         ]
-        where
+      ]
+      where
 
-        item number =
-          let str = Int.toStringAs Int.decimal number 
-          in
-          case state.queryParams.limits of
-            Just x | x == number  -> HH.option [HP.selected true] [HH.text str]
-            _                     -> HH.option [] [HH.text str]
+      item number =
+        let str = Int.toStringAs Int.decimal number 
+        in
+        case state.queryParams.limits of
+          Just x | x == number  -> HH.option [HP.selected true] [HH.text str]
+          _                     -> HH.option [] [HH.text str]
 
-    dropdownManuf (Api.RespGetIrdbManufacturers x) =
-      HH.div
-        [ HP.classes [ HB.formGroup, HB.row ]
+  dropdownManuf (Api.RespGetIrdbManufacturers x) =
+    HH.div
+      [ HP.classes [ HB.formGroup, HB.row ]
+      ]
+      [ HH.label
+        [ HP.class_ HB.colSm2 ]
+        [ HH.text "manufacturer" ]
+      , HH.div
+        [ HP.class_ HB.colSm10
         ]
-        [ HH.label
-          [ HP.class_ HB.colSm2 ]
-          [ HH.text "manufacturer" ]
-        , HH.div
-          [ HP.class_ HB.colSm10
+        [ HH.select
+          [ HP.classes [ HB.formControl ]
+          , HE.onValueChange $ HE.input OnValueChangeManufacturer
           ]
-          [ HH.select
-            [ HP.classes [ HB.formControl ]
-            , HE.onValueChange $ HE.input OnValueChangeManufacturer
-            ]
-            $ Array.zipWith item (0 .. Array.length x.manufacturers) x.manufacturers
-          ]
+          $ Array.zipWith item (0 .. Array.length x.manufacturers) x.manufacturers
         ]
-        where
+      ]
+      where
 
-        item number name =
-          case state.queryParams.manuf of
-            Just manuf | manuf == number  -> HH.option [HP.selected true] [HH.text name]
-            _                             -> HH.option [] [HH.text name]
+      item number name =
+        case state.queryParams.manuf of
+          Just manuf | manuf == number  -> HH.option [HP.selected true] [HH.text name]
+          _                             -> HH.option [] [HH.text name]
 
 -- |
 infraredBaseband :: forall p i. Baseband -> H.HTML p i
@@ -851,43 +880,35 @@ renderInfraredRemoconCode state =
         ]
  
 -- |
-irdbPagination
-  :: forall p f
-   . (Int -> HQ.Action f)
-  -> State
-  -> H.HTML p f
-irdbPagination click state = case state.irdb of
-  Left _ ->
-    HH.div_ []
-
-  Right (Api.RespGetIrdb irdb) -> do
-    HH.nav
-      [ HP.attr (HC.AttrName "area-label") "Pagination"
+irdbPagination :: forall p f. (Int -> HQ.Action f) -> Api.RespGetIrdb -> H.HTML p f
+irdbPagination click (Api.RespGetIrdb irdb) =
+  HH.nav
+    [ HP.attr (HC.AttrName "area-label") "Pagination"
+    ]
+    [ HH.ul
+      [ HP.classes [HB.pagination, HB.row, HB.noGutters]
       ]
-      [ HH.ul
-        [ HP.classes [HB.pagination, HB.row, HB.noGutters]
-        ]
-        $ map (item irdb) (1 .. irdb.pages)
-      ]
+      $ map item (1 .. irdb.pages)
+    ]
   where
 
-  item irdb number =
+  item number =
     HH.li
-    [ HP.classes $ classes irdb number ]
+    [ HP.classes $ classes number ]
     [ HH.a
       [ HP.class_ HB.pageLink
       , HE.onClick $ HE.input_ (click number)
       ]
-      $ text irdb number
+      $ text number
     ]
 
-  classes irdb n =
+  classes n =
     if n == irdb.page then
       [ HB.pageItem, HB.colAuto, HB.active ]
     else
       [ HB.pageItem, HB.colAuto ]
 
-  text irdb n =
+  text n =
     if n == irdb.page then
       [ HH.text $ Int.toStringAs Int.decimal n
       , HH.span [HP.class_ HB.srOnly] [HH.text "(current)"]
@@ -900,23 +921,17 @@ irdbTable
   :: forall p f
    . (String -> HQ.Action f)
   -> (String -> HQ.Action f)
-  -> Either String Api.RespGetIrdb
+  -> Api.RespGetIrdb
   -> H.HTML p f
-irdbTable rowClick codeClick = case _ of
-  Left reason ->
-    HH.p
-      [ HP.classes [ HB.alert, HB.alertDanger ] ]
-      [ HH.text reason ]
-
-  Right (Api.RespGetIrdb irdb) ->
-    HH.p_
-      [ HH.table
-        [ HP.classes [ HB.table, HB.tableHover ]
-        ]
-        [ tableHeading
-        , tableBody irdb.data
-        ]
+irdbTable rowClick codeClick (Api.RespGetIrdb irdb) =
+  HH.p_
+    [ HH.table
+      [ HP.classes [ HB.table, HB.tableHover ]
       ]
+      [ tableHeading
+      , tableBody irdb.data
+      ]
+    ]
   where
 
   tableHeading =
