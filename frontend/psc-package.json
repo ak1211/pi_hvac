@@ -21,7 +21,6 @@
     "parsing",
     "prelude",
     "psci-support",
-    "routing",
-    "web-file"
+    "routing"
   ]
 }

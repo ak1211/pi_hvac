@@ -46,12 +46,9 @@ import Data.Newtype (unwrap)
 import Data.String as String
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
-import Effect (Effect)
 import Effect.Aff (Aff, Milliseconds, delay, parallel, sequential)
 import Effect.Aff.Class (class MonadAff)
-import Effect.Class.Console (log)
 import Effect.Console (logShow)
-import Foreign (unsafeFromForeign)
 import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.CSS (style)
@@ -66,13 +63,6 @@ import Route (Route)
 import Route as Route
 import Text.Parsing.Parser (parseErrorMessage, runParser)
 import Utils (toArrayArray)
-import Web.Event.Event (Event, EventType(..))
-import Web.Event.Event as Event
-import Web.Event.EventTarget (addEventListener, eventListener)
-import Web.File.File as File
-import Web.File.FileList as FileList
-import Web.File.FileReader as FileReader
-import Web.HTML.HTMLInputElement as InputElement
 
 -- |
 data SelectedTab = TabControlPanel | TabIrdbTable
@@ -114,7 +104,6 @@ data Query a
   | OnValueChangeButtonNumber String a
   | OnValueChangeManufacturer String a
   | OnValueChangeLimits String a
-  | OnChangeCSVFileSelect Event a
 
 type ChildQuery = Editor.Query
 type ChildSlot = Unit
@@ -145,28 +134,25 @@ component =
     , page: Just 1
     }
 
+  initialState :: Route -> State
   initialState route =
-    let qry = case route of
-                Route.Infrared Nothing ->
-                  initialQueryParams
-
-                Route.Infrared (Just a) ->
-                  { tab: a.tab <|> initialQueryParams.tab
-                  , manuf: a.manuf <|> initialQueryParams.manuf
-                  , limits: a.limits <|> initialQueryParams.limits
-                  , page: a.page <|> initialQueryParams.page
-                  }
-
-                _ -> initialQueryParams
+    let st =  { queryParams: _
+              , infraredValue: Nothing
+              , irdb: Nothing
+              , irdbManufacturers: Nothing
+              , buttonNumber: 1
+              }
     in
-    { queryParams: qry
-    , infraredValue: Nothing
-    , irdb: Nothing
-    , irdbManufacturers: Nothing
-    , buttonNumber: 1
-    }
+    case route of
+      Route.Infrared (Just a) ->
+        st  { tab: a.tab <|> initialQueryParams.tab
+            , manuf: a.manuf <|> initialQueryParams.manuf
+            , limits: a.limits <|> initialQueryParams.limits
+            , page: a.page <|> initialQueryParams.page
+            }
 
-  csvFileInputLabel = H.RefLabel "CSVFileInput"
+      _ ->
+        st initialQueryParams
 
   eval :: Query ~> H.ParentDSL State Query ChildQuery ChildSlot Void m
   eval = case _ of
@@ -347,48 +333,6 @@ component =
       navigate $ Route.Infrared (Just newQry)
       H.liftEffect Commons.enablePopover
       pure next
-
-    OnChangeCSVFileSelect evt next -> do
-      element <- H.getHTMLElementRef csvFileInputLabel
-      H.liftEffect do
-        let maybeInput = InputElement.fromHTMLElement =<< element
-        maybeFiles <- maybe (pure Nothing) InputElement.files maybeInput
-        case maybeFiles of
-          Nothing ->
-            pure unit
-          
-          Just filelist -> do
-            let file = FileList.item 0 filelist
-            maybe (pure unit) readCSVFile file
-      pure next
-
-  -- |
---  readCSVFile :: File -> Effect Unit
-  readCSVFile file = do
-    reader <- FileReader.fileReader
-    FileReader.readAsText (File.toBlob file) reader
-    el <- eventListener listener
-    addEventListener
-      (EventType "load")
-      el
-      false
-      (FileReader.toEventTarget reader)
-    logShow $ File.type_ file
---    csv <- Co.runProcess $ Co.loop (wait reader)
---    log csv
-    where
-      listener :: Event -> Effect (Maybe String)
-      listener evt = do
-        let maybeTarget = FileReader.fromEventTarget =<< Event.target evt
-        case maybeTarget of
-          Nothing ->
-            pure Nothing
-
-          Just fr -> do
-            v <- FileReader.result fr
-            log $ unsafeFromForeign v
-            pure $ Just $ unsafeFromForeign v
---            H.subscribe $ HES.eventSource'
 
 -- |
 getIrdb

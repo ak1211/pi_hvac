@@ -394,18 +394,6 @@ Their licenses are reproduced below:
         ]
       ]
     , HH.li_
-      [ HH.text "purescript-web-file"
-      , HH.p_
-        [ HH.text "Copyright 2018 PureScript"
-        , HH.br_
-        , HH.text "Licensed under the MIT License"
-        , HH.br_
-        , HH.a
-          [ HP.href "https://github.com/purescript-web/purescript-web-file" ]
-          [ HH.text "see LICENSE file for Details." ]
-        ]
-      ]
-    , HH.li_
       [ HH.text "HTML Canvas Gauges v2.1"
       , HH.p_
         [ HH.text "Copyright (c) 2016 Mykhailo Stadnyk <mikhus@gmail.com>."
