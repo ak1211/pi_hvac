@@ -55,7 +55,6 @@ import Halogen.HTML.CSS (style)
 import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Halogen.Query as HQ
 import Halogen.Themes.Bootstrap4 as HB
 import InfraredCode (Baseband(..), Bit, Count, InfraredCodes(..), InfraredHexString, InfraredLeader(..), LsbFirst, decodeBaseband, decodePhase1, decodePhase2, decodePhase3, infraredHexStringParser, toMilliseconds, toStringLsbFirst, toStringLsbFirstWithHex)
 import Page.Commons as Commons
@@ -100,7 +99,6 @@ data Query a
   | OnClickIRCodeTransmit a
   | OnClickIrdbPagination Int a
   | OnClickIrdbTable String a
-  | OnClickIrdbTableCode String a
   | OnValueChangeButtonNumber String a
   | OnValueChangeManufacturer String a
   | OnValueChangeLimits String a
@@ -171,10 +169,10 @@ component =
       H.liftEffect Commons.disposePopover
       --
       state <- case route of
-                Route.Infrared Nothing -> do
+                Route.Infrared Nothing ->
                   H.modify _{queryParams = initialQueryParams}
 
-                Route.Infrared (Just qry) -> do
+                Route.Infrared (Just qry) ->
                   H.modify _{queryParams = qry}
 
                 _ ->
@@ -276,14 +274,6 @@ component =
       navigate $ Route.Infrared (Just qp)
       pure next
 
-    OnClickIrdbTableCode code next -> do
-      case runParser code infraredHexStringParser of
-        Left err ->
-          H.liftEffect $ logShow $ parseErrorMessage err
-        Right tokens ->
-          H.liftEffect $ logShow tokens
-      pure next
-
     OnValueChangeButtonNumber text next -> do
       case Int.fromString text of
         Nothing -> pure unit
@@ -383,7 +373,7 @@ render state =
     , HH.main
       [ HP.class_ HB.container
       ]
-      [ renderTab
+      [ renderTab state
       , case toEnum =<< state.queryParams.tab of
           Nothing               -> renderControlPanel state
           Just TabControlPanel  -> renderControlPanel state
@@ -391,58 +381,55 @@ render state =
       ]
     , Commons.footer
     ]
-  where
-
-  renderTab =
-    HH.ul
-      [ HP.classes
-        [ HB.nav
-        , HB.navTabs
-        , HB.navPills
-        , HB.navJustified
-        , HB.justifyContentCenter
-        ]
-      , style do
-        marginTop (px 12.0)
-        marginBottom (px 36.0)
-      ]
-      case toEnum =<< state.queryParams.tab of
-        Nothing ->
-          [ tabControlPanel [HB.active] , tabIrdbTable [] ]
-
-        Just TabControlPanel ->
-          [ tabControlPanel [HB.active] , tabIrdbTable [] ]
-
-        Just TabIrdbTable ->
-          [ tabControlPanel [], tabIrdbTable [HB.active] ]
-    where
-
-    tabControlPanel =
-      item TabControlPanel "Control panel"
-
-    tabIrdbTable =
-      item TabIrdbTable "Infrared database"
-
-    item newTab caption appendix =
-      let qp = state.queryParams { tab = Just $ fromEnum newTab }
-      in
-      HH.li
-        [ HP.class_ HB.navItem
-        ]
-        [ HH.a
-          [ HP.classes $ [HB.navLink] <> appendix
-          , HE.onClick $ HE.input_ (NavigateTo $ Route.Infrared $ Just qp)
-          ]
-          [ HH.text caption
-          ]
-        ]
 
 -- |
-renderControlPanel
-  :: forall m
-   . MonadAff m
-  => State
-  -> H.ParentHTML Query ChildQuery ChildSlot m
+renderTab :: forall g p m. MonadAff m => State -> H.ParentHTML Query g p m
+renderTab state =
+  HH.ul
+    [ HP.classes
+      [ HB.nav
+      , HB.navTabs
+      , HB.navPills
+      , HB.navJustified
+      , HB.justifyContentCenter
+      ]
+    , style do
+      marginTop (px 12.0)
+      marginBottom (px 36.0)
+    ]
+    case toEnum =<< state.queryParams.tab of
+      Nothing ->
+        [ tabControlPanel [HB.active], tabIrdbTable [] ]
+
+      Just TabControlPanel ->
+        [ tabControlPanel [HB.active], tabIrdbTable [] ]
+
+      Just TabIrdbTable ->
+        [ tabControlPanel [], tabIrdbTable [HB.active] ]
+  where
+
+  tabControlPanel =
+    item TabControlPanel "Control panel"
+
+  tabIrdbTable =
+    item TabIrdbTable "Infrared database"
+
+  item newTab caption appendix =
+    let qp = state.queryParams { tab = Just $ fromEnum newTab }
+    in
+    HH.li
+      [ HP.class_ HB.navItem
+      ]
+      [ HH.a
+        [ HP.classes $ [HB.navLink] <> appendix
+        , HE.onClick $ HE.input_ (NavigateTo $ Route.Infrared $ Just qp)
+        ]
+        [ HH.text caption
+        ]
+      ]
+
+-- |
+renderControlPanel :: forall m. MonadAff m => State -> H.ParentHTML Query ChildQuery ChildSlot m
 renderControlPanel state =
   HH.div_
     [ HH.div
@@ -460,20 +447,16 @@ renderControlPanel state =
         ]
       , HH.div
         [ HP.classes [ HB.m3, HB.formGroup ] ]
-        [ irDownloadButton OnClickIRCodeDownload
-        , irUploadButton OnClickIRCodeUpload $ maybe false isRight $ state.infraredValue 
-        , irTransmitButton OnClickIRCodeTransmit $ maybe false isRight $ state.infraredValue
+        [ irDownloadButton
+        , irUploadButton $ maybe false isRight $ state.infraredValue 
+        , irTransmitButton $ maybe false isRight $ state.infraredValue
         ]
       ]
     , renderInfraredRemoconCode state
     ]
 
 -- |
-renderIrdbTable
-  :: forall m
-   . MonadAff m
-  => State
-  -> H.ParentHTML Query ChildQuery ChildSlot m
+renderIrdbTable :: forall g p m. MonadAff m => State -> H.ParentHTML Query g p m
 renderIrdbTable state =
   case state.irdbManufacturers of
     Nothing ->
@@ -483,11 +466,7 @@ renderIrdbTable state =
       error reason
 
     Just (Right manuf) ->
-      HH.div_
-        [ dropdownManuf manuf
-        , dropdownLimits
-        , table state.irdb
-        ]
+      HH.div_ [dropdownManuf manuf, dropdownLimits, table state.irdb]
   where
 
   table = case _ of
@@ -503,9 +482,7 @@ renderIrdbTable state =
         , HH.div_
           [ HH.div
             [ HP.class_ HB.formGroup ]
-            [ irdbPagination OnClickIrdbPagination irdb
-            , irdbTable OnClickIrdbTable OnClickIrdbTableCode irdb
-            ]
+            [ irdbPagination irdb, irdbTable irdb ]
           ]
         ]
 
@@ -731,15 +708,15 @@ showHexAndDec width bits =
   showHex width bits <> "(" <> toStringLsbFirst bits <> ")"
 
 -- |
-irDownloadButton :: forall p f. HQ.Action f -> H.HTML p f
-irDownloadButton action =
+irDownloadButton :: forall g p m. H.ParentHTML Query g p m
+irDownloadButton =
   HH.button
     [ HP.classes
       [ HB.btn
       , HB.btnOutlineSuccess
       , HB.justifyContentCenter
       ]
-    , HE.onClick $ HE.input_ action
+    , HE.onClick $ HE.input_ OnClickIRCodeDownload
     , style do
       margin (px 2.0) (px 2.0) (px 2.0) (px 2.0)
       width (rem 8.0)
@@ -747,15 +724,15 @@ irDownloadButton action =
     [ HH.text "Download" ]
 
 -- |
-irUploadButton :: forall p f. HQ.Action f -> Boolean -> H.HTML p f
-irUploadButton action isActive =
+irUploadButton :: forall g p m. Boolean -> H.ParentHTML Query g p m
+irUploadButton isActive =
   HH.button
     [ HP.classes
       [ HB.btn
       , HB.btnOutlineDanger
       , HB.justifyContentCenter
       ]
-    , HE.onClick $ HE.input_ action
+    , HE.onClick $ HE.input_ OnClickIRCodeUpload
     , style do
       margin (px 2.0) (px 2.0) (px 2.0) (px 2.0)
       width (rem 8.0)
@@ -769,15 +746,15 @@ irUploadButton action isActive =
     false -> HP.attr (HC.AttrName "disabled") "disabled"
 
 -- |
-irTransmitButton :: forall p f. HQ.Action f -> Boolean -> H.HTML p f
-irTransmitButton action isActive =
+irTransmitButton :: forall g p m. Boolean -> H.ParentHTML Query g p m
+irTransmitButton isActive =
   HH.button
     [ HP.classes
       [ HB.btn
       , HB.btnOutlinePrimary
       , HB.justifyContentCenter
       ]
-    , HE.onClick $ HE.input_ action
+    , HE.onClick $ HE.input_ OnClickIRCodeTransmit
     , style do
       margin (px 2.0) (px 2.0) (px 2.0) (px 2.0)
       width (rem 8.0)
@@ -791,11 +768,7 @@ irTransmitButton action isActive =
     HP.attr (HC.AttrName "disabled") "disabled"
 
 -- |
-renderInfraredRemoconCode
-  :: forall m
-   . MonadAff m
-  => State
-  -> H.ParentHTML Query ChildQuery ChildSlot m
+renderInfraredRemoconCode :: forall m. MonadAff m => State -> H.ParentHTML Query ChildQuery ChildSlot m
 renderInfraredRemoconCode state =
   HH.div
     [ HP.class_ HB.formGroup ]
@@ -850,8 +823,8 @@ renderInfraredRemoconCode state =
         ]
  
 -- |
-irdbPagination :: forall p f. (Int -> HQ.Action f) -> Api.RespGetIrdb -> H.HTML p f
-irdbPagination click (Api.RespGetIrdb irdb) =
+irdbPagination :: forall g p m. Api.RespGetIrdb -> H.ParentHTML Query g p m
+irdbPagination (Api.RespGetIrdb irdb) =
   HH.nav
     [ HP.attr (HC.AttrName "area-label") "Pagination"
     ]
@@ -867,7 +840,7 @@ irdbPagination click (Api.RespGetIrdb irdb) =
     [ HP.classes $ classes number ]
     [ HH.a
       [ HP.class_ HB.pageLink
-      , HE.onClick $ HE.input_ (click number)
+      , HE.onClick $ HE.input_ (OnClickIrdbPagination number)
       ]
       $ text number
     ]
@@ -887,13 +860,8 @@ irdbPagination click (Api.RespGetIrdb irdb) =
       [ HH.text $ Int.toStringAs Int.decimal n ]
 
 -- |
-irdbTable
-  :: forall p f
-   . (String -> HQ.Action f)
-  -> (String -> HQ.Action f)
-  -> Api.RespGetIrdb
-  -> H.HTML p f
-irdbTable rowClick codeClick (Api.RespGetIrdb irdb) =
+irdbTable :: forall g p m. Api.RespGetIrdb -> H.ParentHTML Query g p m
+irdbTable (Api.RespGetIrdb irdb) =
   HH.p_
     [ HH.table
       [ HP.classes [ HB.table, HB.tableHover ]
@@ -916,10 +884,10 @@ irdbTable rowClick codeClick (Api.RespGetIrdb irdb) =
     HH.tbody_ $ map tableRow values
 
   tableRow (Api.DatumIrdb val) =
-    let clk = HE.onClick $ HE.input_ (rowClick val.code)
+    let clk = HE.onClick $ HE.input_ (OnClickIrdbTable val.code)
     in
     HH.tr_
-      [ HH.th [HE.onClick $ HE.input_ (rowClick val.code)] [HH.text $ Int.toStringAs Int.decimal val.id]
+      [ HH.th [HE.onClick $ HE.input_ (OnClickIrdbTable val.code)] [HH.text $ Int.toStringAs Int.decimal val.id]
       , HH.td [clk] [HH.text val.manuf]
       , HH.td [clk] [HH.text val.prod]
       , HH.td [clk] [HH.text val.key]
