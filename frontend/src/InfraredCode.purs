@@ -395,16 +395,16 @@ takeEnd errmsg = do
 -- |
 aehaProtocol :: DecodeMonad ProcessError InfraredCodes
 aehaProtocol = do
-  cu <- takeBits 16 "fail to read: custom code (AEHA)"
-  p_ <- takeBits 4 "fail to read: parity (AEHA)"
-  d0 <- takeBits 4 "fail to read: data0 (AEHA)"
-  d_ <- takeEnd "fail to read: data (AEHA)"
-  let init = NEA.init d_
-      last = NEA.last d_
+  custom <- takeBits 16 "fail to read: custom code (AEHA)"
+  parity <- takeBits 4 "fail to read: parity (AEHA)"
+  data_0 <- takeBits 4 "fail to read: data0 (AEHA)"
+  data_N <- takeEnd "fail to read: data (AEHA)"
+  let init = NEA.init data_N
+      last = NEA.last data_N
       octets = toArrayNonEmptyArray 8 init
-  pure $ AEHA { custom: LsbFirst cu
-              , parity: LsbFirst p_
-              , data0: LsbFirst d0
+  pure $ AEHA { custom: LsbFirst custom
+              , parity: LsbFirst parity
+              , data0: LsbFirst data_0
               , data: map LsbFirst octets
               , stop: last
               }
@@ -412,23 +412,23 @@ aehaProtocol = do
 -- |
 necProtocol :: DecodeMonad ProcessError InfraredCodes
 necProtocol = do
-  cu <- takeBits 16 "fail to read: custom code (NEC)"
-  d0 <- takeBits 8 "fail to read: data (NEC)"
-  d1 <- takeBits 8 "fail to read: inv-data (NEC)"
-  sb <- takeBit "fail to read: stop bit (NEC)"
-  pure $ NEC  { custom: LsbFirst cu
-              , data: LsbFirst d0
-              , invData: LsbFirst d1
-              , stop: sb
+  custom <- takeBits 16 "fail to read: custom code (NEC)"
+  data__ <- takeBits 8 "fail to read: data (NEC)"
+  i_data <- takeBits 8 "fail to read: inv-data (NEC)"
+  stopbt <- takeBit "fail to read: stop bit (NEC)"
+  pure $ NEC  { custom: LsbFirst custom
+              , data: LsbFirst data__
+              , invData: LsbFirst i_data
+              , stop: stopbt
               }
 
 -- |
 sircProtocol :: DecodeMonad ProcessError InfraredCodes
 sircProtocol = do
-  com <- takeBits 7 "fail to read: command code (SIRC)"
-  add <- takeEnd "fail to read: address (SIRC)"
-  pure $ SIRC { command: LsbFirst com
-              , address: LsbFirst add
+  comm <- takeBits 7 "fail to read: command code (SIRC)"
+  addr <- takeEnd "fail to read: address (SIRC)"
+  pure $ SIRC { command: LsbFirst comm
+              , address: LsbFirst addr
               }
 
 -- |

@@ -48,21 +48,15 @@ inputIRCode3 =
 
 expectIRCodeFormat3 :: InfraredCodes
 expectIRCodeFormat3 = NEC
-  { customLo: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
-                [ Assert, Negate, Assert, Negate
-                , Negate, Negate, Assert, Negate
-                ]
-  , customHi: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
-                [ Negate, Negate, Assert, Assert
-                , Assert, Assert, Negate, Assert
+  { custom: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+                [ Assert,Negate,Assert,Negate, Negate,Negate,Assert,Negate
+                , Negate,Negate,Assert,Assert, Assert,Assert,Negate,Assert
                 ]                             -- binary digit 1010 0010 0011 1101 : TOSHIBA
   , data:     LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
-                [ Negate, Assert, Negate, Negate
-                , Assert, Negate, Negate, Negate
+                [ Negate,Assert,Negate,Negate, Assert,Negate,Negate,Negate
                 ]                             -- binary digit 0100 1000 : TV POWER
   , invData:  LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
-                [ Assert, Negate, Assert, Assert
-                , Negate, Assert, Assert, Assert
+                [ Assert,Negate,Assert,Assert, Negate,Assert,Assert,Assert
                 ]                             -- binary digit 1011 0111
   , stop: Assert
   }
@@ -73,10 +67,9 @@ inputIRCode4 =
 
 expectIRCodeFormat4 :: InfraredCodes
 expectIRCodeFormat4 = AEHA
-  { customLo: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
-                [ Negate,Assert,Negate,Negate, Negate,Negate,Negate,Negate ]
-  , customHi: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
-                [ Negate,Negate,Negate,Negate, Negate,Assert,Negate,Negate ]
+  { custom: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
+                [ Negate,Assert,Negate,Negate, Negate,Negate,Negate,Negate
+                , Negate,Negate,Negate,Negate, Negate,Assert,Negate,Negate ]
                 -- binary digit 0100 0000 0000 0100 : PANASONIC
   , parity: LsbFirst $ unsafePartial $ fromJust $ NEA.fromArray
                 [ Negate,Negate,Negate,Negate ]
