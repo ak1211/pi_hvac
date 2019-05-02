@@ -402,7 +402,7 @@ getApiV1Irdb param =
       str -> "?" <> str
 
 --
--- /api/v1/irdb/manufacturer
+-- /api/v1/irdb-manufacturer
 --
 
 -- |
@@ -434,4 +434,4 @@ getApiV1IrdbManufacturers param =
   where
 
   url =
-    (unwrap param.baseurl) <> "/api/v1/irdb/manufacturers"
+    (unwrap param.baseurl) <> "/api/v1/irdb-manufacturers"
