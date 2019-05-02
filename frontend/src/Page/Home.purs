@@ -261,7 +261,7 @@ temperature val =
               , height: 300
               , units: "°C"
               , title: "Temprature"
-              , value: fromMaybe 0.0 val
+              , value: fromMaybe (-30.0) val
               , minValue: -30.0
               , maxValue: 60.0
               , majorTicks: [-30, -20, -10, 0, 10, 20, 30, 40, 50, 60]
