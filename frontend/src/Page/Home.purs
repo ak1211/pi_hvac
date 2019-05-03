@@ -31,11 +31,12 @@ import Data.Array.NonEmpty as NEA
 import Data.DateTime.Instant (fromDateTime, unInstant)
 import Data.Either (Either(..))
 import Data.Either.Nested (Either3)
-import Data.Foldable (intercalate, minimum)
+import Data.Foldable (minimum)
 import Data.Functor.Coproduct.Nested (Coproduct3)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), fromJust, fromMaybe, maybe)
 import Data.Newtype (unwrap)
+import Data.String as String
 import Data.Time.Duration (Milliseconds(..))
 import Effect (Effect)
 import Effect.Aff (delay, sequential, parallel)
@@ -251,7 +252,7 @@ msgLastUpdatedAt state (Api.MeasDateTime utc) =
     let min :: Int
         min = unsafePartial $ fromJust $ minimum [9999, minute]
     in
-    intercalate " "
+    String.joinWith " "
       [ "Measured at"
       , time <> ","
       , Int.toStringAs Int.decimal min
