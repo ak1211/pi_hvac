@@ -219,7 +219,7 @@ latestValue state = case state.measValues of
     { t: temperature (Just v.degc)
     , p: pressure (Just v.hpa)
     , h: hygro (Just v.rh)
-    , msg: msgLastUpdatedAt state v.measured_at
+    , msg: msgLastUpdatedAt state.nowTime v.measured_at
     }
 
 -- |
@@ -228,36 +228,33 @@ msgFailToAccess reason =
   Commons.toastItem "Error" "" reason
 
 -- |
-msgLastUpdatedAt :: forall p i. State -> Api.MeasDateTime -> H.HTML p i
-msgLastUpdatedAt state (Api.MeasDateTime utc) =
-  case Utils.asiaTokyoDateTime utc of
+msgLastUpdatedAt :: forall p i. Milliseconds -> Api.MeasDateTime -> H.HTML p i
+msgLastUpdatedAt nowTime (Api.MeasDateTime measTime) =
+  case Utils.asiaTokyoDateTime measTime of
     Nothing ->
       Commons.toastItem "Error" "" "有効な日付ではありませんでした" 
 
-    Just val ->
-      Commons.snackbarItem $ message val.time
+    Just asiaTokyo ->
+      Commons.snackbarItem $ String.joinWith " "
+      [ "Measured at"
+      , asiaTokyo.time <> ","
+      , Int.toStringAs Int.decimal boundedMinute
+      , "mins ago."
+      ]
   where
   
   minute :: Int
   minute =
     let at :: Milliseconds
-        at = unInstant $ fromDateTime utc
+        at = unInstant $ fromDateTime measTime
         duration :: Number
-        duration = unwrap state.nowTime - unwrap at
+        duration = unwrap nowTime - unwrap at
     in
     Int.floor (duration / (60.0 * 1000.0))
 
-  message :: String -> String
-  message time =
-    let min :: Int
-        min = unsafePartial $ fromJust $ minimum [9999, minute]
-    in
-    String.joinWith " "
-      [ "Measured at"
-      , time <> ","
-      , Int.toStringAs Int.decimal min
-      , "mins ago."
-      ]
+  boundedMinute :: Int
+  boundedMinute =
+    unsafePartial $ fromJust $ minimum [9999, minute]
 
 -- |
 temperature :: Maybe Number ->  RadialGauge.Input
