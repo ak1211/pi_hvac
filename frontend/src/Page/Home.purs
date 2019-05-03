@@ -35,7 +35,7 @@ import Data.Foldable (intercalate, minimum)
 import Data.Functor.Coproduct.Nested (Coproduct3)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), fromJust, fromMaybe, maybe)
-import Data.Newtype (unwrap, wrap)
+import Data.Newtype (unwrap)
 import Data.Time.Duration (Milliseconds(..))
 import Effect (Effect)
 import Effect.Aff (delay, sequential, parallel)
