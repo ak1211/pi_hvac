@@ -31,10 +31,10 @@ import Data.Array.NonEmpty as NEA
 import Data.DateTime.Instant (fromDateTime, unInstant)
 import Data.Either (Either(..))
 import Data.Either.Nested (Either3)
-import Data.Foldable (intercalate)
+import Data.Foldable (intercalate, minimum)
 import Data.Functor.Coproduct.Nested (Coproduct3)
 import Data.Int as Int
-import Data.Maybe (Maybe(..), fromMaybe, maybe)
+import Data.Maybe (Maybe(..), fromJust, fromMaybe, maybe)
 import Data.Newtype (unwrap, wrap)
 import Data.Time.Duration (Milliseconds(..))
 import Effect (Effect)
@@ -52,6 +52,7 @@ import Halogen.HTML.Properties as HP
 import Halogen.Query as HQ
 import Halogen.Themes.Bootstrap4 as HB
 import Page.Commons as Commons
+import Partial.Unsafe (unsafePartial)
 import Route (Route)
 import Route as Route
 import Utils as Utils
@@ -228,28 +229,32 @@ msgFailToAccess reason =
 -- |
 msgLastUpdatedAt :: forall p i. State -> Api.MeasDateTime -> H.HTML p i
 msgLastUpdatedAt state (Api.MeasDateTime utc) =
-  maybe invalidType ok $ Utils.asiaTokyoDateTime utc
+  case Utils.asiaTokyoDateTime utc of
+    Nothing ->
+      Commons.toastItem "Error" "" "有効な日付ではありませんでした" 
+
+    Just val ->
+      Commons.snackbarItem $ message val.time
   where
-
-  invalidType = Commons.toastItem "Error" "" "有効な日付ではありませんでした" 
-
-  ok v = Commons.snackbarItem $ message v.time
   
-  at :: Milliseconds
-  at = unInstant $ fromDateTime utc
-
-  duration :: Milliseconds
-  duration = wrap (unwrap state.nowTime - unwrap at)
-
   minute :: Int
-  minute = Int.floor (unwrap duration / (60.0 * 1000.0))
+  minute =
+    let at :: Milliseconds
+        at = unInstant $ fromDateTime utc
+        duration :: Number
+        duration = unwrap state.nowTime - unwrap at
+    in
+    Int.floor (duration / (60.0 * 1000.0))
 
   message :: String -> String
   message time =
+    let min :: Int
+        min = unsafePartial $ fromJust $ minimum [9999, minute]
+    in
     intercalate " "
       [ "Measured at"
       , time <> ","
-      , Int.toStringAs Int.decimal minute
+      , Int.toStringAs Int.decimal min
       , "mins ago."
       ]
 
