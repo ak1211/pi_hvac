@@ -53,13 +53,10 @@ import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NEA
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
-import Data.Generic.Rep.Ring (genericSub)
 import Data.Generic.Rep.Semigroup (genericAppend)
-import Data.Generic.Rep.Semiring (genericAdd, genericMul, genericOne, genericZero)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), fromJust, maybe)
-import Data.Newtype (class Newtype)
 import Data.String as String
 import Data.String.CodeUnits (fromCharArray)
 import Data.Time.Duration (Milliseconds(..))
@@ -84,32 +81,18 @@ type Pulse = {on :: Count, off :: Count}
 
 -- |
 newtype Baseband = Baseband (Array Pulse)
-derive instance genericBaseband :: Generic Baseband _
-derive instance newtypeBaseband :: Newtype Baseband _
-derive instance eqBaseband      :: Eq Baseband
-instance showBaseband           :: Show Baseband where
-  show = genericShow
+derive newtype instance eqBaseband            :: Eq Baseband
+derive newtype instance showBaseband          :: Show Baseband
 
 -- | count is based on 38khz carrier
 newtype Count = Count Int
-derive instance genericCount  :: Generic Count _
-derive instance newtypeCount  :: Newtype Count _
-derive instance eqCount       :: Eq Count
-derive instance ordCount      :: Ord Count
-instance showCount            :: Show Count where
-  show = genericShow
-instance semiringCount        :: Semiring Count where
-  add = genericAdd
-  zero = genericZero
-  mul = genericMul
-  one = genericOne
-instance ringCount            :: Ring Count where
-  sub = genericSub
-instance commutativeRingCount :: CommutativeRing Count
-instance eucideanRingCount    :: EuclideanRing Count where
-  degree (Count c) = degree c
-  div (Count c) (Count d) = Count (div c d)
-  mod (Count c) (Count d) = Count (mod c d)
+derive newtype instance eqCount               :: Eq Count
+derive newtype instance ordCount              :: Ord Count
+derive newtype instance showCount             :: Show Count
+derive newtype instance semiringCount         :: Semiring Count
+derive newtype instance ringCount             :: Ring Count
+derive newtype instance commutativeRingCount  :: CommutativeRing Count
+derive newtype instance eucideanRingCount     :: EuclideanRing Count
 
 -- |
 withTolerance

@@ -50,13 +50,13 @@ type Env =
 -- | ReaderT monad pattern
 newtype AppM a = AppM (ReaderT Env Aff a)
 
-derive newtype instance functorAppM :: Functor AppM
-derive newtype instance applyAppM :: Apply AppM
+derive newtype instance functorAppM     :: Functor AppM
+derive newtype instance applyAppM       :: Apply AppM
 derive newtype instance applicativeAppM :: Applicative AppM
-derive newtype instance bindAppM :: Bind AppM
-derive newtype instance monadAppM :: Monad AppM
+derive newtype instance bindAppM        :: Bind AppM
+derive newtype instance monadAppM       :: Monad AppM
 derive newtype instance monadEffectAppM :: MonadEffect AppM
-derive newtype instance monadAffAppM :: MonadAff AppM
+derive newtype instance monadAffAppM    :: MonadAff AppM
 
 -- | ReaderT helper
 runAppM :: forall a. AppM a -> Env -> Aff a
@@ -75,9 +75,9 @@ instance navigateAppM :: Navigate AppM where
   navigate newRoute = do
     psInterface <- AppM ask <#> \env -> env.psInterface
     locState <- liftEffect psInterface.locationState
-    let currPathQuery = locState.path <> locState.search
-    let nextPathQuery = Route.routeToPathQuery newRoute
-    when (nextPathQuery /= currPathQuery) do
+    let currentPathQuery  = locState.path <> locState.search
+        nextPathQuery     = Route.routeToPathQuery newRoute
+    when (nextPathQuery /= currentPathQuery) do
       liftEffect $ psInterface.pushState locState.state nextPathQuery
 
 instance navigateHalogenM :: Navigate m => Navigate (H.HalogenM s f g p o m) where
@@ -96,5 +96,6 @@ instance hasApiAccessibleHalogenM
   :: HasApiAccessible m
   => HasApiAccessible (H.HalogenM s f g p o m)
   where
+
   getApiBaseURL = H.lift getApiBaseURL
   getApiTimeout = H.lift getApiTimeout
