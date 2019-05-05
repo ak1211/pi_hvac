@@ -632,7 +632,7 @@ infraredSignal =
   case _ of
     NEC irValue ->
       [ HH.dl_
-        [ dt [ HH.text "Format" ]
+        [ dt [ HH.text "format" ]
         , dd [ HH.text "NEC" ]
         , dt [ HH.text "custom code" ]
         , dd [ HH.text $ showHex 4 irValue.custom ]
@@ -647,7 +647,7 @@ infraredSignal =
 
     AEHA irValue ->
       [ HH.dl_
-        [ dt [ HH.text "Format" ]
+        [ dt [ HH.text "format" ]
         , dd [ HH.text "AEHA" ]
         , dt [ HH.text "custom code" ]
         , dd [ HH.text $ showHex 4 irValue.custom ]
@@ -664,7 +664,7 @@ infraredSignal =
 
     SIRC irValue ->
       [ HH.dl_
-        [ dt [ HH.text "Format" ]
+        [ dt [ HH.text "format" ]
         , dd [ HH.text "SIRC" ]
         , dt [ HH.text "command" ]
         , dd [ HH.text $ showHexAndDec 1 irValue.command ]
