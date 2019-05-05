@@ -34,7 +34,6 @@ module InfraredCode
   , fromMilliseconds
   , infraredHexStringParser
   , showBit
-  , showLsbFirst
   , toBoolean 
   , toMilliseconds
   , toStringLsbFirst
@@ -47,17 +46,15 @@ import Control.Monad.Except (ExceptT, runExceptT, throwError)
 import Control.Monad.State (State, evalState)
 import Control.Monad.State as State
 import Control.MonadZero (guard)
-import Data.Array (fromFoldable, (..))
+import Data.Array ((..))
 import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NEA
 import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
-import Data.Generic.Rep.Semigroup (genericAppend)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), fromJust, maybe)
-import Data.String as String
 import Data.String.CodeUnits (fromCharArray)
 import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (traverse)
@@ -195,17 +192,9 @@ makeInfraredLeader = case _ of
 
 -- |
 newtype LsbFirst = LsbFirst (NonEmptyArray Bit)
-derive instance genericLsbFirst :: Generic LsbFirst _
-derive instance eqLsbFirst      :: Eq LsbFirst
-instance semigroupLsbFirst      :: Semigroup LsbFirst where
-  append = genericAppend
-instance showLsbFirst'          :: Show LsbFirst where
-  show = showLsbFirst
-
--- |
-showLsbFirst  :: LsbFirst -> String
-showLsbFirst (LsbFirst xs) =
-  "(LsbFirst " <> (String.joinWith "" $ fromFoldable $ map showBit xs) <> ")"
+derive newtype instance eqLsbFirst        :: Eq LsbFirst
+derive newtype instance semigroupLsbFirst :: Semigroup LsbFirst
+derive newtype instance showLsbFirst      :: Show LsbFirst
 
 -- |
 toStringLsbFirst :: LsbFirst -> String
