@@ -592,17 +592,17 @@ infraredBaseband (Baseband pulses) =
 infraredBitpatterns :: forall p i. Tuple InfraredLeader (Array Bit) -> Array (H.HTML p i)
 infraredBitpatterns (Tuple leader vs) =
   case leader of
-    ProtoAeha _     ->
+    LeaderAeha _     ->
       [ HH.text "AEHA"
       , HH.br_
       , row $ toArrayArray 8 vs
       ]
-    ProtoNec _      ->
+    LeaderNec _      ->
       [ HH.text "NEC"
       , HH.br_
       , row $ toArrayArray 8 vs
       ]
-    ProtoSirc _  ->
+    LeaderSirc _  ->
       let bit7 = Array.take 7 vs
           left = Array.drop 7 vs
       in
@@ -610,7 +610,7 @@ infraredBitpatterns (Tuple leader vs) =
       , HH.br_
       , row (bit7 : toArrayArray 8 left)
       ]
-    ProtoUnknown _     ->
+    LeaderUnknown _     ->
       [ HH.text "Unknown"
       , HH.br_
       , row $ toArrayArray 8 vs
@@ -632,7 +632,7 @@ infraredSignal =
   case _ of
     NEC irValue ->
       [ HH.dl_
-        [ dt [ HH.text "protocol" ]
+        [ dt [ HH.text "Format" ]
         , dd [ HH.text "NEC" ]
         , dt [ HH.text "custom code" ]
         , dd [ HH.text $ showHex 4 irValue.custom ]
@@ -647,7 +647,7 @@ infraredSignal =
 
     AEHA irValue ->
       [ HH.dl_
-        [ dt [ HH.text "protocol" ]
+        [ dt [ HH.text "Format" ]
         , dd [ HH.text "AEHA" ]
         , dt [ HH.text "custom code" ]
         , dd [ HH.text $ showHex 4 irValue.custom ]
@@ -664,7 +664,7 @@ infraredSignal =
 
     SIRC irValue ->
       [ HH.dl_
-        [ dt [ HH.text "protocol" ]
+        [ dt [ HH.text "Format" ]
         , dd [ HH.text "SIRC" ]
         , dt [ HH.text "command" ]
         , dd [ HH.text $ showHexAndDec 1 irValue.command ]
@@ -675,7 +675,7 @@ infraredSignal =
 
     Unknown irValue ->
       [ HH.dl_
-        [ dt [ HH.text "unknown protocol" ]
+        [ dt [ HH.text "unknown format" ]
         , dd [ HH.text $ show irValue ]
         ]
       ]

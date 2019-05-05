@@ -169,10 +169,10 @@ toBoolean Assert = true
 
 -- |
 data InfraredLeader
-  = ProtoAeha Pulse 
-  | ProtoNec Pulse 
-  | ProtoSirc Pulse 
-  | ProtoUnknown Pulse 
+  = LeaderAeha Pulse 
+  | LeaderNec Pulse 
+  | LeaderSirc Pulse 
+  | LeaderUnknown Pulse 
 derive instance genericInfraredLeader :: Generic InfraredLeader _
 derive instance eqInfraredLeader      :: Eq InfraredLeader
 instance showInfraredLeader           :: Show InfraredLeader where
@@ -181,10 +181,10 @@ instance showInfraredLeader           :: Show InfraredLeader where
 -- | InfraredLeader data constructor
 makeInfraredLeader :: Pulse -> InfraredLeader 
 makeInfraredLeader = case _ of
-  p | aeha p    -> ProtoAeha p
-    | nec p     -> ProtoNec p
-    | sirc p    -> ProtoSirc p
-    | otherwise -> ProtoUnknown p
+  p | aeha p    -> LeaderAeha p
+    | nec p     -> LeaderNec p
+    | sirc p    -> LeaderSirc p
+    | otherwise -> LeaderUnknown p
   where
 
   -- | upper lower tolerance 0.2ms
@@ -221,7 +221,7 @@ makeInfraredLeader = case _ of
 demodulate :: InfraredLeader -> Array Pulse -> Array Bit
 demodulate leader ps =
   case leader of
-    ProtoSirc _ ->
+    LeaderSirc _ ->
       map sircModulation ps
     _ ->
       map pulseDistanceModulation ps
@@ -322,15 +322,15 @@ decodePhase2 tokens =
 -- | 入力リーダ部とビット配列から赤外線信号にする
 decodePhase3 :: Tuple InfraredLeader (Array Bit) -> Either ProcessError InfraredCode
 decodePhase3 (Tuple leader bitarray) =
-  evalState (runExceptT protocol) bitarray
+  evalState (runExceptT decoder) bitarray
   where
 
-  protocol :: DecodeMonad ProcessError InfraredCode
-  protocol = case leader of
-    ProtoAeha _     -> aehaProtocol
-    ProtoNec _      -> necProtocol
-    ProtoSirc _     -> sircProtocol
-    ProtoUnknown _  -> unknownProtocol
+  decoder :: DecodeMonad ProcessError InfraredCode
+  decoder = case leader of
+    LeaderAeha _    -> decodeAeha
+    LeaderNec _     -> decodeNec
+    LeaderSirc _    -> decodeSirc
+    LeaderUnknown _ -> decodeUnknown
 
 -- |
 type DecodeMonad e a = ExceptT e (State (Array Bit)) a
@@ -366,8 +366,8 @@ takeEnd errmsg = do
   maybe (throwError errmsg) pure $ NEA.fromArray array
 
 -- |
-aehaProtocol :: DecodeMonad ProcessError InfraredCode
-aehaProtocol = do
+decodeAeha :: DecodeMonad ProcessError InfraredCode
+decodeAeha = do
   custom <- takeBits 16 "fail to read: custom code (AEHA)"
   parity <- takeBits 4 "fail to read: parity (AEHA)"
   data_0 <- takeBits 4 "fail to read: data0 (AEHA)"
@@ -383,8 +383,8 @@ aehaProtocol = do
               }
 
 -- |
-necProtocol :: DecodeMonad ProcessError InfraredCode
-necProtocol = do
+decodeNec :: DecodeMonad ProcessError InfraredCode
+decodeNec = do
   custom <- takeBits 16 "fail to read: custom code (NEC)"
   data__ <- takeBits 8 "fail to read: data (NEC)"
   i_data <- takeBits 8 "fail to read: inv-data (NEC)"
@@ -396,8 +396,8 @@ necProtocol = do
               }
 
 -- |
-sircProtocol :: DecodeMonad ProcessError InfraredCode
-sircProtocol = do
+decodeSirc :: DecodeMonad ProcessError InfraredCode
+decodeSirc = do
   comm <- takeBits 7 "fail to read: command code (SIRC)"
   addr <- takeEnd "fail to read: address (SIRC)"
   pure $ SIRC { command: LsbFirst comm
@@ -405,8 +405,8 @@ sircProtocol = do
               }
 
 -- |
-unknownProtocol :: DecodeMonad ProcessError InfraredCode
-unknownProtocol = do
+decodeUnknown :: DecodeMonad ProcessError InfraredCode
+decodeUnknown = do
   array <- State.get
   State.put []
   pure $ Unknown array
