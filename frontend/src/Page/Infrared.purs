@@ -56,7 +56,7 @@ import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Themes.Bootstrap4 as HB
-import InfraredCode (Baseband(..), Bit, Count, InfraredCodes(..), InfraredHexString, InfraredLeader(..), LsbFirst, decodeBaseband, decodePhase1, decodePhase2, decodePhase3, infraredHexStringParser, toMilliseconds, toStringLsbFirst, toStringLsbFirstWithHex)
+import InfraredCode (Baseband(..), Bit, Count, InfraredCode(..), InfraredHexString, InfraredLeader(..), LsbFirst, decodeBaseband, decodePhase1, decodePhase2, decodePhase3, infraredHexStringParser, toMilliseconds, toStringLsbFirst, toStringLsbFirstWithHex)
 import Page.Commons as Commons
 import Route (Route)
 import Route as Route
@@ -627,7 +627,7 @@ infraredBitpatterns (Tuple leader vs) =
       $ map (HH.text <<< show) xs
 
 -- |
-infraredSignal :: forall p i. InfraredCodes -> Array (H.HTML p i)
+infraredSignal :: forall p i. InfraredCode -> Array (H.HTML p i)
 infraredSignal =
   case _ of
     NEC irValue ->

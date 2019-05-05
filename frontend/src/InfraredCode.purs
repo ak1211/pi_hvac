@@ -19,7 +19,7 @@ module InfraredCode
   ( Baseband(..)
   , Bit(..)
   , Count(..)
-  , InfraredCodes(..)
+  , InfraredCode(..)
   , InfraredHexString
   , InfraredLeader(..)
   , LsbFirst(..)
@@ -80,6 +80,33 @@ type Pulse = {on :: Count, off :: Count}
 newtype Baseband = Baseband (Array Pulse)
 derive newtype instance eqBaseband            :: Eq Baseband
 derive newtype instance showBaseband          :: Show Baseband
+
+-- |
+infraredHexStringParser:: Parser InfraredHexString Baseband
+infraredHexStringParser =
+  Baseband <$> Array.many (pulse <* skipSpaces)
+  where
+
+  pulse = do
+    -- 入力値はon -> offの順番
+    ton <- valueOf32Bit <?> "on-counts"
+    toff <- valueOf32Bit <?> "off-counts"
+    pure {on: Count ton, off: Count toff}
+
+  valueOf32Bit = do
+    -- 入力値はLower -> Higherの順番
+    lower <- hexd16bit <?> "lower-pair hex digit"
+    higher<- hexd16bit <?> "higher-pair hex digit"
+    -- ここは普通の数字の書き方(位取り記数法: 高位が前, 下位が後)
+    let str = higher <> lower
+        maybeNum = Int.fromStringAs Int.hexadecimal str
+    -- 入力値は検査済みなのでfromJustでよい
+    pure (unsafePartial $ fromJust maybeNum)
+
+  hexd16bit = do
+    a <- hexDigit
+    b <- hexDigit
+    pure $ fromCharArray [ a, b ]
 
 -- | count is based on 38khz carrier
 newtype Count = Count Int
@@ -191,6 +218,31 @@ makeInfraredLeader = case _ of
     (Array.any (_ == pulse.on) on_) && (Array.any (_ == pulse.off) off_)
 
 -- |
+demodulate :: InfraredLeader -> Array Pulse -> Array Bit
+demodulate leader ps =
+  case leader of
+    ProtoSirc _ ->
+      map sircModulation ps
+    _ ->
+      map pulseDistanceModulation ps
+  where
+
+  -- | pulse distance modulation is NEC, AEHA
+  pulseDistanceModulation :: Pulse -> Bit
+  pulseDistanceModulation = case _ of
+    x | (Count 2 * x.on) <= x.off -> Assert
+      | otherwise                 -> Negate
+
+  -- | pulse width modulation is SIRC
+  sircModulation :: Pulse -> Bit
+  sircModulation p =
+    let threshold = withTolerance
+                      {upper: Milliseconds 0.1, lower: Milliseconds 0.1}
+                      (Milliseconds 1.2)
+    in
+    fromBoolean $ Array.any (_ == p.on) threshold
+
+-- |
 newtype LsbFirst = LsbFirst (NonEmptyArray Bit)
 derive newtype instance eqLsbFirst        :: Eq LsbFirst
 derive newtype instance semigroupLsbFirst :: Semigroup LsbFirst
@@ -217,45 +269,18 @@ deserialize (LsbFirst bits) =
   f acc Negate = acc * 2 + 0
 
 -- |
-data InfraredCodes
+data InfraredCode
   = Unknown (Array Bit)
   | AEHA {custom :: LsbFirst, parity :: LsbFirst, data0 :: LsbFirst, data :: Array LsbFirst, stop :: Bit}
   | NEC  {custom :: LsbFirst, data :: LsbFirst, invData :: LsbFirst, stop :: Bit}
   | SIRC {command :: LsbFirst, address :: LsbFirst}
-derive instance genericInfraredCodes  :: Generic InfraredCodes _
-derive instance eqInfraredCodes       :: Eq InfraredCodes
-instance showInfraredCodes            :: Show InfraredCodes where
+derive instance genericInfraredCode :: Generic InfraredCode _
+derive instance eqInfraredCode      :: Eq InfraredCode
+instance showInfraredCode           :: Show InfraredCode where
   show = genericShow
 
 -- |
-infraredHexStringParser:: Parser InfraredHexString Baseband
-infraredHexStringParser =
-  Baseband <$> Array.many (pulse <* skipSpaces)
-  where
-
-  pulse = do
-    -- 入力値はon -> offの順番
-    ton <- valueOf32Bit <?> "on-counts"
-    toff <- valueOf32Bit <?> "off-counts"
-    pure {on: Count ton, off: Count toff}
-
-  valueOf32Bit = do
-    -- 入力値はLower -> Higherの順番
-    lower <- hexd16bit <?> "lower-pair hex digit"
-    higher<- hexd16bit <?> "higher-pair hex digit"
-    -- ここは普通の数字の書き方(位取り記数法: 高位が前, 下位が後)
-    let str = higher <> lower
-        maybeNum = Int.fromStringAs Int.hexadecimal str
-    -- 入力値は検査済みなのでfromJustでよい
-    pure (unsafePartial $ fromJust maybeNum)
-
-  hexd16bit = do
-    a <- hexDigit
-    b <- hexDigit
-    pure $ fromCharArray [ a, b ]
-
--- |
-decodeBaseband :: Baseband -> Either ProcessError (Array InfraredCodes)
+decodeBaseband :: Baseband -> Either ProcessError (Array InfraredCode)
 decodeBaseband =
   traverse (decodePhase3 <=< decodePhase2) <<< decodePhase1 
 
@@ -294,38 +319,13 @@ decodePhase2 tokens =
     Nothing ->
       Left "Unexpected end of input"
 
--- |
-demodulate :: InfraredLeader -> Array Pulse -> Array Bit
-demodulate leader ps =
-  case leader of
-    ProtoSirc _ ->
-      map sircModulation ps
-    _ ->
-      map pulseDistanceModulation ps
-  where
-
-  -- | pulse distance modulation is NEC, AEHA
-  pulseDistanceModulation :: Pulse -> Bit
-  pulseDistanceModulation = case _ of
-    x | (Count 2 * x.on) <= x.off -> Assert
-      | otherwise                 -> Negate
-
-  -- | pulse width modulation is SIRC
-  sircModulation :: Pulse -> Bit
-  sircModulation p =
-    let threshold = withTolerance
-                      {upper: Milliseconds 0.1, lower: Milliseconds 0.1}
-                      (Milliseconds 1.2)
-    in
-    fromBoolean $ Array.any (_ == p.on) threshold
-
 -- | 入力リーダ部とビット配列から赤外線信号にする
-decodePhase3 :: Tuple InfraredLeader (Array Bit) -> Either ProcessError InfraredCodes
+decodePhase3 :: Tuple InfraredLeader (Array Bit) -> Either ProcessError InfraredCode
 decodePhase3 (Tuple leader bitarray) =
   evalState (runExceptT protocol) bitarray
   where
 
-  protocol :: DecodeMonad ProcessError InfraredCodes
+  protocol :: DecodeMonad ProcessError InfraredCode
   protocol = case leader of
     ProtoAeha _     -> aehaProtocol
     ProtoNec _      -> necProtocol
@@ -342,6 +342,7 @@ takeBit errmsg = do
   case Array.uncons state of
     Nothing ->
       throwError errmsg
+
     Just x -> do
       State.put x.tail
       pure x.head
@@ -365,7 +366,7 @@ takeEnd errmsg = do
   maybe (throwError errmsg) pure $ NEA.fromArray array
 
 -- |
-aehaProtocol :: DecodeMonad ProcessError InfraredCodes
+aehaProtocol :: DecodeMonad ProcessError InfraredCode
 aehaProtocol = do
   custom <- takeBits 16 "fail to read: custom code (AEHA)"
   parity <- takeBits 4 "fail to read: parity (AEHA)"
@@ -382,7 +383,7 @@ aehaProtocol = do
               }
 
 -- |
-necProtocol :: DecodeMonad ProcessError InfraredCodes
+necProtocol :: DecodeMonad ProcessError InfraredCode
 necProtocol = do
   custom <- takeBits 16 "fail to read: custom code (NEC)"
   data__ <- takeBits 8 "fail to read: data (NEC)"
@@ -395,7 +396,7 @@ necProtocol = do
               }
 
 -- |
-sircProtocol :: DecodeMonad ProcessError InfraredCodes
+sircProtocol :: DecodeMonad ProcessError InfraredCode
 sircProtocol = do
   comm <- takeBits 7 "fail to read: command code (SIRC)"
   addr <- takeEnd "fail to read: address (SIRC)"
@@ -404,7 +405,7 @@ sircProtocol = do
               }
 
 -- |
-unknownProtocol :: DecodeMonad ProcessError InfraredCodes
+unknownProtocol :: DecodeMonad ProcessError InfraredCode
 unknownProtocol = do
   array <- State.get
   State.put []
