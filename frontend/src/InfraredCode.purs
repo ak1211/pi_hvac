@@ -47,7 +47,7 @@ import Control.Monad.Except (ExceptT, runExceptT, throwError)
 import Control.Monad.State (State, evalState)
 import Control.Monad.State as State
 import Control.MonadZero (guard)
-import Data.Array ((..))
+import Data.Array (fromFoldable, (..))
 import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NEA
@@ -205,7 +205,7 @@ instance showLsbFirst'          :: Show LsbFirst where
 -- |
 showLsbFirst  :: LsbFirst -> String
 showLsbFirst (LsbFirst xs) =
-  "(LsbFirst " <> (String.joinWith "" $ NEA.toArray $ map showBit xs) <> ")"
+  "(LsbFirst " <> (String.joinWith "" $ fromFoldable $ map showBit xs) <> ")"
 
 -- |
 toStringLsbFirst :: LsbFirst -> String
