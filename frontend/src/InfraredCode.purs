@@ -63,7 +63,7 @@ import Data.Unfoldable (unfoldr1)
 import Partial.Unsafe (unsafePartial)
 import Text.Parsing.Parser (Parser)
 import Text.Parsing.Parser.Combinators ((<?>))
-import Text.Parsing.Parser.String (skipSpaces)
+import Text.Parsing.Parser.String (eof, skipSpaces)
 import Text.Parsing.Parser.Token (hexDigit)
 import Utils (toArrayNonEmptyArray)
 
@@ -78,13 +78,15 @@ type Pulse = {on :: Count, off :: Count}
 
 -- |
 newtype Baseband = Baseband (Array Pulse)
-derive newtype instance eqBaseband            :: Eq Baseband
-derive newtype instance showBaseband          :: Show Baseband
+derive newtype instance eqBaseband    :: Eq Baseband
+derive newtype instance showBaseband  :: Show Baseband
 
 -- |
 infraredHexStringParser:: Parser InfraredHexString Baseband
-infraredHexStringParser =
-  Baseband <$> Array.many (pulse <* skipSpaces)
+infraredHexStringParser = do
+    arr <- Array.some (pulse <* skipSpaces)
+    eof
+    pure (Baseband arr)
   where
 
   pulse = do
