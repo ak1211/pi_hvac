@@ -21,6 +21,7 @@ module InfraredCode
   , BitStream
   , Count(..)
   , Celsius(..)
+  , Notch(..)
   , InfraredCodeFormat(..)
   , InfraredHexString
   , InfraredLeader(..)
@@ -347,9 +348,16 @@ derive newtype instance ordCelsius  :: Ord Celsius
 derive newtype instance showCelsius :: Show Celsius
 
 -- |
+data Notch = Auto | Notch1 | Notch2 | Notch3 | Notch4 | Notch5
+derive instance genericNotch  :: Generic Notch _
+derive instance eqNotch       :: Eq Notch
+instance showNotch            :: Show Notch where
+  show = genericShow
+
+-- |
 data IrRemoteControlCode
   = UnknownIrRemote       (Array InfraredCodeFormat)
-  | IrRemotePanasonicHvac {temperature :: Celsius, mode :: Int, switch :: Int, swing :: Int, fan :: Int, profile :: Int, crc :: Int}
+  | IrRemotePanasonicHvac {temperature :: Celsius, mode :: Int, switch :: Int, swing :: Notch, fan :: Notch, profile :: Int, crc :: Int}
 derive instance genericIrRemoteControlCode  :: Generic IrRemoteControlCode _
 derive instance eqIrRemoteControlCode       :: Eq IrRemoteControlCode
 instance showIrRemoteControlCode            :: Show IrRemoteControlCode where
@@ -528,15 +536,35 @@ decodePanasonicHVAC = case _ of
         prof  = unwrap (toLsbFirst b14)
         crc   = unwrap (toLsbFirst b19)
     in do
+    s <- swingNotch swing
+    f <- fanNotch fan
     pure $ IrRemotePanasonicHvac
       { temperature: Celsius (16 + temp)
       , mode: mode
       , switch: switch
-      , swing: swing
-      , fan: fan
+      , swing: s
+      , fan: f
       , profile: prof
       , crc: crc
       }
+  
+  swingNotch = case _ of
+    0xf -> Just Auto
+    0x1 -> Just Notch1
+    0x2 -> Just Notch2
+    0x3 -> Just Notch3
+    0x4 -> Just Notch4
+    0x5 -> Just Notch5
+    _ -> Nothing
+
+  fanNotch = case _ of
+    0xa -> Just Auto
+    0x3 -> Just Notch1
+    0x4 -> Just Notch2
+    0x5 -> Just Notch3
+    0x6 -> Just Notch4
+    0x7 -> Just Notch5
+    _ -> Nothing
 
   -- |
   firstFrame :: InfraredCodeFormat
