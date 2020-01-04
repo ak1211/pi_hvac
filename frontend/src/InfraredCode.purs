@@ -20,6 +20,7 @@ module InfraredCode
   , Bit(..)
   , BitStream
   , Count(..)
+  , Celsius(..)
   , InfraredCodeFormat(..)
   , InfraredHexString
   , InfraredLeader(..)
@@ -31,6 +32,7 @@ module InfraredCode
   , decodePhase1
   , decodePhase2
   , decodePhase3
+  , decodePhase4
   , fromBoolean
   , fromMilliseconds
   , infraredHexStringParser
@@ -53,17 +55,20 @@ import Control.Monad.Except (ExceptT, runExceptT, throwError)
 import Control.Monad.State (State, evalState)
 import Control.Monad.State as State
 import Control.MonadZero (guard)
-import Data.Newtype (class Newtype, unwrap)
 import Data.Array ((..))
 import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NEA
+import Data.Bifunctor as Bifunctor
 import Data.Either (Either(..))
+import Data.Foldable (all)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Int as Int
-import Data.Maybe (Maybe(..), fromJust, maybe)
-import Data.String.CodeUnits (fromCharArray)
+import Data.Int.Bits ((.&.), shr)
+import Data.Maybe (Maybe(..), isJust, fromJust, fromMaybe, maybe)
+import Data.Newtype (class Newtype, unwrap)
+import Data.String.CodeUnits (fromCharArray, toCharArray)
 import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
@@ -74,6 +79,7 @@ import Text.Parsing.Parser.Combinators ((<?>))
 import Text.Parsing.Parser.String (eof, skipSpaces)
 import Text.Parsing.Parser.Token (hexDigit)
 import Utils (toArrayNonEmptyArray)
+
 
 -- | input infrared hexadecimal code
 type InfraredHexString = String
@@ -167,7 +173,7 @@ showBit :: Bit -> String
 showBit Negate = "0"
 showBit Assert = "1"
 
---|
+---|
 fromBoolean :: Boolean -> Bit
 fromBoolean false = Negate
 fromBoolean true = Assert
@@ -179,6 +185,19 @@ toBoolean Assert = true
 
 -- |
 type BitStream = NonEmptyArray Bit
+
+-- |
+fromBinaryString :: String -> Maybe BitStream
+fromBinaryString input =
+  let xs = map f $ toCharArray input
+  in do
+    guard $ all isJust xs
+    NEA.fromArray $ Array.catMaybes xs
+  where
+  f :: Char -> Maybe Bit
+  f '0' = Just Negate
+  f '1' = Just Assert
+  f _ = Nothing
 
 -- |
 data InfraredLeader
@@ -321,19 +340,30 @@ instance showInfraredCodeFormat           :: Show InfraredCodeFormat where
   show = genericShow
 
 -- |
+newtype Celsius = Celsius Int
+derive instance newtypeCelsius      :: Newtype Celsius _
+derive newtype instance eqCelsius   :: Eq Celsius
+derive newtype instance ordCelsius  :: Ord Celsius
+derive newtype instance showCelsius :: Show Celsius
+
+-- |
 data IrRemoteControlCode
   = UnknownIrRemote       (Array InfraredCodeFormat)
-  | IrRemotePanasonicHvac (Array InfraredCodeFormat)
+  | IrRemotePanasonicHvac {temperature :: Celsius, mode :: Int, switch :: Int, swing :: Int, fan :: Int, profile :: Int, crc :: Int}
+derive instance genericIrRemoteControlCode  :: Generic IrRemoteControlCode _
+derive instance eqIrRemoteControlCode       :: Eq IrRemoteControlCode
+instance showIrRemoteControlCode            :: Show IrRemoteControlCode where
+  show = genericShow
 
 -- |
 toIrCodeFormats :: Baseband -> Either ProcessError (Array InfraredCodeFormat)
 toIrCodeFormats =
-    traverse (decodePhase3 <=< decodePhase2) <<< decodePhase1 
+  traverse (decodePhase3 <=< decodePhase2) <<< decodePhase1 
 
 -- |
-toIrRemoteControlCode :: Array InfraredCodeFormat -> IrRemoteControlCode
-toIrRemoteControlCode formats =
-  UnknownIrRemote formats
+toIrRemoteControlCode :: Baseband -> Either ProcessError IrRemoteControlCode
+toIrRemoteControlCode =
+  Bifunctor.rmap decodePhase4 <<< toIrCodeFormats
 
 -- | 入力を各フレームに分ける
 decodePhase1 :: Baseband -> Array (Array Pulse)
@@ -382,12 +412,6 @@ decodePhase3 (Tuple leader bitarray) =
     LeaderNec _     -> decodeNec
     LeaderSirc _    -> decodeSirc
     LeaderUnknown _ -> decodeUnknown
-
--- | 各機種の赤外線信号にする
-decodePhase4 :: Array InfraredCodeFormat -> IrRemoteControlCode
-decodePhase4 irFrames =
-  UnknownIrRemote irFrames
---  | IrRemotePanasonicHvac (Array InfraredCodeFormat)
 
 -- |
 type DecodeMonad e a = ExceptT e (State (Array Bit)) a
@@ -463,3 +487,71 @@ decodeUnknown = do
   array <- State.get
   State.put []
   pure $ FormatUnknown array
+
+-- | 各機種の赤外線信号にする
+decodePhase4 :: Array InfraredCodeFormat -> IrRemoteControlCode
+decodePhase4 irFrames =
+  fromMaybe (UnknownIrRemote irFrames) $ do
+    ff <- decodePanasonicHVAC irFrames
+    pure ff
+
+-- |
+-- Panasonic HVAC remote control
+--
+decodePanasonicHVAC :: Array InfraredCodeFormat -> Maybe IrRemoteControlCode
+decodePanasonicHVAC = case _ of
+  [ a, b ] | a == firstFrame -> decode b
+  _ -> Nothing
+  where
+
+  decode :: InfraredCodeFormat -> Maybe IrRemoteControlCode
+  decode = case _ of
+    FormatAEHA 
+      { custom: b1b2
+      , octets: [ b_3, b_4, b_5, b_6
+                , b_7, b_8, b_9, b10
+                , b11, b12, b13, b14
+                , b15, b16, b17, b18
+                , b19
+                ]
+      , stop: _
+      } -> make b_6 b_7 b_9 b14 b19
+
+    _ ->  Nothing
+
+  make b_6 b_7 b_9 b14 b19 =
+    let temp  = (unwrap (toMsbFirst b_7) .&. 0x1c) `shr` 1
+        mode  = (unwrap (toMsbFirst b_6) `shr` 4) .&. 0xf
+        switch= unwrap (toMsbFirst b_6) .&. 0x1
+        fan   = (unwrap (toMsbFirst b_9) `shr` 4) .&. 0xf
+        swing = unwrap (toMsbFirst b_9) .&. 0xf
+        prof  = unwrap (toMsbFirst b14)
+        crc   = unwrap (toMsbFirst b19)
+    in do
+    pure $ IrRemotePanasonicHvac
+      { temperature: Celsius (16 + temp)
+      , mode: mode
+      , switch: switch
+      , swing: swing
+      , fan: fan
+      , profile: prof
+      , crc: crc
+      }
+
+  -- |
+  firstFrame :: InfraredCodeFormat
+  firstFrame =
+    let custom = "01000000" <> "00000100"  -- 40 04
+        octets =  [ "00000111"  -- 07
+                  , "00100000"  -- 20
+                  , "00000000"  -- 00
+                  , "00000000"  -- 00
+                  , "00000000"  -- 00
+                  , "01100000"  -- 60
+                  ]
+    in
+    FormatAEHA
+    { custom: unsafePartial $ fromJust $ fromBinaryString custom
+    , octets: Array.mapMaybe fromBinaryString octets
+    , stop: Assert
+    }

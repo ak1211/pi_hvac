@@ -56,7 +56,7 @@ import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Themes.Bootstrap4 as HB
-import InfraredCode (Baseband(..), Bit, Count, InfraredCodeFormat(..), InfraredHexString, InfraredLeader(..), IrRemoteControlCode(..), decodePhase1, decodePhase2, decodePhase3, infraredHexStringParser, toIrCodeFormats, toIrRemoteControlCode, toLsbFirst, toMilliseconds, toMsbFirst)
+import InfraredCode (Baseband(..), Bit, Count, InfraredCodeFormat(..), InfraredHexString, InfraredLeader(..), IrRemoteControlCode(..), decodePhase1, decodePhase2, decodePhase3, decodePhase4, infraredHexStringParser, toIrRemoteControlCode, toLsbFirst, toMilliseconds, toMsbFirst)
 import Page.Commons as Commons
 import Route (Route)
 import Route as Route
@@ -627,8 +627,8 @@ infraredBitpatterns (Tuple leader vs) =
       $ map (HH.text <<< show) xs
 
 -- |
-infraredSignal :: forall p i. InfraredCodeFormat -> Array (H.HTML p i)
-infraredSignal =
+infraredCordFormat :: forall p i. InfraredCodeFormat -> Array (H.HTML p i)
+infraredCordFormat =
   case _ of
     FormatNEC irValue ->
       [ HH.dl_
@@ -697,6 +697,39 @@ infraredSignal =
       [ HP.classes [HB.col6, HB.colMd2]
       ]
       [ HH.text $ showHex x, HH.text " " ]
+
+-- |
+infraredRemoteControlCode :: forall p i. IrRemoteControlCode -> Array (H.HTML p i)
+infraredRemoteControlCode = case _ of
+  UnknownIrRemote formats ->
+    [ HH.text "Unknown IR remote Code"
+    ]
+
+  IrRemotePanasonicHvac v ->
+    [ HH.text "Panasonic HVAC"
+    , HH.dl_
+      [ dt [ HH.text "Temperature" ]
+      , dd [ HH.text (show v.temperature) ]
+      , dt [ HH.text "Mode" ]
+      , dd [ HH.text (show v.mode) ]
+      , dt [ HH.text "Switch" ]
+      , dd [ HH.text (show v.switch) ]
+      , dt [ HH.text "Fan" ]
+      , dd [ HH.text (show v.fan) ]
+      , dt [ HH.text "Swing" ]
+      , dd [ HH.text (show v.swing) ]
+      , dt [ HH.text "Profile" ]
+      , dd [ HH.text (show v.profile) ]
+      , dt [ HH.text "CRC" ]
+      , dd [ HH.text (show v.crc) ]
+      ]
+    ]
+  where
+
+  dt = HH.dt_
+
+  dd = HH.dd [ HP.classes [HB.pl4, HB.row] ]
+
 
 -- |
 showHex :: Int -> String
@@ -791,9 +824,10 @@ renderInfraredRemoconCode state =
     where
 
     display ir =
-      let baseband    = Bifunctor.lmap parseErrorMessage (runParser ir.code infraredHexStringParser)
-          bitPatterns = (traverse decodePhase2 <<< decodePhase1) =<< baseband
-          signal      = traverse decodePhase3 =<< bitPatterns
+      let baseband      = Bifunctor.lmap parseErrorMessage (runParser ir.code infraredHexStringParser)
+          bitPatterns   = (traverse decodePhase2 <<< decodePhase1) =<< baseband
+          irframes      = traverse decodePhase3 =<< bitPatterns
+          irRemoteCode  = Bifunctor.rmap decodePhase4 irframes
       in
       HH.p_
         [ HH.h3_ [ HH.text "Binaries" ]
@@ -816,10 +850,14 @@ renderInfraredRemoconCode state =
         , HH.p
           [ HP.class_ HB.p3 ]
           $ either (Array.singleton <<< HH.text) (intercalate [HH.hr_] <<< map infraredBitpatterns) bitPatterns
+        , HH.h3_ [ HH.text "Infrared code format" ]
+        , HH.p
+          [ HP.class_ HB.p3 ]
+          $ either (Array.singleton <<< HH.text) (intercalate [HH.hr_] <<< map infraredCordFormat) irframes
         , HH.h3_ [ HH.text "Infrared remote control code" ]
         , HH.p
           [ HP.class_ HB.p3 ]
-          $ either (Array.singleton <<< HH.text) (intercalate [HH.hr_] <<< map infraredSignal) signal
+          $ either (Array.singleton <<< HH.text) infraredRemoteControlCode irRemoteCode
         ]
  
 -- |
@@ -911,10 +949,8 @@ popoverContents input =
   where
   
   toIrCode :: InfraredHexString -> Either String IrRemoteControlCode
-  toIrCode inp = do
-    baseband <- toBaseband inp
-    formats <- toIrCodeFormats baseband
-    pure $ toIrRemoteControlCode formats
+  toIrCode =
+    toIrRemoteControlCode <=< toBaseband
 
   toBaseband :: InfraredHexString -> Either String Baseband
   toBaseband inp =
