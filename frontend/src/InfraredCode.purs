@@ -520,13 +520,13 @@ decodePanasonicHVAC = case _ of
     _ ->  Nothing
 
   make b_6 b_7 b_9 b14 b19 =
-    let temp  = (unwrap (toMsbFirst b_7) .&. 0x1c) `shr` 1
-        mode  = (unwrap (toMsbFirst b_6) `shr` 4) .&. 0xf
-        switch= unwrap (toMsbFirst b_6) .&. 0x1
-        fan   = (unwrap (toMsbFirst b_9) `shr` 4) .&. 0xf
-        swing = unwrap (toMsbFirst b_9) .&. 0xf
-        prof  = unwrap (toMsbFirst b14)
-        crc   = unwrap (toMsbFirst b19)
+    let temp  = (unwrap (toLsbFirst b_7) `shr` 1) .&. 0xf
+        mode  = (unwrap (toLsbFirst b_6) `shr` 4) .&. 0xf
+        switch= unwrap (toLsbFirst b_6) .&. 0x1
+        fan   = (unwrap (toLsbFirst b_9) `shr` 4) .&. 0xf
+        swing = unwrap (toLsbFirst b_9) .&. 0xf
+        prof  = unwrap (toLsbFirst b14)
+        crc   = unwrap (toLsbFirst b19)
     in do
     pure $ IrRemotePanasonicHvac
       { temperature: Celsius (16 + temp)
