@@ -99416,6 +99416,7 @@ var Data_Bifunctor = require("../Data.Bifunctor/index.js");
 var Data_Boolean = require("../Data.Boolean/index.js");
 var Data_CommutativeRing = require("../Data.CommutativeRing/index.js");
 var Data_Either = require("../Data.Either/index.js");
+var Data_Enum = require("../Data.Enum/index.js");
 var Data_Eq = require("../Data.Eq/index.js");
 var Data_EuclideanRing = require("../Data.EuclideanRing/index.js");
 var Data_Foldable = require("../Data.Foldable/index.js");
@@ -99444,57 +99445,95 @@ var Text_Parsing_Parser_Token = require("../Text.Parsing.Parser.Token/index.js")
 var Utils = require("../Utils/index.js");
 
 // |
-var Auto = (function () {
-    function Auto() {
+var SAuto = (function () {
+    function SAuto() {
 
     };
-    Auto.value = new Auto();
-    return Auto;
+    SAuto.value = new SAuto();
+    return SAuto;
 })();
 
 // |
-var Notch1 = (function () {
-    function Notch1() {
+var SHorizontal = (function () {
+    function SHorizontal() {
 
     };
-    Notch1.value = new Notch1();
-    return Notch1;
+    SHorizontal.value = new SHorizontal();
+    return SHorizontal;
 })();
 
 // |
-var Notch2 = (function () {
-    function Notch2() {
+var SNotch2 = (function () {
+    function SNotch2() {
 
     };
-    Notch2.value = new Notch2();
-    return Notch2;
+    SNotch2.value = new SNotch2();
+    return SNotch2;
 })();
 
 // |
-var Notch3 = (function () {
-    function Notch3() {
+var SNotch3 = (function () {
+    function SNotch3() {
 
     };
-    Notch3.value = new Notch3();
-    return Notch3;
+    SNotch3.value = new SNotch3();
+    return SNotch3;
 })();
 
 // |
-var Notch4 = (function () {
-    function Notch4() {
+var SNotch4 = (function () {
+    function SNotch4() {
 
     };
-    Notch4.value = new Notch4();
-    return Notch4;
+    SNotch4.value = new SNotch4();
+    return SNotch4;
 })();
 
 // |
-var Notch5 = (function () {
-    function Notch5() {
+var SNotch5 = (function () {
+    function SNotch5() {
 
     };
-    Notch5.value = new Notch5();
-    return Notch5;
+    SNotch5.value = new SNotch5();
+    return SNotch5;
+})();
+
+// |
+var PNormal = (function () {
+    function PNormal() {
+
+    };
+    PNormal.value = new PNormal();
+    return PNormal;
+})();
+
+// |
+var PBoost = (function () {
+    function PBoost() {
+
+    };
+    PBoost.value = new PBoost();
+    return PBoost;
+})();
+
+// |
+var PQuiet = (function () {
+    function PQuiet() {
+
+    };
+    PQuiet.value = new PQuiet();
+    return PQuiet;
+})();
+
+// |
+var POther = (function () {
+    function POther(value0) {
+        this.value0 = value0;
+    };
+    POther.create = function (value0) {
+        return new POther(value0);
+    };
+    return POther;
 })();
 
 // |
@@ -99503,9 +99542,108 @@ var MsbFirst = function (x) {
 };
 
 // |
+var MAuto = (function () {
+    function MAuto() {
+
+    };
+    MAuto.value = new MAuto();
+    return MAuto;
+})();
+
+// |
+var MFan = (function () {
+    function MFan() {
+
+    };
+    MFan.value = new MFan();
+    return MFan;
+})();
+
+// |
+var MDry = (function () {
+    function MDry() {
+
+    };
+    MDry.value = new MDry();
+    return MDry;
+})();
+
+// |
+var MCool = (function () {
+    function MCool() {
+
+    };
+    MCool.value = new MCool();
+    return MCool;
+})();
+
+// |
+var MHeat = (function () {
+    function MHeat() {
+
+    };
+    MHeat.value = new MHeat();
+    return MHeat;
+})();
+
+// |
 var LsbFirst = function (x) {
     return x;
 };
+
+// |
+var FAuto = (function () {
+    function FAuto() {
+
+    };
+    FAuto.value = new FAuto();
+    return FAuto;
+})();
+
+// |
+var FSlowest = (function () {
+    function FSlowest() {
+
+    };
+    FSlowest.value = new FSlowest();
+    return FSlowest;
+})();
+
+// |
+var FNotch2 = (function () {
+    function FNotch2() {
+
+    };
+    FNotch2.value = new FNotch2();
+    return FNotch2;
+})();
+
+// |
+var FNotch3 = (function () {
+    function FNotch3() {
+
+    };
+    FNotch3.value = new FNotch3();
+    return FNotch3;
+})();
+
+// |
+var FNotch4 = (function () {
+    function FNotch4() {
+
+    };
+    FNotch4.value = new FNotch4();
+    return FNotch4;
+})();
+
+// |
+var FNotch5 = (function () {
+    function FNotch5() {
+
+    };
+    FNotch5.value = new FNotch5();
+    return FNotch5;
+})();
 
 // | count is based on 38khz carrier
 var Count = function (x) {
@@ -99660,7 +99798,7 @@ var toMsbFirst = function (bits) {
             if (v instanceof Negate) {
                 return (acc * 2 | 0) + 0 | 0;
             };
-            throw new Error("Failed pattern match at InfraredCode (line 328, column 3 - line 328, column 25): " + [ acc.constructor.name, v.constructor.name ]);
+            throw new Error("Failed pattern match at InfraredCode (line 332, column 3 - line 332, column 25): " + [ acc.constructor.name, v.constructor.name ]);
         };
     };
     return Data_Foldable.foldl(Data_Array_NonEmpty_Internal.foldableNonEmptyArray)(f)(0)(bits);
@@ -99681,7 +99819,7 @@ var toLsbFirst = function (bits) {
             if (v instanceof Negate) {
                 return (acc * 2 | 0) + 0 | 0;
             };
-            throw new Error("Failed pattern match at InfraredCode (line 301, column 3 - line 301, column 25): " + [ acc.constructor.name, v.constructor.name ]);
+            throw new Error("Failed pattern match at InfraredCode (line 305, column 3 - line 305, column 25): " + [ acc.constructor.name, v.constructor.name ]);
         };
     };
     return Data_Foldable.foldl(Data_Array_NonEmpty_Internal.foldableNonEmptyArray)(f)(0)(Data_Array_NonEmpty.reverse(bits));
@@ -99695,7 +99833,7 @@ var toBoolean = function (v) {
     if (v instanceof Assert) {
         return true;
     };
-    throw new Error("Failed pattern match at InfraredCode (line 183, column 1 - line 183, column 28): " + [ v.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 187, column 1 - line 187, column 28): " + [ v.constructor.name ]);
 };
 
 // |
@@ -99734,7 +99872,7 @@ var takeBit = function (errmsg) {
                 return Control_Applicative.pure(Control_Monad_Except_Trans.applicativeExceptT(Control_Monad_State_Trans.monadStateT(Data_Identity.monadIdentity)))(v1.value0.head);
             });
         };
-        throw new Error("Failed pattern match at InfraredCode (line 431, column 3 - line 437, column 18): " + [ v1.constructor.name ]);
+        throw new Error("Failed pattern match at InfraredCode (line 456, column 3 - line 462, column 18): " + [ v1.constructor.name ]);
     });
 };
 var showMsbFirst = new Data_Show.Show(function (v) {
@@ -99754,7 +99892,7 @@ var showBit = function (v) {
     if (v instanceof Assert) {
         return "1";
     };
-    throw new Error("Failed pattern match at InfraredCode (line 173, column 1 - line 173, column 25): " + [ v.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 177, column 1 - line 177, column 25): " + [ v.constructor.name ]);
 };
 var showBit$prime = new Data_Show.Show(showBit);
 var showBaseband = Data_Show.showArray(Data_Show.showRecord()(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
@@ -99773,26 +99911,26 @@ var newtypeMsbFirst = new Data_Newtype.Newtype(function (n) {
 }, MsbFirst);
 
 // |
-var toStringMsbFirst = function ($284) {
-    return Data_Int.toStringAs(Data_Int.decimal)(Data_Newtype.unwrap(newtypeMsbFirst)($284));
+var toStringMsbFirst = function ($362) {
+    return Data_Int.toStringAs(Data_Int.decimal)(Data_Newtype.unwrap(newtypeMsbFirst)($362));
 };
 
 // |
-var toStringMsbFirstWithHex = function ($285) {
-    return Data_Int.toStringAs(Data_Int.hexadecimal)(Data_Newtype.unwrap(newtypeMsbFirst)($285));
+var toStringMsbFirstWithHex = function ($363) {
+    return Data_Int.toStringAs(Data_Int.hexadecimal)(Data_Newtype.unwrap(newtypeMsbFirst)($363));
 };
 var newtypeLsbFirst = new Data_Newtype.Newtype(function (n) {
     return n;
 }, LsbFirst);
 
 // |
-var toStringLsbFirst = function ($286) {
-    return Data_Int.toStringAs(Data_Int.decimal)(Data_Newtype.unwrap(newtypeLsbFirst)($286));
+var toStringLsbFirst = function ($364) {
+    return Data_Int.toStringAs(Data_Int.decimal)(Data_Newtype.unwrap(newtypeLsbFirst)($364));
 };
 
 // |
-var toStringLsbFirstWithHex = function ($287) {
-    return Data_Int.toStringAs(Data_Int.hexadecimal)(Data_Newtype.unwrap(newtypeLsbFirst)($287));
+var toStringLsbFirstWithHex = function ($365) {
+    return Data_Int.toStringAs(Data_Int.hexadecimal)(Data_Newtype.unwrap(newtypeLsbFirst)($365));
 };
 var newtypeCelsius = new Data_Newtype.Newtype(function (n) {
     return n;
@@ -99830,60 +99968,144 @@ var pulse = Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.mona
         });
     });
 })();
-var genericNotch = new Data_Generic_Rep.Generic(function (x) {
-    if (x instanceof Auto) {
+var genericSwing = new Data_Generic_Rep.Generic(function (x) {
+    if (x instanceof SAuto) {
         return new Data_Generic_Rep.Inl(Data_Generic_Rep.NoArguments.value);
     };
-    if (x instanceof Notch1) {
+    if (x instanceof SHorizontal) {
         return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inl(Data_Generic_Rep.NoArguments.value));
     };
-    if (x instanceof Notch2) {
+    if (x instanceof SNotch2) {
         return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inl(Data_Generic_Rep.NoArguments.value)));
     };
-    if (x instanceof Notch3) {
+    if (x instanceof SNotch3) {
         return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inl(Data_Generic_Rep.NoArguments.value))));
     };
-    if (x instanceof Notch4) {
+    if (x instanceof SNotch4) {
         return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inl(Data_Generic_Rep.NoArguments.value)))));
     };
-    if (x instanceof Notch5) {
+    if (x instanceof SNotch5) {
         return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(Data_Generic_Rep.NoArguments.value)))));
     };
-    throw new Error("Failed pattern match at InfraredCode (line 352, column 8 - line 352, column 49): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 363, column 8 - line 363, column 49): " + [ x.constructor.name ]);
 }, function (x) {
     if (x instanceof Data_Generic_Rep.Inl) {
-        return Auto.value;
+        return SAuto.value;
     };
     if (x instanceof Data_Generic_Rep.Inr && x.value0 instanceof Data_Generic_Rep.Inl) {
-        return Notch1.value;
+        return SHorizontal.value;
     };
     if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0 instanceof Data_Generic_Rep.Inl)) {
-        return Notch2.value;
+        return SNotch2.value;
     };
     if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && (x.value0.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0.value0 instanceof Data_Generic_Rep.Inl))) {
-        return Notch3.value;
+        return SNotch3.value;
     };
     if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && (x.value0.value0 instanceof Data_Generic_Rep.Inr && (x.value0.value0.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0.value0.value0 instanceof Data_Generic_Rep.Inl)))) {
-        return Notch4.value;
+        return SNotch4.value;
     };
     if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && (x.value0.value0 instanceof Data_Generic_Rep.Inr && (x.value0.value0.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0.value0.value0 instanceof Data_Generic_Rep.Inr)))) {
-        return Notch5.value;
+        return SNotch5.value;
     };
-    throw new Error("Failed pattern match at InfraredCode (line 352, column 8 - line 352, column 49): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 363, column 8 - line 363, column 49): " + [ x.constructor.name ]);
 });
-var showNotch = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericNotch)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
-    return "Auto";
+var showSwing = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericSwing)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
+    return "SAuto";
 })))(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
-    return "Notch1";
+    return "SHorizontal";
 })))(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
-    return "Notch2";
+    return "SNotch2";
 })))(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
-    return "Notch3";
+    return "SNotch3";
 })))(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
-    return "Notch4";
+    return "SNotch4";
 })))(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
-    return "Notch5";
+    return "SNotch5";
 })))))))));
+var genericProfile = new Data_Generic_Rep.Generic(function (x) {
+    if (x instanceof PNormal) {
+        return new Data_Generic_Rep.Inl(Data_Generic_Rep.NoArguments.value);
+    };
+    if (x instanceof PBoost) {
+        return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inl(Data_Generic_Rep.NoArguments.value));
+    };
+    if (x instanceof PQuiet) {
+        return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inl(Data_Generic_Rep.NoArguments.value)));
+    };
+    if (x instanceof POther) {
+        return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(x.value0)));
+    };
+    throw new Error("Failed pattern match at InfraredCode (line 377, column 8 - line 377, column 53): " + [ x.constructor.name ]);
+}, function (x) {
+    if (x instanceof Data_Generic_Rep.Inl) {
+        return PNormal.value;
+    };
+    if (x instanceof Data_Generic_Rep.Inr && x.value0 instanceof Data_Generic_Rep.Inl) {
+        return PBoost.value;
+    };
+    if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0 instanceof Data_Generic_Rep.Inl)) {
+        return PQuiet.value;
+    };
+    if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0 instanceof Data_Generic_Rep.Inr)) {
+        return new POther(x.value0.value0.value0);
+    };
+    throw new Error("Failed pattern match at InfraredCode (line 377, column 8 - line 377, column 53): " + [ x.constructor.name ]);
+});
+var showProfile = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericProfile)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
+    return "PNormal";
+})))(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
+    return "PBoost";
+})))(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
+    return "PQuiet";
+})))(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsArgument(Data_Show.showInt))(new Data_Symbol.IsSymbol(function () {
+    return "POther";
+})))))));
+var genericMode = new Data_Generic_Rep.Generic(function (x) {
+    if (x instanceof MAuto) {
+        return new Data_Generic_Rep.Inl(Data_Generic_Rep.NoArguments.value);
+    };
+    if (x instanceof MFan) {
+        return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inl(Data_Generic_Rep.NoArguments.value));
+    };
+    if (x instanceof MDry) {
+        return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inl(Data_Generic_Rep.NoArguments.value)));
+    };
+    if (x instanceof MCool) {
+        return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inl(Data_Generic_Rep.NoArguments.value))));
+    };
+    if (x instanceof MHeat) {
+        return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(Data_Generic_Rep.NoArguments.value))));
+    };
+    throw new Error("Failed pattern match at InfraredCode (line 356, column 8 - line 356, column 46): " + [ x.constructor.name ]);
+}, function (x) {
+    if (x instanceof Data_Generic_Rep.Inl) {
+        return MAuto.value;
+    };
+    if (x instanceof Data_Generic_Rep.Inr && x.value0 instanceof Data_Generic_Rep.Inl) {
+        return MFan.value;
+    };
+    if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0 instanceof Data_Generic_Rep.Inl)) {
+        return MDry.value;
+    };
+    if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && (x.value0.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0.value0 instanceof Data_Generic_Rep.Inl))) {
+        return MCool.value;
+    };
+    if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && (x.value0.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0.value0 instanceof Data_Generic_Rep.Inr))) {
+        return MHeat.value;
+    };
+    throw new Error("Failed pattern match at InfraredCode (line 356, column 8 - line 356, column 46): " + [ x.constructor.name ]);
+});
+var showMode = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericMode)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
+    return "MAuto";
+})))(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
+    return "MFan";
+})))(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
+    return "MDry";
+})))(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
+    return "MCool";
+})))(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
+    return "MHeat";
+}))))))));
 var genericIrRemoteControlCode = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof UnknownIrRemote) {
         return new Data_Generic_Rep.Inl(x.value0);
@@ -99891,7 +100113,7 @@ var genericIrRemoteControlCode = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof IrRemotePanasonicHvac) {
         return new Data_Generic_Rep.Inr(x.value0);
     };
-    throw new Error("Failed pattern match at InfraredCode (line 361, column 8 - line 361, column 77): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 386, column 8 - line 386, column 77): " + [ x.constructor.name ]);
 }, function (x) {
     if (x instanceof Data_Generic_Rep.Inl) {
         return new UnknownIrRemote(x.value0);
@@ -99899,7 +100121,7 @@ var genericIrRemoteControlCode = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof Data_Generic_Rep.Inr) {
         return new IrRemotePanasonicHvac(x.value0);
     };
-    throw new Error("Failed pattern match at InfraredCode (line 361, column 8 - line 361, column 77): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 386, column 8 - line 386, column 77): " + [ x.constructor.name ]);
 });
 var genericInfraredLeader = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof LeaderAeha) {
@@ -99914,7 +100136,7 @@ var genericInfraredLeader = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof LeaderUnknown) {
         return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(x.value0)));
     };
-    throw new Error("Failed pattern match at InfraredCode (line 209, column 8 - line 209, column 66): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 213, column 8 - line 213, column 66): " + [ x.constructor.name ]);
 }, function (x) {
     if (x instanceof Data_Generic_Rep.Inl) {
         return new LeaderAeha(x.value0);
@@ -99928,7 +100150,7 @@ var genericInfraredLeader = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0 instanceof Data_Generic_Rep.Inr)) {
         return new LeaderUnknown(x.value0.value0.value0);
     };
-    throw new Error("Failed pattern match at InfraredCode (line 209, column 8 - line 209, column 66): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 213, column 8 - line 213, column 66): " + [ x.constructor.name ]);
 });
 var showInfraredLeader = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericInfraredLeader)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsArgument(Data_Show.showRecord()(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
     return "off";
@@ -99968,7 +100190,7 @@ var genericInfraredCodeFormat = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof FormatSIRC) {
         return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(x.value0)));
     };
-    throw new Error("Failed pattern match at InfraredCode (line 338, column 8 - line 338, column 74): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 342, column 8 - line 342, column 74): " + [ x.constructor.name ]);
 }, function (x) {
     if (x instanceof Data_Generic_Rep.Inl) {
         return new FormatUnknown(x.value0);
@@ -99982,7 +100204,7 @@ var genericInfraredCodeFormat = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0 instanceof Data_Generic_Rep.Inr)) {
         return new FormatSIRC(x.value0.value0.value0);
     };
-    throw new Error("Failed pattern match at InfraredCode (line 338, column 8 - line 338, column 74): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 342, column 8 - line 342, column 74): " + [ x.constructor.name ]);
 });
 var showInfraredCodeFormat = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericInfraredCodeFormat)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsArgument(Data_Show.showArray(showBit$prime)))(new Data_Symbol.IsSymbol(function () {
     return "FormatUnknown";
@@ -100011,6 +100233,60 @@ var showInfraredCodeFormat = new Data_Show.Show(Data_Generic_Rep_Show.genericSho
 }))(Data_Show.showRecordFieldsNil)(Data_Array_NonEmpty_Internal.showNonEmptyArray(showBit$prime)))(Data_Array_NonEmpty_Internal.showNonEmptyArray(showBit$prime)))))(new Data_Symbol.IsSymbol(function () {
     return "FormatSIRC";
 })))))));
+var genericFan = new Data_Generic_Rep.Generic(function (x) {
+    if (x instanceof FAuto) {
+        return new Data_Generic_Rep.Inl(Data_Generic_Rep.NoArguments.value);
+    };
+    if (x instanceof FSlowest) {
+        return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inl(Data_Generic_Rep.NoArguments.value));
+    };
+    if (x instanceof FNotch2) {
+        return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inl(Data_Generic_Rep.NoArguments.value)));
+    };
+    if (x instanceof FNotch3) {
+        return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inl(Data_Generic_Rep.NoArguments.value))));
+    };
+    if (x instanceof FNotch4) {
+        return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inl(Data_Generic_Rep.NoArguments.value)))));
+    };
+    if (x instanceof FNotch5) {
+        return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(Data_Generic_Rep.NoArguments.value)))));
+    };
+    throw new Error("Failed pattern match at InfraredCode (line 370, column 8 - line 370, column 45): " + [ x.constructor.name ]);
+}, function (x) {
+    if (x instanceof Data_Generic_Rep.Inl) {
+        return FAuto.value;
+    };
+    if (x instanceof Data_Generic_Rep.Inr && x.value0 instanceof Data_Generic_Rep.Inl) {
+        return FSlowest.value;
+    };
+    if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0 instanceof Data_Generic_Rep.Inl)) {
+        return FNotch2.value;
+    };
+    if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && (x.value0.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0.value0 instanceof Data_Generic_Rep.Inl))) {
+        return FNotch3.value;
+    };
+    if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && (x.value0.value0 instanceof Data_Generic_Rep.Inr && (x.value0.value0.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0.value0.value0 instanceof Data_Generic_Rep.Inl)))) {
+        return FNotch4.value;
+    };
+    if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && (x.value0.value0 instanceof Data_Generic_Rep.Inr && (x.value0.value0.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0.value0.value0 instanceof Data_Generic_Rep.Inr)))) {
+        return FNotch5.value;
+    };
+    throw new Error("Failed pattern match at InfraredCode (line 370, column 8 - line 370, column 45): " + [ x.constructor.name ]);
+});
+var showFan = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericFan)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
+    return "FAuto";
+})))(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
+    return "FSlowest";
+})))(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
+    return "FNotch2";
+})))(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
+    return "FNotch3";
+})))(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
+    return "FNotch4";
+})))(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
+    return "FNotch5";
+})))))))));
 var showIrRemoteControlCode = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericIrRemoteControlCode)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsArgument(Data_Show.showArray(showInfraredCodeFormat)))(new Data_Symbol.IsSymbol(function () {
     return "UnknownIrRemote";
 })))(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsArgument(Data_Show.showRecord()(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
@@ -100024,10 +100300,10 @@ var showIrRemoteControlCode = new Data_Show.Show(Data_Generic_Rep_Show.genericSh
 }))(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
     return "swing";
 }))(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
-    return "switch";
+    return "switchOn";
 }))(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
     return "temperature";
-}))(Data_Show.showRecordFieldsNil)(showCelsius))(Data_Show.showInt))(showNotch))(Data_Show.showInt))(Data_Show.showInt))(showNotch))(Data_Show.showInt))))(new Data_Symbol.IsSymbol(function () {
+}))(Data_Show.showRecordFieldsNil)(showCelsius))(Data_Show.showBoolean))(showSwing))(showProfile))(showMode))(showFan))(Data_Show.showInt))))(new Data_Symbol.IsSymbol(function () {
     return "IrRemotePanasonicHvac";
 })))));
 
@@ -100054,7 +100330,7 @@ var fromBoolean = function (v) {
     if (v) {
         return Assert.value;
     };
-    throw new Error("Failed pattern match at InfraredCode (line 178, column 1 - line 178, column 30): " + [ v.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 182, column 1 - line 182, column 30): " + [ v.constructor.name ]);
 };
 
 // |
@@ -100074,31 +100350,91 @@ var fromBinaryString = function (input) {
     });
 };
 var eucideanRingCount = Data_EuclideanRing.euclideanRingInt;
-var eqNotch = new Data_Eq.Eq(function (x) {
+var eqSwing = new Data_Eq.Eq(function (x) {
     return function (y) {
-        if (x instanceof Auto && y instanceof Auto) {
+        if (x instanceof SAuto && y instanceof SAuto) {
             return true;
         };
-        if (x instanceof Notch1 && y instanceof Notch1) {
+        if (x instanceof SHorizontal && y instanceof SHorizontal) {
             return true;
         };
-        if (x instanceof Notch2 && y instanceof Notch2) {
+        if (x instanceof SNotch2 && y instanceof SNotch2) {
             return true;
         };
-        if (x instanceof Notch3 && y instanceof Notch3) {
+        if (x instanceof SNotch3 && y instanceof SNotch3) {
             return true;
         };
-        if (x instanceof Notch4 && y instanceof Notch4) {
+        if (x instanceof SNotch4 && y instanceof SNotch4) {
             return true;
         };
-        if (x instanceof Notch5 && y instanceof Notch5) {
+        if (x instanceof SNotch5 && y instanceof SNotch5) {
             return true;
         };
         return false;
     };
 });
+var eqProfile = new Data_Eq.Eq(function (x) {
+    return function (y) {
+        if (x instanceof PNormal && y instanceof PNormal) {
+            return true;
+        };
+        if (x instanceof PBoost && y instanceof PBoost) {
+            return true;
+        };
+        if (x instanceof PQuiet && y instanceof PQuiet) {
+            return true;
+        };
+        if (x instanceof POther && y instanceof POther) {
+            return x.value0 === y.value0;
+        };
+        return false;
+    };
+});
 var eqMsbFirst = Data_Eq.eqInt;
+var eqMode = new Data_Eq.Eq(function (x) {
+    return function (y) {
+        if (x instanceof MAuto && y instanceof MAuto) {
+            return true;
+        };
+        if (x instanceof MFan && y instanceof MFan) {
+            return true;
+        };
+        if (x instanceof MDry && y instanceof MDry) {
+            return true;
+        };
+        if (x instanceof MCool && y instanceof MCool) {
+            return true;
+        };
+        if (x instanceof MHeat && y instanceof MHeat) {
+            return true;
+        };
+        return false;
+    };
+});
 var eqLsbFirst = Data_Eq.eqInt;
+var eqFan = new Data_Eq.Eq(function (x) {
+    return function (y) {
+        if (x instanceof FAuto && y instanceof FAuto) {
+            return true;
+        };
+        if (x instanceof FSlowest && y instanceof FSlowest) {
+            return true;
+        };
+        if (x instanceof FNotch2 && y instanceof FNotch2) {
+            return true;
+        };
+        if (x instanceof FNotch3 && y instanceof FNotch3) {
+            return true;
+        };
+        if (x instanceof FNotch4 && y instanceof FNotch4) {
+            return true;
+        };
+        if (x instanceof FNotch5 && y instanceof FNotch5) {
+            return true;
+        };
+        return false;
+    };
+});
 var eqCount = Data_Eq.eqInt;
 var eqInfraredLeader = new Data_Eq.Eq(function (x) {
     return function (y) {
@@ -100175,7 +100511,7 @@ var aeha = function (pulse) {
         if (Data_Boolean.otherwise) {
             return new LeaderUnknown(v);
         };
-        throw new Error("Failed pattern match at InfraredCode (line 216, column 22 - line 220, column 35): " + [ v.constructor.name ]);
+        throw new Error("Failed pattern match at InfraredCode (line 220, column 22 - line 224, column 35): " + [ v.constructor.name ]);
     };
 })();
 var eqCelsius = Data_Eq.eqInt;
@@ -100213,7 +100549,7 @@ var eqIrRemoteControlCode = new Data_Eq.Eq(function (x) {
             return Data_Eq.eq(Data_Eq.eqArray(eqInfraredCodeFormat))(x.value0)(y.value0);
         };
         if (x instanceof IrRemotePanasonicHvac && y instanceof IrRemotePanasonicHvac) {
-            return x.value0.crc === y.value0.crc && Data_Eq.eq(eqNotch)(x.value0.fan)(y.value0.fan) && x.value0.mode === y.value0.mode && x.value0.profile === y.value0.profile && Data_Eq.eq(eqNotch)(x.value0.swing)(y.value0.swing) && x["value0"]["switch"] === y["value0"]["switch"] && Data_Eq.eq(eqCelsius)(x.value0.temperature)(y.value0.temperature);
+            return x.value0.crc === y.value0.crc && Data_Eq.eq(eqFan)(x.value0.fan)(y.value0.fan) && Data_Eq.eq(eqMode)(x.value0.mode)(y.value0.mode) && Data_Eq.eq(eqProfile)(x.value0.profile)(y.value0.profile) && Data_Eq.eq(eqSwing)(x.value0.swing)(y.value0.swing) && x.value0.switchOn === y.value0.switchOn && Data_Eq.eq(eqCelsius)(x.value0.temperature)(y.value0.temperature);
         };
         return false;
     };
@@ -100247,7 +100583,7 @@ var pulseDistanceModulation = function (v) {
             if (Data_Boolean.otherwise) {
                 return Negate.value;
             };
-            throw new Error("Failed pattern match at InfraredCode (line 265, column 29 - line 267, column 44): " + [ v.constructor.name ]);
+            throw new Error("Failed pattern match at InfraredCode (line 269, column 29 - line 271, column 44): " + [ v.constructor.name ]);
         };
         if (leader instanceof LeaderSirc) {
             return Data_Functor.map(Data_Functor.functorArray)(sircModulation)(ps);
@@ -100283,7 +100619,7 @@ var decodePhase2 = function (tokens) {
     if (v instanceof Data_Maybe.Nothing) {
         return new Data_Either.Left("Unexpected end of input");
     };
-    throw new Error("Failed pattern match at InfraredCode (line 402, column 3 - line 411, column 1): " + [ v.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 427, column 3 - line 436, column 1): " + [ v.constructor.name ]);
 };
 
 // | 入力を各フレームに分ける
@@ -100312,58 +100648,76 @@ var decodePhase1 = function (v) {
 // Panasonic HVAC remote control
 //
 var decodePanasonicHVAC = (function () {
-    var swingNotch = function (v) {
+    var toSwitch = Data_Enum.toEnum(Data_Enum.boundedEnumBoolean);
+    var toSwingNotch = function (v) {
         if (v === 15) {
-            return new Data_Maybe.Just(Auto.value);
+            return new Data_Maybe.Just(SAuto.value);
         };
         if (v === 1) {
-            return new Data_Maybe.Just(Notch1.value);
+            return new Data_Maybe.Just(SHorizontal.value);
         };
         if (v === 2) {
-            return new Data_Maybe.Just(Notch2.value);
+            return new Data_Maybe.Just(SNotch2.value);
         };
         if (v === 3) {
-            return new Data_Maybe.Just(Notch3.value);
+            return new Data_Maybe.Just(SNotch3.value);
         };
         if (v === 4) {
-            return new Data_Maybe.Just(Notch4.value);
+            return new Data_Maybe.Just(SNotch4.value);
         };
         if (v === 5) {
-            return new Data_Maybe.Just(Notch5.value);
+            return new Data_Maybe.Just(SNotch5.value);
         };
         return Data_Maybe.Nothing.value;
     };
-    
-    // |
-var firstFrame = (function () {
-        
-        // 40 04
-var octets = [ "00000111", "00100000", "00000000", "00000000", "00000000", "01100000" ];
-        var custom = "01000000" + "00000100";
-        return new FormatAEHA({
-            custom: Data_Maybe.fromJust()(fromBinaryString(custom)),
-            octets: Data_Array.mapMaybe(fromBinaryString)(octets),
-            stop: Assert.value
-        });
-    })();
-    var fanNotch = function (v) {
-        if (v === 10) {
-            return new Data_Maybe.Just(Auto.value);
+    var toProfile = function (v) {
+        if (v === 16) {
+            return PNormal.value;
+        };
+        if (v === 17) {
+            return PBoost.value;
+        };
+        if (v === 48) {
+            return PQuiet.value;
+        };
+        return new POther(v);
+    };
+    var toMode = function (v) {
+        if (v === 0) {
+            return new Data_Maybe.Just(MAuto.value);
+        };
+        if (v === 2) {
+            return new Data_Maybe.Just(MDry.value);
         };
         if (v === 3) {
-            return new Data_Maybe.Just(Notch1.value);
+            return new Data_Maybe.Just(MCool.value);
         };
         if (v === 4) {
-            return new Data_Maybe.Just(Notch2.value);
-        };
-        if (v === 5) {
-            return new Data_Maybe.Just(Notch3.value);
+            return new Data_Maybe.Just(MHeat.value);
         };
         if (v === 6) {
-            return new Data_Maybe.Just(Notch4.value);
+            return new Data_Maybe.Just(MFan.value);
+        };
+        return Data_Maybe.Nothing.value;
+    };
+    var toFanNotch = function (v) {
+        if (v === 10) {
+            return new Data_Maybe.Just(FAuto.value);
+        };
+        if (v === 3) {
+            return new Data_Maybe.Just(FSlowest.value);
+        };
+        if (v === 4) {
+            return new Data_Maybe.Just(FNotch2.value);
+        };
+        if (v === 5) {
+            return new Data_Maybe.Just(FNotch3.value);
+        };
+        if (v === 6) {
+            return new Data_Maybe.Just(FNotch4.value);
         };
         if (v === 7) {
-            return new Data_Maybe.Just(Notch5.value);
+            return new Data_Maybe.Just(FNotch5.value);
         };
         return Data_Maybe.Nothing.value;
     };
@@ -100379,17 +100733,21 @@ var octets = [ "00000111", "00100000", "00000000", "00000000", "00000000", "0110
                         var mode = Data_Newtype.unwrap(newtypeLsbFirst)(toLsbFirst(b_6)) >> 4 & 15;
                         var fan = Data_Newtype.unwrap(newtypeLsbFirst)(toLsbFirst(b_9)) >> 4 & 15;
                         var crc = Data_Newtype.unwrap(newtypeLsbFirst)(toLsbFirst(b19));
-                        return Control_Bind.bind(Data_Maybe.bindMaybe)(swingNotch(swing))(function (v) {
-                            return Control_Bind.bind(Data_Maybe.bindMaybe)(fanNotch(fan))(function (v1) {
-                                return Control_Applicative.pure(Data_Maybe.applicativeMaybe)(new IrRemotePanasonicHvac({
-                                    temperature: 16 + temp | 0,
-                                    mode: mode,
-                                    "switch": $$switch,
-                                    swing: v,
-                                    fan: v1,
-                                    profile: prof,
-                                    crc: crc
-                                }));
+                        return Control_Bind.bind(Data_Maybe.bindMaybe)(toMode(mode))(function (v) {
+                            return Control_Bind.bind(Data_Maybe.bindMaybe)(toSwitch($$switch))(function (v1) {
+                                return Control_Bind.bind(Data_Maybe.bindMaybe)(toSwingNotch(swing))(function (v2) {
+                                    return Control_Bind.bind(Data_Maybe.bindMaybe)(toFanNotch(fan))(function (v3) {
+                                        return Control_Applicative.pure(Data_Maybe.applicativeMaybe)(new IrRemotePanasonicHvac({
+                                            temperature: 16 + temp | 0,
+                                            mode: v,
+                                            switchOn: v1,
+                                            swing: v2,
+                                            fan: v3,
+                                            profile: toProfile(prof),
+                                            crc: crc
+                                        }));
+                                    });
+                                });
                             });
                         });
                     };
@@ -100397,6 +100755,19 @@ var octets = [ "00000111", "00100000", "00000000", "00000000", "00000000", "0110
             };
         };
     };
+    
+    // |
+var firstFrame = (function () {
+        
+        // 40 04
+var octets = [ "00000111", "00100000", "00000000", "00000000", "00000000", "01100000" ];
+        var custom = "01000000" + "00000100";
+        return new FormatAEHA({
+            custom: Data_Maybe.fromJust()(fromBinaryString(custom)),
+            octets: Data_Array.mapMaybe(fromBinaryString)(octets),
+            stop: Assert.value
+        });
+    })();
     var decode = function (v) {
         if (v instanceof FormatAEHA && v.value0.octets.length === 17) {
             return make(v["value0"]["octets"][3])(v["value0"]["octets"][4])(v["value0"]["octets"][6])(v["value0"]["octets"][11])(v["value0"]["octets"][16]);
@@ -100463,19 +100834,19 @@ var decodePhase3 = function (v) {
         if (v.value0 instanceof LeaderUnknown) {
             return decodeUnknown;
         };
-        throw new Error("Failed pattern match at InfraredCode (line 418, column 13 - line 422, column 37): " + [ v.value0.constructor.name ]);
+        throw new Error("Failed pattern match at InfraredCode (line 443, column 13 - line 447, column 37): " + [ v.value0.constructor.name ]);
     })();
     return Control_Monad_State.evalState(Control_Monad_Except_Trans.runExceptT(decoder))(v.value1);
 };
 
 // |
-var toIrCodeFormats = function ($288) {
-    return Data_Traversable.traverse(Data_Traversable.traversableArray)(Data_Either.applicativeEither)(Control_Bind.composeKleisliFlipped(Data_Either.bindEither)(decodePhase3)(decodePhase2))(decodePhase1($288));
+var toIrCodeFormats = function ($366) {
+    return Data_Traversable.traverse(Data_Traversable.traversableArray)(Data_Either.applicativeEither)(Control_Bind.composeKleisliFlipped(Data_Either.bindEither)(decodePhase3)(decodePhase2))(decodePhase1($366));
 };
 
 // |
-var toIrRemoteControlCode = function ($289) {
-    return Data_Bifunctor.rmap(Data_Either.bifunctorEither)(decodePhase4)(toIrCodeFormats($289));
+var toIrRemoteControlCode = function ($367) {
+    return Data_Bifunctor.rmap(Data_Either.bifunctorEither)(decodePhase4)(toIrCodeFormats($367));
 };
 var commutativeRingCount = Data_CommutativeRing.commutativeRingInt;
 module.exports = {
@@ -100484,12 +100855,27 @@ module.exports = {
     Assert: Assert,
     Count: Count,
     Celsius: Celsius,
-    Auto: Auto,
-    Notch1: Notch1,
-    Notch2: Notch2,
-    Notch3: Notch3,
-    Notch4: Notch4,
-    Notch5: Notch5,
+    SAuto: SAuto,
+    SHorizontal: SHorizontal,
+    SNotch2: SNotch2,
+    SNotch3: SNotch3,
+    SNotch4: SNotch4,
+    SNotch5: SNotch5,
+    MAuto: MAuto,
+    MFan: MFan,
+    MDry: MDry,
+    MCool: MCool,
+    MHeat: MHeat,
+    FAuto: FAuto,
+    FSlowest: FSlowest,
+    FNotch2: FNotch2,
+    FNotch3: FNotch3,
+    FNotch4: FNotch4,
+    FNotch5: FNotch5,
+    PNormal: PNormal,
+    PBoost: PBoost,
+    PQuiet: PQuiet,
+    POther: POther,
     FormatUnknown: FormatUnknown,
     FormatAEHA: FormatAEHA,
     FormatNEC: FormatNEC,
@@ -100549,15 +100935,24 @@ module.exports = {
     eqCelsius: eqCelsius,
     ordCelsius: ordCelsius,
     showCelsius: showCelsius,
-    genericNotch: genericNotch,
-    eqNotch: eqNotch,
-    showNotch: showNotch,
+    genericMode: genericMode,
+    eqMode: eqMode,
+    showMode: showMode,
+    genericSwing: genericSwing,
+    eqSwing: eqSwing,
+    showSwing: showSwing,
+    genericFan: genericFan,
+    eqFan: eqFan,
+    showFan: showFan,
+    genericProfile: genericProfile,
+    eqProfile: eqProfile,
+    showProfile: showProfile,
     genericIrRemoteControlCode: genericIrRemoteControlCode,
     eqIrRemoteControlCode: eqIrRemoteControlCode,
     showIrRemoteControlCode: showIrRemoteControlCode
 };
 
-},{"../Control.Applicative/index.js":87,"../Control.Apply/index.js":89,"../Control.Bind/index.js":93,"../Control.Monad.Error.Class/index.js":108,"../Control.Monad.Except.Trans/index.js":109,"../Control.Monad.State.Class/index.js":122,"../Control.Monad.State.Trans/index.js":123,"../Control.Monad.State/index.js":124,"../Control.MonadZero/index.js":130,"../Data.Array.NonEmpty.Internal/index.js":155,"../Data.Array.NonEmpty/index.js":156,"../Data.Array/index.js":161,"../Data.Bifunctor/index.js":168,"../Data.Boolean/index.js":171,"../Data.CommutativeRing/index.js":180,"../Data.Either/index.js":193,"../Data.Eq/index.js":197,"../Data.EuclideanRing/index.js":199,"../Data.Foldable/index.js":203,"../Data.Functor/index.js":224,"../Data.Generic.Rep.Show/index.js":227,"../Data.Generic.Rep/index.js":228,"../Data.HeytingAlgebra/index.js":231,"../Data.Identity/index.js":232,"../Data.Int/index.js":234,"../Data.Maybe/index.js":266,"../Data.Newtype/index.js":276,"../Data.Ord/index.js":285,"../Data.Ring/index.js":295,"../Data.Semigroup/index.js":301,"../Data.Semiring/index.js":304,"../Data.Show/index.js":307,"../Data.String.CodeUnits/index.js":311,"../Data.Symbol/index.js":322,"../Data.Traversable/index.js":330,"../Data.Tuple/index.js":332,"../Data.Unfoldable1/index.js":334,"../Text.Parsing.Parser.Combinators/index.js":462,"../Text.Parsing.Parser.String/index.js":464,"../Text.Parsing.Parser.Token/index.js":465,"../Text.Parsing.Parser/index.js":466,"../Utils/index.js":475}],433:[function(require,module,exports){
+},{"../Control.Applicative/index.js":87,"../Control.Apply/index.js":89,"../Control.Bind/index.js":93,"../Control.Monad.Error.Class/index.js":108,"../Control.Monad.Except.Trans/index.js":109,"../Control.Monad.State.Class/index.js":122,"../Control.Monad.State.Trans/index.js":123,"../Control.Monad.State/index.js":124,"../Control.MonadZero/index.js":130,"../Data.Array.NonEmpty.Internal/index.js":155,"../Data.Array.NonEmpty/index.js":156,"../Data.Array/index.js":161,"../Data.Bifunctor/index.js":168,"../Data.Boolean/index.js":171,"../Data.CommutativeRing/index.js":180,"../Data.Either/index.js":193,"../Data.Enum/index.js":195,"../Data.Eq/index.js":197,"../Data.EuclideanRing/index.js":199,"../Data.Foldable/index.js":203,"../Data.Functor/index.js":224,"../Data.Generic.Rep.Show/index.js":227,"../Data.Generic.Rep/index.js":228,"../Data.HeytingAlgebra/index.js":231,"../Data.Identity/index.js":232,"../Data.Int/index.js":234,"../Data.Maybe/index.js":266,"../Data.Newtype/index.js":276,"../Data.Ord/index.js":285,"../Data.Ring/index.js":295,"../Data.Semigroup/index.js":301,"../Data.Semiring/index.js":304,"../Data.Show/index.js":307,"../Data.String.CodeUnits/index.js":311,"../Data.Symbol/index.js":322,"../Data.Traversable/index.js":330,"../Data.Tuple/index.js":332,"../Data.Unfoldable1/index.js":334,"../Text.Parsing.Parser.Combinators/index.js":462,"../Text.Parsing.Parser.String/index.js":464,"../Text.Parsing.Parser.Token/index.js":465,"../Text.Parsing.Parser/index.js":466,"../Utils/index.js":475}],433:[function(require,module,exports){
 // Generated by purs version 0.12.5
 "use strict";
 var AppM = require("../AppM/index.js");
@@ -101672,7 +102067,7 @@ var infraredRemoteControlCode = (function () {
             return [ Halogen_HTML_Core.text("Unknown IR remote Code") ];
         };
         if (v instanceof InfraredCode.IrRemotePanasonicHvac) {
-            return [ Halogen_HTML_Core.text("Panasonic HVAC"), Halogen_HTML_Elements.dl_([ Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Temperature") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(InfraredCode.showCelsius)(v.value0.temperature)) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Mode") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(Data_Show.showInt)(v.value0.mode)) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Switch") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(Data_Show.showInt)(v["value0"]["switch"])) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Fan") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(InfraredCode.showNotch)(v.value0.fan)) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Swing") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(InfraredCode.showNotch)(v.value0.swing)) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Profile") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(Data_Show.showInt)(v.value0.profile)) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("CRC") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(Data_Show.showInt)(v.value0.crc)) ]) ]) ];
+            return [ Halogen_HTML_Core.text("Panasonic HVAC"), Halogen_HTML_Elements.dl_([ Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Temperature") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(InfraredCode.showCelsius)(v.value0.temperature)) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Mode") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(InfraredCode.showMode)(v.value0.mode)) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Switch ON") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(Data_Show.showBoolean)(v.value0.switchOn)) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Fan") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(InfraredCode.showFan)(v.value0.fan)) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Swing") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(InfraredCode.showSwing)(v.value0.swing)) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Profile") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(InfraredCode.showProfile)(v.value0.profile)) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("CRC") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(Data_Show.showInt)(v.value0.crc)) ]) ]) ];
         };
         throw new Error("Failed pattern match at Page.Infrared (line 703, column 29 - line 726, column 6): " + [ v.constructor.name ]);
     };

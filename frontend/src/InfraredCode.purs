@@ -21,7 +21,10 @@ module InfraredCode
   , BitStream
   , Count(..)
   , Celsius(..)
-  , Notch(..)
+  , Swing(..)
+  , Mode(..)
+  , Fan(..)
+  , Profile(..)
   , InfraredCodeFormat(..)
   , InfraredHexString
   , InfraredLeader(..)
@@ -62,6 +65,7 @@ import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NEA
 import Data.Bifunctor as Bifunctor
 import Data.Either (Either(..))
+import Data.Enum (toEnum)
 import Data.Foldable (all)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
@@ -348,16 +352,37 @@ derive newtype instance ordCelsius  :: Ord Celsius
 derive newtype instance showCelsius :: Show Celsius
 
 -- |
-data Notch = Auto | Notch1 | Notch2 | Notch3 | Notch4 | Notch5
-derive instance genericNotch  :: Generic Notch _
-derive instance eqNotch       :: Eq Notch
-instance showNotch            :: Show Notch where
+data Mode = MAuto | MFan | MDry | MCool | MHeat
+derive instance genericMode :: Generic Mode _
+derive instance eqMode      :: Eq Mode
+instance showMode           :: Show Mode where
+  show = genericShow
+
+-- |
+data Swing = SAuto | SHorizontal | SNotch2 | SNotch3 | SNotch4 | SNotch5
+derive instance genericSwing  :: Generic Swing _
+derive instance eqSwing       :: Eq Swing
+instance showSwing            :: Show Swing where
+  show = genericShow
+
+-- |
+data Fan = FAuto | FSlowest | FNotch2 | FNotch3 | FNotch4 | FNotch5
+derive instance genericFan  :: Generic Fan _
+derive instance eqFan       :: Eq Fan
+instance showFan            :: Show Fan where
+  show = genericShow
+
+-- |
+data Profile = PNormal | PBoost | PQuiet | POther Int
+derive instance genericProfile  :: Generic Profile _
+derive instance eqProfile       :: Eq Profile
+instance showProfile            :: Show Profile where
   show = genericShow
 
 -- |
 data IrRemoteControlCode
   = UnknownIrRemote       (Array InfraredCodeFormat)
-  | IrRemotePanasonicHvac {temperature :: Celsius, mode :: Int, switch :: Int, swing :: Notch, fan :: Notch, profile :: Int, crc :: Int}
+  | IrRemotePanasonicHvac {temperature :: Celsius, mode :: Mode, switchOn :: Boolean, swing :: Swing, fan :: Fan, profile :: Profile, crc :: Int}
 derive instance genericIrRemoteControlCode  :: Generic IrRemoteControlCode _
 derive instance eqIrRemoteControlCode       :: Eq IrRemoteControlCode
 instance showIrRemoteControlCode            :: Show IrRemoteControlCode where
@@ -536,35 +561,54 @@ decodePanasonicHVAC = case _ of
         prof  = unwrap (toLsbFirst b14)
         crc   = unwrap (toLsbFirst b19)
     in do
-    s <- swingNotch swing
-    f <- fanNotch fan
+    m <- toMode mode
+    sw <- toSwitch switch
+    s <- toSwingNotch swing
+    f <- toFanNotch fan
     pure $ IrRemotePanasonicHvac
       { temperature: Celsius (16 + temp)
-      , mode: mode
-      , switch: switch
+      , mode: m
+      , switchOn: sw
       , swing: s
       , fan: f
-      , profile: prof
+      , profile: toProfile prof
       , crc: crc
       }
   
-  swingNotch = case _ of
-    0xf -> Just Auto
-    0x1 -> Just Notch1
-    0x2 -> Just Notch2
-    0x3 -> Just Notch3
-    0x4 -> Just Notch4
-    0x5 -> Just Notch5
+  toSwitch :: Int -> Maybe Boolean
+  toSwitch = toEnum
+
+  toMode = case _ of
+    0x0 -> Just MAuto
+    0x2 -> Just MDry
+    0x3 -> Just MCool
+    0x4 -> Just MHeat
+    0x6 -> Just MFan
     _ -> Nothing
 
-  fanNotch = case _ of
-    0xa -> Just Auto
-    0x3 -> Just Notch1
-    0x4 -> Just Notch2
-    0x5 -> Just Notch3
-    0x6 -> Just Notch4
-    0x7 -> Just Notch5
+  toSwingNotch = case _ of
+    0xf -> Just SAuto
+    0x1 -> Just SHorizontal
+    0x2 -> Just SNotch2
+    0x3 -> Just SNotch3
+    0x4 -> Just SNotch4
+    0x5 -> Just SNotch5
     _ -> Nothing
+
+  toFanNotch = case _ of
+    0xa -> Just FAuto
+    0x3 -> Just FSlowest
+    0x4 -> Just FNotch2
+    0x5 -> Just FNotch3
+    0x6 -> Just FNotch4
+    0x7 -> Just FNotch5
+    _ -> Nothing
+
+  toProfile = case _ of
+    0x10 -> PNormal
+    0x11 -> PBoost
+    0x30 -> PQuiet
+    value -> POther value
 
   -- |
   firstFrame :: InfraredCodeFormat
