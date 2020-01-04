@@ -56,7 +56,7 @@ import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Themes.Bootstrap4 as HB
-import InfraredCode (Baseband(..), Bit, Count, InfraredCode(..), InfraredHexString, InfraredLeader(..), LsbFirst, decodeBaseband, decodePhase1, decodePhase2, decodePhase3, infraredHexStringParser, toMilliseconds, toStringLsbFirst, toStringLsbFirstWithHex)
+import InfraredCode (Baseband(..), Bit, Count, InfraredCodeFormat(..), InfraredHexString, InfraredLeader(..), IrRemoteControlCode(..), decodePhase1, decodePhase2, decodePhase3, infraredHexStringParser, toIrCodeFormats, toIrRemoteControlCode, toLsbFirst, toMilliseconds, toMsbFirst)
 import Page.Commons as Commons
 import Route (Route)
 import Route as Route
@@ -627,53 +627,60 @@ infraredBitpatterns (Tuple leader vs) =
       $ map (HH.text <<< show) xs
 
 -- |
-infraredSignal :: forall p i. InfraredCode -> Array (H.HTML p i)
+infraredSignal :: forall p i. InfraredCodeFormat -> Array (H.HTML p i)
 infraredSignal =
   case _ of
-    NEC irValue ->
+    FormatNEC irValue ->
       [ HH.dl_
         [ dt [ HH.text "format" ]
         , dd [ HH.text "NEC" ]
         , dt [ HH.text "custom code" ]
-        , dd [ HH.text $ showHex 4 irValue.custom ]
+        , dd [ HH.text $ showHex <<< unwrap $ toLsbFirst irValue.custom ]
+        , dd [ HH.text $ showHex <<< unwrap $ toMsbFirst irValue.custom ]
         , dt [ HH.text "data" ]
-        , dd [ HH.text $ showHexAndDec 2 irValue.data ]
+        , dd [ HH.text $ showHex <<< unwrap $ toLsbFirst irValue.data ]
+        , dd [ HH.text $ showHex <<< unwrap $ toMsbFirst irValue.data ]
         , dt [ HH.span [ style do textDecoration overline ] [ HH.text "data" ] ]
-        , dd [ HH.text $ showHexAndDec 2 irValue.invData ]
+        , dd [ HH.text $ showHex <<< unwrap $ toLsbFirst irValue.invData ]
+        , dd [ HH.text $ showHex <<< unwrap $ toMsbFirst irValue.invData ]
         , dt [ HH.text "stop" ]
         , dd [ HH.text $ show irValue.stop ]
         ]
       ]
 
-    AEHA irValue ->
+    FormatAEHA irValue ->
       [ HH.dl_
         [ dt [ HH.text "format" ]
         , dd [ HH.text "AEHA" ]
-        , dt [ HH.text "custom code" ]
-        , dd [ HH.text $ showHex 4 irValue.custom ]
-        , dt [ HH.text "parity" ]
-        , dd [ HH.text $ showHexAndDec 1 irValue.parity ]
-        , dt [ HH.text "data0" ]
-        , dd [ HH.text $ showHexAndDec 1 irValue.data0 ]
-        , dt [ HH.text "data" ]
-        , dd $ map showData irValue.data
+        , dt [ HH.text "custom code (LSB first)" ]
+        , dd [ HH.text $ showHex <<< unwrap $ toLsbFirst irValue.custom ]
+        , dt [ HH.text "octets (LSB first)" ]
+        , dd $ map (showOctet <<< unwrap <<< toLsbFirst) irValue.octets
+        , dt [ HH.text "custom code (MSB first)" ]
+        , dd [ HH.text $ showHex <<< unwrap $ toMsbFirst irValue.custom ]
+        , dt [ HH.text "octets (MSB first)" ]
+        , dd $ map (showOctet <<< unwrap <<< toMsbFirst) irValue.octets
         , dt [ HH.text "stop" ]
         , dd [ HH.text $ show irValue.stop ]
         ]
       ]
 
-    SIRC irValue ->
+    FormatSIRC irValue ->
       [ HH.dl_
         [ dt [ HH.text "format" ]
         , dd [ HH.text "SIRC" ]
-        , dt [ HH.text "command" ]
-        , dd [ HH.text $ showHexAndDec 1 irValue.command ]
-        , dt [ HH.text "address" ]
-        , dd [ HH.text $ showHexAndDec 2 irValue.address ]
+        , dt [ HH.text "command (LSB first)" ]
+        , dd [ HH.text $ showHex <<< unwrap $ toLsbFirst irValue.command ]
+        , dt [ HH.text "address (LSB first)" ]
+        , dd [ HH.text $ showHex <<< unwrap $ toLsbFirst irValue.address ]
+        , dt [ HH.text "command (MSB first)" ]
+        , dd [ HH.text $ showHex <<< unwrap $ toMsbFirst irValue.command ]
+        , dt [ HH.text "address (MSB first)" ]
+        , dd [ HH.text $ showHex <<< unwrap $ toMsbFirst irValue.address ]
         ]
       ]
 
-    Unknown irValue ->
+    FormatUnknown irValue ->
       [ HH.dl_
         [ dt [ HH.text "unknown format" ]
         , dd [ HH.text $ show irValue ]
@@ -685,28 +692,21 @@ infraredSignal =
 
   dd = HH.dd [ HP.classes [HB.pl4, HB.row] ]
 
-  showData x =
+  showOctet x =
     HH.span
       [ HP.classes [HB.col6, HB.colMd2]
       ]
-      [ HH.text $ showHexAndDec 2 x, HH.text " " ]
+      [ HH.text $ showHex x, HH.text " " ]
 
 -- |
-showHex :: Int -> LsbFirst -> String
-showHex width bits =
-  case width - strLen of
-    x | x < 0     -> "0x" <> strNum
-      | otherwise -> "0x" <> fill x <> strNum
-  where
-  strNum = toStringLsbFirstWithHex bits
-  strLen = String.length strNum
-  fill n = String.joinWith "" $ Array.replicate n "0"
+showHex :: Int -> String
+showHex v =
+  let str = Int.toStringAs Int.hexadecimal v
+  in
+  case String.length str of
+    x | x < 2     -> "0" <> str
+      | otherwise -> str
  
--- |
-showHexAndDec :: Int -> LsbFirst -> String
-showHexAndDec width bits =
-  showHex width bits <> "(" <> toStringLsbFirst bits <> ")"
-
 -- |
 irDownloadButton :: forall g p m. H.ParentHTML Query g p m
 irDownloadButton =
@@ -906,41 +906,54 @@ irdbTable (Api.RespGetIrdb irdb) =
 
 -- |
 popoverContents :: InfraredHexString -> String
-popoverContents x =
-  Bifunctor.lmap parseErrorMessage (runParser x infraredHexStringParser)
-  >>= decodeBaseband
-  # case _ of
-    Left msg -> msg
-    Right xs -> String.joinWith ", " $ map display xs
+popoverContents input =
+  either identity display $ toIrCode input
   where
+  
+  toIrCode :: InfraredHexString -> Either String IrRemoteControlCode
+  toIrCode inp = do
+    baseband <- toBaseband inp
+    formats <- toIrCodeFormats baseband
+    pure $ toIrRemoteControlCode formats
 
+  toBaseband :: InfraredHexString -> Either String Baseband
+  toBaseband inp =
+    Bifunctor.lmap parseErrorMessage (runParser inp infraredHexStringParser)
+  
+  display :: IrRemoteControlCode -> String
   display = case _ of
-    NEC irValue ->
+    UnknownIrRemote formats ->
+      String.joinWith ", " $ map showFormat formats
+
+    IrRemotePanasonicHvac _ ->
+      "PanasonicHVAC"
+
+  showFormat :: InfraredCodeFormat -> String
+  showFormat = case _ of
+    FormatNEC irValue ->
       String.joinWith " "
         [ "NEC"
-        , showHex 4 irValue.custom
-        , showHex 2 irValue.data
-        , showHex 2 irValue.invData
+        , showHex <<< unwrap $ toLsbFirst irValue.custom
+        , showHex <<< unwrap $ toLsbFirst irValue.data
+        , showHex <<< unwrap $ toLsbFirst irValue.invData
         ]
 
-    AEHA irValue ->
+    FormatAEHA irValue ->
       String.joinWith " " $ Array.concat
         [ [ "AEHA"
-          , showHex 4 irValue.custom
-          , showHex 1 irValue.parity
-          , showHex 1 irValue.data0
+          , showHex <<< unwrap $ toLsbFirst irValue.custom
           ]
-        , map (showHex 2) irValue.data
+        , map (showHex <<< unwrap <<< toLsbFirst) irValue.octets
         ]
 
-    SIRC irValue ->
+    FormatSIRC irValue ->
       String.joinWith " "
         [ "SIRC"
-        , showHex 1 irValue.command
-        , showHex 2 irValue.address
+        , showHex <<< unwrap $ toLsbFirst irValue.command
+        , showHex <<< unwrap $ toLsbFirst irValue.address
         ]
 
-    Unknown irValue ->
+    FormatUnknown irValue ->
       String.joinWith " " $ Array.concat
         [ [ "Unkown"
           , show irValue

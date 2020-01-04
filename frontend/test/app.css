@@ -1,0 +1,23 @@
+/* This file is for your main application css. */
+
+/* @import "./phoenix.css";*/
+
+html {
+  padding-top: 65px;
+}
+
+body,
+#wrapper {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 65px);
+}
+
+.container {
+  margin-bottom: 16px;
+}
+
+
+footer {
+  margin-top: auto;
+}

@@ -18,26 +18,33 @@
 module InfraredCode
   ( Baseband(..)
   , Bit(..)
+  , BitStream
   , Count(..)
-  , InfraredCode(..)
+  , InfraredCodeFormat(..)
   , InfraredHexString
   , InfraredLeader(..)
+  , IrRemoteControlCode(..)
   , LsbFirst(..)
+  , MsbFirst(..)
   , ProcessError
   , Pulse
-  , decodeBaseband
   , decodePhase1
   , decodePhase2
   , decodePhase3
-  , deserialize
   , fromBoolean
   , fromMilliseconds
   , infraredHexStringParser
   , showBit
   , toBoolean 
   , toMilliseconds
+  , toLsbFirst
+  , toMsbFirst
   , toStringLsbFirst
   , toStringLsbFirstWithHex
+  , toStringMsbFirst
+  , toStringMsbFirstWithHex
+  , toIrCodeFormats
+  , toIrRemoteControlCode
   ) where
 
 import Prelude
@@ -46,6 +53,7 @@ import Control.Monad.Except (ExceptT, runExceptT, throwError)
 import Control.Monad.State (State, evalState)
 import Control.Monad.State as State
 import Control.MonadZero (guard)
+import Data.Newtype (class Newtype, unwrap)
 import Data.Array ((..))
 import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray)
@@ -170,6 +178,9 @@ toBoolean Negate = false
 toBoolean Assert = true
 
 -- |
+type BitStream = NonEmptyArray Bit
+
+-- |
 data InfraredLeader
   = LeaderAeha Pulse 
   | LeaderNec Pulse 
@@ -245,25 +256,26 @@ demodulate leader ps =
     fromBoolean $ Array.any (_ == p.on) threshold
 
 -- |
-newtype LsbFirst = LsbFirst (NonEmptyArray Bit)
-derive newtype instance eqLsbFirst        :: Eq LsbFirst
-derive newtype instance semigroupLsbFirst :: Semigroup LsbFirst
-derive newtype instance showLsbFirst      :: Show LsbFirst
+newtype LsbFirst = LsbFirst Int
+derive instance newtypeLsbFirst         :: Newtype LsbFirst _
+derive newtype instance eqLsbFirst      :: Eq LsbFirst
+derive newtype instance ordLsbFirst     :: Ord LsbFirst
+instance showLsbFirst :: Show LsbFirst where
+  show (LsbFirst x) =
+    "0x" <> Int.toStringAs Int.hexadecimal x <> "(LSBFirst)"
 
 -- |
 toStringLsbFirst :: LsbFirst -> String
-toStringLsbFirst =
-  Int.toStringAs Int.decimal <<< deserialize
+toStringLsbFirst = Int.toStringAs Int.decimal <<< unwrap
 
 -- |
 toStringLsbFirstWithHex :: LsbFirst -> String
-toStringLsbFirstWithHex =
-  Int.toStringAs Int.hexadecimal <<< deserialize
+toStringLsbFirstWithHex = Int.toStringAs Int.hexadecimal <<< unwrap
 
 -- |
-deserialize :: LsbFirst -> Int
-deserialize (LsbFirst bits) =
-  Array.foldl f 0 $ NEA.reverse bits
+toLsbFirst :: BitStream -> LsbFirst
+toLsbFirst bits =
+  LsbFirst (Array.foldl f 0 $ NEA.reverse bits)
   where
 
   f :: Int -> Bit -> Int
@@ -271,20 +283,57 @@ deserialize (LsbFirst bits) =
   f acc Negate = acc * 2 + 0
 
 -- |
-data InfraredCode
-  = Unknown (Array Bit)
-  | AEHA {custom :: LsbFirst, parity :: LsbFirst, data0 :: LsbFirst, data :: Array LsbFirst, stop :: Bit}
-  | NEC  {custom :: LsbFirst, data :: LsbFirst, invData :: LsbFirst, stop :: Bit}
-  | SIRC {command :: LsbFirst, address :: LsbFirst}
-derive instance genericInfraredCode :: Generic InfraredCode _
-derive instance eqInfraredCode      :: Eq InfraredCode
-instance showInfraredCode           :: Show InfraredCode where
+newtype MsbFirst = MsbFirst Int
+derive instance newtypeMsbFirst     :: Newtype MsbFirst _
+derive newtype instance eqMsbFirst  :: Eq MsbFirst
+derive newtype instance ordMsbFirst :: Ord MsbFirst
+instance showMsbFirst :: Show MsbFirst where
+  show (MsbFirst v) =
+    "0x" <> Int.toStringAs Int.hexadecimal v <> "(MSBFirst)"
+
+-- |
+toStringMsbFirst :: MsbFirst -> String
+toStringMsbFirst = Int.toStringAs Int.decimal <<< unwrap
+
+-- |
+toStringMsbFirstWithHex :: MsbFirst -> String
+toStringMsbFirstWithHex = Int.toStringAs Int.hexadecimal <<< unwrap
+
+-- |
+toMsbFirst :: BitStream -> MsbFirst
+toMsbFirst bits =
+  MsbFirst (Array.foldl f 0 bits)
+  where
+
+  f :: Int -> Bit -> Int
+  f acc Assert = acc * 2 + 1
+  f acc Negate = acc * 2 + 0
+
+-- |
+data InfraredCodeFormat
+  = FormatUnknown (Array Bit)
+  | FormatAEHA {custom :: BitStream, octets :: Array BitStream, stop :: Bit}
+  | FormatNEC  {custom :: BitStream, data :: BitStream, invData :: BitStream, stop :: Bit}
+  | FormatSIRC {command :: BitStream, address :: BitStream}
+derive instance genericInfraredCodeFormat :: Generic InfraredCodeFormat _
+derive instance eqInfraredCodeFormat      :: Eq InfraredCodeFormat
+instance showInfraredCodeFormat           :: Show InfraredCodeFormat where
   show = genericShow
 
 -- |
-decodeBaseband :: Baseband -> Either ProcessError (Array InfraredCode)
-decodeBaseband =
-  traverse (decodePhase3 <=< decodePhase2) <<< decodePhase1 
+data IrRemoteControlCode
+  = UnknownIrRemote       (Array InfraredCodeFormat)
+  | IrRemotePanasonicHvac (Array InfraredCodeFormat)
+
+-- |
+toIrCodeFormats :: Baseband -> Either ProcessError (Array InfraredCodeFormat)
+toIrCodeFormats =
+    traverse (decodePhase3 <=< decodePhase2) <<< decodePhase1 
+
+-- |
+toIrRemoteControlCode :: Array InfraredCodeFormat -> IrRemoteControlCode
+toIrRemoteControlCode formats =
+  UnknownIrRemote formats
 
 -- | 入力を各フレームに分ける
 decodePhase1 :: Baseband -> Array (Array Pulse)
@@ -322,17 +371,23 @@ decodePhase2 tokens =
       Left "Unexpected end of input"
 
 -- | 入力リーダ部とビット配列から赤外線信号にする
-decodePhase3 :: Tuple InfraredLeader (Array Bit) -> Either ProcessError InfraredCode
+decodePhase3 :: Tuple InfraredLeader (Array Bit) -> Either ProcessError InfraredCodeFormat
 decodePhase3 (Tuple leader bitarray) =
   evalState (runExceptT decoder) bitarray
   where
 
-  decoder :: DecodeMonad ProcessError InfraredCode
+  decoder :: DecodeMonad ProcessError InfraredCodeFormat
   decoder = case leader of
     LeaderAeha _    -> decodeAeha
     LeaderNec _     -> decodeNec
     LeaderSirc _    -> decodeSirc
     LeaderUnknown _ -> decodeUnknown
+
+-- | 各機種の赤外線信号にする
+decodePhase4 :: Array InfraredCodeFormat -> IrRemoteControlCode
+decodePhase4 irFrames =
+  UnknownIrRemote irFrames
+--  | IrRemotePanasonicHvac (Array InfraredCodeFormat)
 
 -- |
 type DecodeMonad e a = ExceptT e (State (Array Bit)) a
@@ -368,47 +423,43 @@ takeEnd errmsg = do
   maybe (throwError errmsg) pure $ NEA.fromArray array
 
 -- |
-decodeAeha :: DecodeMonad ProcessError InfraredCode
+decodeAeha :: DecodeMonad ProcessError InfraredCodeFormat
 decodeAeha = do
   custom <- takeBits 16 "fail to read: custom code (AEHA)"
-  parity <- takeBits 4 "fail to read: parity (AEHA)"
-  data_0 <- takeBits 4 "fail to read: data0 (AEHA)"
   data_N <- takeEnd "fail to read: data (AEHA)"
   let init = NEA.init data_N
       last = NEA.last data_N
       octets = toArrayNonEmptyArray 8 init
-  pure $ AEHA { custom: LsbFirst custom
-              , parity: LsbFirst parity
-              , data0: LsbFirst data_0
-              , data: map LsbFirst octets
-              , stop: last
-              }
+  pure $ FormatAEHA { custom: custom
+                    , octets: octets
+                    , stop: last
+                    }
 
 -- |
-decodeNec :: DecodeMonad ProcessError InfraredCode
+decodeNec :: DecodeMonad ProcessError InfraredCodeFormat
 decodeNec = do
   custom <- takeBits 16 "fail to read: custom code (NEC)"
   data__ <- takeBits 8 "fail to read: data (NEC)"
   i_data <- takeBits 8 "fail to read: inv-data (NEC)"
   stopbt <- takeBit "fail to read: stop bit (NEC)"
-  pure $ NEC  { custom: LsbFirst custom
-              , data: LsbFirst data__
-              , invData: LsbFirst i_data
-              , stop: stopbt
-              }
+  pure $ FormatNEC  { custom: custom
+                    , data: data__
+                    , invData: i_data
+                    , stop: stopbt
+                    }
 
 -- |
-decodeSirc :: DecodeMonad ProcessError InfraredCode
+decodeSirc :: DecodeMonad ProcessError InfraredCodeFormat
 decodeSirc = do
   comm <- takeBits 7 "fail to read: command code (SIRC)"
   addr <- takeEnd "fail to read: address (SIRC)"
-  pure $ SIRC { command: LsbFirst comm
-              , address: LsbFirst addr
-              }
+  pure $ FormatSIRC { command: comm
+                    , address: addr
+                    }
 
 -- |
-decodeUnknown :: DecodeMonad ProcessError InfraredCode
+decodeUnknown :: DecodeMonad ProcessError InfraredCodeFormat
 decodeUnknown = do
   array <- State.get
   State.put []
-  pure $ Unknown array
+  pure $ FormatUnknown array
