@@ -40,7 +40,7 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Query as HQ
 import Halogen.Themes.Bootstrap4 as HB
-import InfraredCode (InfraredHexString, infraredHexStringParser)
+import InfraredRemote.Code (InfraredHexString, infraredHexStringParser)
 import Text.Parsing.Parser (ParseError, parseErrorMessage, parseErrorPosition, runParser)
 import Text.Parsing.Parser.Pos (Position(..))
 import Utils as Utils

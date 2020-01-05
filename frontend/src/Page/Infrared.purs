@@ -57,7 +57,9 @@ import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Themes.Bootstrap4 as HB
-import InfraredCode (Baseband(..), Bit, Count, InfraredCodeFrame(..), InfraredHexString, InfraredLeader(..), IrRemoteControlCode(..), decodePhase1, decodePhase2, decodePhase3, decodePhase4, infraredHexStringParser, toIrRemoteControlCode, toLsbFirst, toMilliseconds, validCrc)
+import InfraredRemote.Code (Baseband(..), Bit, Count, InfraredCodeFrame(..), InfraredHexString, InfraredLeader(..), IrRemoteControlCode(..), decodePhase1, decodePhase2, decodePhase3, decodePhase4, infraredHexStringParser, toIrRemoteControlCode, toLsbFirst, toMilliseconds)
+import InfraredRemote.PanasonicHvac (PanasonicHvac(..))
+import InfraredRemote.PanasonicHvac as P
 import Page.Commons as Commons
 import Route (Route)
 import Route as Route
@@ -689,11 +691,11 @@ infraredCodeFrame =
 -- |
 infraredRemoteControlCode :: forall p i. IrRemoteControlCode -> Array (H.HTML p i)
 infraredRemoteControlCode = case _ of
-  UnknownIrRemote formats ->
+  IrRemoteUnknown formats ->
     [ HH.text "Unknown IR remote Code"
     ]
 
-  IrRemotePanasonicHvac v ->
+  IrRemotePanasonicHvac (PanasonicHvac v) ->
     [ HH.text "Panasonic HVAC"
     , HH.dl_
       [ dt [ HH.text "Temperature" ]
@@ -709,7 +711,7 @@ infraredRemoteControlCode = case _ of
       , dt [ HH.text "Profile" ]
       , dd [ HH.text (show v.profile) ]
       , dt [ HH.text "CRC" ]
-      , dd [ HH.text (if validCrc v.crc v.body18bytes then "Checksum is valid." else "Checksum is NOT valid.")
+      , dd [ HH.text (if P.validCrc v.crc v.body18bytes then "Checksum is valid." else "Checksum is NOT valid.")
            , HH.text $ " " <> (show v.crc)
            ]
       ]
@@ -948,7 +950,7 @@ popoverContents input =
   
   display :: IrRemoteControlCode -> String
   display = case _ of
-    UnknownIrRemote formats ->
+    IrRemoteUnknown formats ->
       String.joinWith ", " $ map showFormat formats
 
     IrRemotePanasonicHvac _ ->
