@@ -30,16 +30,14 @@ module InfraredRemote.PanasonicHvac
 import Prelude
 
 import Data.Array as Array
-import Data.Array.NonEmpty as NEA
 import Data.Enum (class Enum, class BoundedEnum, toEnum)
 import Data.Foldable (sum)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Int.Bits ((.&.), shr)
-import Data.Maybe (Maybe(..), fromJust)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
 import InfraredRemote.Type (Bit(..), BitStream, Celsius(..), InfraredCodeFrame(..), fromBinaryString, toLsbFirst)
-import Partial.Unsafe (unsafePartial)
 
 -- |
 data Mode = MAuto | MFan | MDry | MCool | MHeat
@@ -91,7 +89,7 @@ instance showCrc                :: Show Crc where
 
 -- |
 validCrc :: Crc -> Array BitStream -> Boolean
-validCrc crc body18bytes =
+validCrc crc original =
   let
     x = unwrap crc
     y = (sum values) .&. 0xff
@@ -99,19 +97,20 @@ validCrc crc body18bytes =
   x == y
   where
   values :: Array Int
-  values = map (unwrap <<< toLsbFirst) body18bytes
+  values =
+    map (unwrap <<< toLsbFirst) $ Array.take 18 original
 
 -- |
-newtype PanasonicHvac
-  = PanasonicHvac { body18bytes :: Array BitStream
-                  , temperature :: Celsius
-                  , mode :: Mode
-                  , switch :: Switch
-                  , swing :: Swing
-                  , fan :: Fan
-                  , profile :: Profile
-                  , crc :: Crc
-                  }
+newtype PanasonicHvac = PanasonicHvac
+  { original :: Array BitStream
+  , temperature :: Celsius
+  , mode :: Mode
+  , switch :: Switch
+  , swing :: Swing
+  , fan :: Fan
+  , profile :: Profile
+  , crc :: Crc
+  }
 
 derive instance newtypePanasonicHvac    :: Newtype PanasonicHvac _
 derive instance genericPanasonicHvac    :: Generic PanasonicHvac _
@@ -130,46 +129,39 @@ decodePanasonicHvac = case _ of
 
   decode :: InfraredCodeFrame -> Maybe PanasonicHvac
   decode = case _ of
-    FormatAEHA 
-      { custom: b1b2
-      , octets: [ b_3, b_4, b_5, b_6
-                , b_7, b_8, b_9, b10
-                , b11, b12, b13, b14
-                , b15, b16, b17, b18
-                , b19
-                ]
+    FormatAEHA
+      { octets: original@ [ b_1, b_2, b_3, b_4
+                          , b_5, b_6, b_7, b_8
+                          , b_9, b10, b11, b12
+                          , b13, b14, b15, b16
+                          , b17, b18, b19
+                          ]
       , stop: _
       } ->
-        let
-          body = [ NEA.toArray b1b2
-                  , [ b_3, b_4, b_5, b_6
-                    , b_7, b_8, b_9, b10
-                    , b11, b12, b13, b14
-                    , b15, b16, b17, b18
-                    ]
-                  ]
-          temp  = (unwrap (toLsbFirst b_7) `shr` 1) .&. 0xf
-          mode  = (unwrap (toLsbFirst b_6) `shr` 4) .&. 0xf
-          switch = unwrap (toLsbFirst b_6) .&. 0x1
-          fan   = (unwrap (toLsbFirst b_9) `shr` 4) .&. 0xf
-          swing = unwrap (toLsbFirst b_9) .&. 0xf
-          prof  = unwrap (toLsbFirst b14)
-          crc   = unwrap (toLsbFirst b19)
-        in do
-        mode_ <- toMode mode
-        switch_ <- toEnum switch
-        swing_ <- toSwingNotch swing
-        fan_ <- toFanNotch fan
-        pure $ PanasonicHvac
-          { body18bytes: Array.concat body
-          , temperature: Celsius (16 + temp)
-          , mode: mode_
-          , switch: switch_
-          , swing: swing_
-          , fan: fan_
-          , profile: toProfile prof
-          , crc: Crc crc
-          }
+      let
+        temp  = (unwrap (toLsbFirst b_7) `shr` 1) .&. 0xf
+        mode  = (unwrap (toLsbFirst b_6) `shr` 4) .&. 0xf
+        switch = unwrap (toLsbFirst b_6) .&. 0x1
+        fan   = (unwrap (toLsbFirst b_9) `shr` 4) .&. 0xf
+        swing = unwrap (toLsbFirst b_9) .&. 0xf
+        prof  = unwrap (toLsbFirst b14)
+        crc   = unwrap (toLsbFirst b19)
+      in do
+      mode_ <- toMode mode
+      switch_ <- toEnum switch
+      swing_ <- toSwingNotch swing
+      fan_ <- toFanNotch fan
+      pure $ PanasonicHvac
+        { original: original
+        , temperature: Celsius (16 + temp)
+        , mode: mode_
+        , switch: switch_
+        , swing: swing_
+        , fan: fan_
+        , profile: toProfile prof
+        , crc: Crc crc
+        }
+
     _ ->  Nothing
   
   toMode = case _ of
@@ -246,19 +238,13 @@ decodePanasonicHvac = case _ of
     -- |   |   |   |   |   |   |   | 2+4=6          --   |   |   |   |   |   |   |   | 32+64=96
     -- 0   1   1   0   0   0   0   0 == 06h         --   0   1   1   0   0   0   0   0 == 60h
     --
-    FormatAEHA  { custom: unsafePartial $ fromJust $ NEA.fromArray custom
-                , octets: octets
-                , stop: Assert
-                }
+    FormatAEHA {octets: octets, stop: Assert}
     where
-    custom :: Array BitStream
-    custom = Array.mapMaybe fromBinaryString
-              [ "01000000"  -- 02 (LSB first) | 40 (MSB first)
-              , "00000100"  -- 20 (LSB first) | 04 (MSB first)
-              ]
     octets :: Array BitStream
     octets = Array.mapMaybe fromBinaryString
-              [ "00000111"  -- e0 (LSB first) | 07 (MSB first)
+              [ "01000000"  -- 02 (LSB first) | 40 (MSB first)
+              , "00000100"  -- 20 (LSB first) | 04 (MSB first)
+              , "00000111"  -- e0 (LSB first) | 07 (MSB first)
               , "00100000"  -- 04 (LSB first) | 20 (MSB first)
               , "00000000"  -- 00 (LSB first) | 00 (MSB first)
               , "00000000"  -- 00 (LSB first) | 00 (MSB first)

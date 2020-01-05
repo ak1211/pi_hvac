@@ -36,8 +36,9 @@ module InfraredRemote.Code
   ) where
 
 import Prelude
-import InfraredRemote.Type (Bit(..), BitStream, Celsius(..), InfraredCodeFrame(..), LsbFirst(..), MsbFirst(..), fromBinaryString, fromBoolean, showBit, toBoolean, toLsbFirst, toMsbFirst, toStringLsbFirst, toStringLsbFirstWithHex, toStringMsbFirst, toStringMsbFirstWithHex)
 
+import InfraredRemote.Type (Bit(..), BitStream, Celsius(..), InfraredCodeFrame(..), LsbFirst(..), MsbFirst(..), fromBinaryString, fromBoolean, showBit, toBoolean, toLsbFirst, toMsbFirst, toStringLsbFirst, toStringLsbFirstWithHex, toStringMsbFirst, toStringMsbFirstWithHex)
+import Control.Alt ((<|>))
 import Control.Monad.Except (ExceptT, runExceptT, throwError)
 import Control.Monad.State (State, evalState)
 import Control.Monad.State as State
@@ -57,6 +58,7 @@ import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Data.Unfoldable (unfoldr1)
+import InfraredRemote.MitsubishiElectricHvac (MitsubishiElectricHvac, decodeMitsubishiElectricHvac)
 import InfraredRemote.PanasonicHvac (PanasonicHvac, decodePanasonicHvac)
 import Partial.Unsafe (unsafePartial)
 import Text.Parsing.Parser (Parser)
@@ -219,17 +221,10 @@ demodulate leader ps =
     in
     fromBoolean $ Array.any (_ == p.on) threshold
 
-
-
 -- |
 toIrCodeFrames :: Baseband -> Either ProcessError (Array InfraredCodeFrame)
 toIrCodeFrames =
   traverse (decodePhase3 <=< decodePhase2) <<< decodePhase1 
-
--- |
-toIrRemoteControlCode :: Baseband -> Either ProcessError IrRemoteControlCode
-toIrRemoteControlCode =
-  Bifunctor.rmap decodePhase4 <<< toIrCodeFrames
 
 -- | 入力を各フレームに分ける
 decodePhase1 :: Baseband -> Array (Array Pulse)
@@ -280,6 +275,31 @@ decodePhase3 (Tuple leader bitarray) =
     LeaderUnknown _ -> decodeUnknown
 
 -- |
+data IrRemoteControlCode
+  = IrRemoteUnknown                 (Array InfraredCodeFrame)
+  | IrRemotePanasonicHvac           PanasonicHvac
+  | IrRemoteMitsubishiElectricHvac  MitsubishiElectricHvac
+
+derive instance genericIrRemoteControlCode  :: Generic IrRemoteControlCode _
+derive instance eqIrRemoteControlCode       :: Eq IrRemoteControlCode
+instance showIrRemoteControlCode            :: Show IrRemoteControlCode where
+  show = genericShow
+
+-- |
+toIrRemoteControlCode :: Baseband -> Either ProcessError IrRemoteControlCode
+toIrRemoteControlCode =
+  Bifunctor.rmap decodePhase4 <<< toIrCodeFrames
+
+-- | 各機種の赤外線信号にする
+decodePhase4 :: Array InfraredCodeFrame -> IrRemoteControlCode
+decodePhase4 irFrames =
+  fromMaybe (IrRemoteUnknown irFrames) $ do
+    pana irFrames <|> melco irFrames
+  where
+    pana x  = IrRemotePanasonicHvac <$> decodePanasonicHvac x
+    melco x = IrRemoteMitsubishiElectricHvac <$> decodeMitsubishiElectricHvac x
+ 
+-- |
 type DecodeMonad e a = ExceptT e (State (Array Bit)) a
 
 -- |
@@ -315,17 +335,11 @@ takeEnd errmsg = do
 -- |
 decodeAeha :: DecodeMonad ProcessError InfraredCodeFrame
 decodeAeha = do
-  custom0 <- takeBits 8 "fail to read: custom code (AEHA)"
-  custom1 <- takeBits 8 "fail to read: custom code (AEHA)"
   data_N <- takeEnd "fail to read: data (AEHA)"
-  let custom = NEA.singleton custom0 <> NEA.singleton custom1
-      init = NEA.init data_N
+  let init = NEA.init data_N
       last = NEA.last data_N
       octets = toArrayNonEmptyArray 8 init
-  pure $ FormatAEHA { custom: custom
-                    , octets: octets
-                    , stop: last
-                    }
+  pure $ FormatAEHA {octets: octets, stop: last}
 
 -- |
 decodeNec :: DecodeMonad ProcessError InfraredCodeFrame
@@ -357,21 +371,3 @@ decodeUnknown = do
   array <- State.get
   State.put []
   pure $ FormatUnknown array
-
--- |
-data IrRemoteControlCode
-  = IrRemoteUnknown       (Array InfraredCodeFrame)
-  | IrRemotePanasonicHvac PanasonicHvac
-
-derive instance genericIrRemoteControlCode  :: Generic IrRemoteControlCode _
-derive instance eqIrRemoteControlCode       :: Eq IrRemoteControlCode
-instance showIrRemoteControlCode            :: Show IrRemoteControlCode where
-  show = genericShow
-
--- | 各機種の赤外線信号にする
-decodePhase4 :: Array InfraredCodeFrame -> IrRemoteControlCode
-decodePhase4 irFrames =
-  fromMaybe (IrRemoteUnknown irFrames) $ do
-    v <- decodePanasonicHvac irFrames
-    pure $ IrRemotePanasonicHvac v
-

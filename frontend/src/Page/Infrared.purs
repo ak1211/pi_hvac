@@ -31,7 +31,6 @@ import Components.InfraredCodeEditor as Editor
 import Control.Alt ((<|>))
 import Data.Array ((:), (..))
 import Data.Array as Array
-import Data.Array.NonEmpty as NEA
 import Data.Bifunctor as Bifunctor
 import Data.Char (fromCharCode)
 import Data.Either (Either(..), either, isRight)
@@ -60,6 +59,8 @@ import Halogen.Themes.Bootstrap4 as HB
 import InfraredRemote.Code (Baseband(..), Bit, Count, InfraredCodeFrame(..), InfraredHexString, InfraredLeader(..), IrRemoteControlCode(..), decodePhase1, decodePhase2, decodePhase3, decodePhase4, infraredHexStringParser, toIrRemoteControlCode, toLsbFirst, toMilliseconds)
 import InfraredRemote.PanasonicHvac (PanasonicHvac(..))
 import InfraredRemote.PanasonicHvac as P
+import InfraredRemote.MitsubishiElectricHvac (MitsubishiElectricHvac(..))
+import InfraredRemote.MitsubishiElectricHvac as M
 import Page.Commons as Commons
 import Route (Route)
 import Route as Route
@@ -650,8 +651,6 @@ infraredCodeFrame =
       [ HH.dl_
         [ dt [ HH.text "format" ]
         , dd [ HH.text "AEHA" ]
-        , dt [ HH.text "custom code (LSB first)" ]
-        , dd $ map (showOctet <<< unwrap <<< toLsbFirst) $ NEA.toArray irValue.custom
         , dt [ HH.text "octets (LSB first)" ]
         , dd $ map (showOctet <<< unwrap <<< toLsbFirst) irValue.octets
         , dt [ HH.text "stop" ]
@@ -711,7 +710,23 @@ infraredRemoteControlCode = case _ of
       , dt [ HH.text "Profile" ]
       , dd [ HH.text (show v.profile) ]
       , dt [ HH.text "CRC" ]
-      , dd [ HH.text (if P.validCrc v.crc v.body18bytes then "Checksum is valid." else "Checksum is NOT valid.")
+      , dd [ HH.text (if P.validCrc v.crc v.original then "Checksum is valid." else "Checksum is NOT valid.")
+           , HH.text $ " " <> (show v.crc)
+           ]
+      ]
+    ]
+
+  IrRemoteMitsubishiElectricHvac (MitsubishiElectricHvac v) ->
+    [ HH.text "MitsubishiElectric HVAC"
+    , HH.dl_
+      [ dt [ HH.text "Temperature" ]
+      , dd [ HH.text (show v.temperature) ]
+      , dt [ HH.text "Mode1" ]
+      , dd [ HH.text (show v.mode1) ]
+      , dt [ HH.text "Switch" ]
+      , dd [ HH.text (show v.switch) ]
+      , dt [ HH.text "CRC" ]
+      , dd [ HH.text (if M.validCrc v.crc v.original then "Checksum is valid." else "Checksum is NOT valid.")
            , HH.text $ " " <> (show v.crc)
            ]
       ]
@@ -954,7 +969,10 @@ popoverContents input =
       String.joinWith ", " $ map showFormat formats
 
     IrRemotePanasonicHvac _ ->
-      "PanasonicHVAC"
+      "Panasonic HVAC"
+
+    IrRemoteMitsubishiElectricHvac _ ->
+      "Mitsubishi Electric HVAC"
 
   showFormat :: InfraredCodeFrame -> String
   showFormat = case _ of
@@ -970,7 +988,6 @@ popoverContents input =
     FormatAEHA irValue ->
       String.joinWith " " $ Array.concat
         [ Array.singleton "AEHA"
-        , map (showHex <<< unwrap <<< toLsbFirst) $ NEA.toArray irValue.custom
         , map (showHex <<< unwrap <<< toLsbFirst) irValue.octets
         ]
 

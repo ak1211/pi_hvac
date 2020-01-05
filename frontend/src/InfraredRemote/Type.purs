@@ -140,10 +140,11 @@ toMsbFirst bits =
   f :: Int -> Bit -> Int
   f acc Assert = acc * 2 + 1
   f acc Negate = acc * 2 + 0
+
 -- |
 data InfraredCodeFrame
   = FormatUnknown (Array Bit)
-  | FormatAEHA {custom :: NonEmptyArray BitStream, octets :: Array BitStream, stop :: Bit}
+  | FormatAEHA {octets :: Array BitStream, stop :: Bit}
   | FormatNEC  {custom0 :: BitStream, custom1 :: BitStream, data0 :: BitStream, data1 :: BitStream, stop :: Bit}
   | FormatSIRC {command :: BitStream, address :: BitStream}
 derive instance genericInfraredCodeFrame  :: Generic InfraredCodeFrame _
