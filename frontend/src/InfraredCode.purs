@@ -340,7 +340,7 @@ toMsbFirst bits =
 data InfraredCodeFrame
   = FormatUnknown (Array Bit)
   | FormatAEHA {custom :: NonEmptyArray BitStream, octets :: Array BitStream, stop :: Bit}
-  | FormatNEC  {custom :: BitStream, data :: BitStream, invData :: BitStream, stop :: Bit}
+  | FormatNEC  {custom0 :: BitStream, custom1 :: BitStream, data0 :: BitStream, data1 :: BitStream, stop :: Bit}
   | FormatSIRC {command :: BitStream, address :: BitStream}
 derive instance genericInfraredCodeFrame  :: Generic InfraredCodeFrame _
 derive instance eqInfraredCodeFrame       :: Eq InfraredCodeFrame
@@ -542,13 +542,15 @@ decodeAeha = do
 -- |
 decodeNec :: DecodeMonad ProcessError InfraredCodeFrame
 decodeNec = do
-  custom <- takeBits 16 "fail to read: custom code (NEC)"
-  data__ <- takeBits 8 "fail to read: data (NEC)"
-  i_data <- takeBits 8 "fail to read: inv-data (NEC)"
+  custom0 <- takeBits 8 "fail to read: custom code0 (NEC)"
+  custom1 <- takeBits 8 "fail to read: custom code1 (NEC)"
+  data0   <- takeBits 8 "fail to read: data0 (NEC)"
+  data1   <- takeBits 8 "fail to read: data1 (NEC)"
   stopbt <- takeBit "fail to read: stop bit (NEC)"
-  pure $ FormatNEC  { custom: custom
-                    , data: data__
-                    , invData: i_data
+  pure $ FormatNEC  { custom0: custom0
+                    , custom1: custom1
+                    , data0: data0
+                    , data1: data1
                     , stop: stopbt
                     }
 

@@ -26,7 +26,7 @@ import Prelude
 import Affjax as AX
 import Api as Api
 import AppM (class HasApiAccessible, class Navigate, getApiBaseURL, getApiTimeout, navigate)
-import CSS (em, margin, marginBottom, marginTop, minHeight, overline, padding, px, rem, textDecoration, width)
+import CSS (em, margin, marginBottom, marginTop, minHeight, padding, px, rem, width)
 import Components.InfraredCodeEditor as Editor
 import Control.Alt ((<|>))
 import Data.Array ((:), (..))
@@ -57,7 +57,7 @@ import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Themes.Bootstrap4 as HB
-import InfraredCode (Baseband(..), Bit, Count, InfraredCodeFrame(..), InfraredHexString, InfraredLeader(..), IrRemoteControlCode(..), decodePhase1, decodePhase2, decodePhase3, decodePhase4, validCrc, infraredHexStringParser, toIrRemoteControlCode, toLsbFirst, toMilliseconds, toMsbFirst)
+import InfraredCode (Baseband(..), Bit, Count, InfraredCodeFrame(..), InfraredHexString, InfraredLeader(..), IrRemoteControlCode(..), decodePhase1, decodePhase2, decodePhase3, decodePhase4, infraredHexStringParser, toIrRemoteControlCode, toLsbFirst, toMilliseconds, validCrc)
 import Page.Commons as Commons
 import Route (Route)
 import Route as Route
@@ -635,15 +635,10 @@ infraredCodeFrame =
       [ HH.dl_
         [ dt [ HH.text "format" ]
         , dd [ HH.text "NEC" ]
-        , dt [ HH.text "custom code" ]
-        , dd [ HH.text $ showHex <<< unwrap $ toLsbFirst irValue.custom ]
-        , dd [ HH.text $ showHex <<< unwrap $ toMsbFirst irValue.custom ]
-        , dt [ HH.text "data" ]
-        , dd [ HH.text $ showHex <<< unwrap $ toLsbFirst irValue.data ]
-        , dd [ HH.text $ showHex <<< unwrap $ toMsbFirst irValue.data ]
-        , dt [ HH.span [ style do textDecoration overline ] [ HH.text "data" ] ]
-        , dd [ HH.text $ showHex <<< unwrap $ toLsbFirst irValue.invData ]
-        , dd [ HH.text $ showHex <<< unwrap $ toMsbFirst irValue.invData ]
+        , dt [ HH.text "custom code (LSB first)" ]
+        , dd $ map (showOctet <<< unwrap <<< toLsbFirst) [irValue.custom0, irValue.custom1]
+        , dt [ HH.text "octets (LSB first)" ]
+        , dd $ map (showOctet <<< unwrap <<< toLsbFirst) [irValue.data0, irValue.data1]
         , dt [ HH.text "stop" ]
         , dd [ HH.text $ show irValue.stop ]
         ]
@@ -657,10 +652,6 @@ infraredCodeFrame =
         , dd $ map (showOctet <<< unwrap <<< toLsbFirst) $ NEA.toArray irValue.custom
         , dt [ HH.text "octets (LSB first)" ]
         , dd $ map (showOctet <<< unwrap <<< toLsbFirst) irValue.octets
-        , dt [ HH.text "custom code (MSB first)" ]
-        , dd $ map (showOctet <<< unwrap <<< toMsbFirst) $ NEA.toArray irValue.custom
-        , dt [ HH.text "octets (MSB first)" ]
-        , dd $ map (showOctet <<< unwrap <<< toMsbFirst) irValue.octets
         , dt [ HH.text "stop" ]
         , dd [ HH.text $ show irValue.stop ]
         ]
@@ -674,10 +665,6 @@ infraredCodeFrame =
         , dd [ HH.text $ showHex <<< unwrap $ toLsbFirst irValue.command ]
         , dt [ HH.text "address (LSB first)" ]
         , dd [ HH.text $ showHex <<< unwrap $ toLsbFirst irValue.address ]
-        , dt [ HH.text "command (MSB first)" ]
-        , dd [ HH.text $ showHex <<< unwrap $ toMsbFirst irValue.command ]
-        , dt [ HH.text "address (MSB first)" ]
-        , dd [ HH.text $ showHex <<< unwrap $ toMsbFirst irValue.address ]
         ]
       ]
 
@@ -972,9 +959,10 @@ popoverContents input =
     FormatNEC irValue ->
       String.joinWith " "
         [ "NEC"
-        , showHex <<< unwrap $ toLsbFirst irValue.custom
-        , showHex <<< unwrap $ toLsbFirst irValue.data
-        , showHex <<< unwrap $ toLsbFirst irValue.invData
+        , showHex <<< unwrap $ toLsbFirst irValue.custom0
+        , showHex <<< unwrap $ toLsbFirst irValue.custom1
+        , showHex <<< unwrap $ toLsbFirst irValue.data0
+        , showHex <<< unwrap $ toLsbFirst irValue.data1
         ]
 
     FormatAEHA irValue ->
