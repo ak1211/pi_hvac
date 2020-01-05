@@ -552,8 +552,8 @@ renderIrdbTable state =
           _                             -> HH.option [] [HH.text name]
 
 -- |
-infraredBaseband :: forall p i. Baseband -> H.HTML p i
-infraredBaseband (Baseband pulses) =
+infraredTimingTable :: forall p i. Baseband -> H.HTML p i
+infraredTimingTable (Baseband pulses) =
   HH.div [HP.class_ HB.row] $ map col pulses
   where
 
@@ -843,15 +843,15 @@ renderInfraredRemoconCode state =
               Just (Left x) -> HH.text x
               Just (Right x) -> HH.text (unwrap x).code
           ]
-        , HH.h3_ [ HH.text "Baseband in milliseconds" ]
+        , HH.h3_ [ HH.text "Timing table in milliseconds" ]
         , HH.p
           [ HP.class_ HB.p3 ]
-          [ either HH.text infraredBaseband baseband ]
+          [ either HH.text infraredTimingTable baseband ]
         , HH.h3_ [ HH.text "Bit patterns" ]
         , HH.p
           [ HP.class_ HB.p3 ]
           $ either (Array.singleton <<< HH.text) (intercalate [HH.hr_] <<< map infraredBitpatterns) bitPatterns
-        , HH.h3_ [ HH.text "Infrared code frames" ]
+        , HH.h3_ [ HH.text "Infrared remote control frames" ]
         , HH.p
           [ HP.class_ HB.p3 ]
           $ either (Array.singleton <<< HH.text) (intercalate [HH.hr_] <<< map infraredCodeFrame) irframes
