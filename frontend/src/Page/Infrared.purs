@@ -31,6 +31,7 @@ import Components.InfraredCodeEditor as Editor
 import Control.Alt ((<|>))
 import Data.Array ((:), (..))
 import Data.Array as Array
+import Data.Array.NonEmpty as NEA
 import Data.Bifunctor as Bifunctor
 import Data.Char (fromCharCode)
 import Data.Either (Either(..), either, isRight)
@@ -56,7 +57,7 @@ import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Themes.Bootstrap4 as HB
-import InfraredCode (Baseband(..), Bit, Count, InfraredCodeFormat(..), InfraredHexString, InfraredLeader(..), IrRemoteControlCode(..), decodePhase1, decodePhase2, decodePhase3, decodePhase4, infraredHexStringParser, toIrRemoteControlCode, toLsbFirst, toMilliseconds, toMsbFirst)
+import InfraredCode (Baseband(..), Bit, Count, InfraredCodeFrame(..), InfraredHexString, InfraredLeader(..), IrRemoteControlCode(..), decodePhase1, decodePhase2, decodePhase3, decodePhase4, infraredHexStringParser, toIrRemoteControlCode, toLsbFirst, toMilliseconds, toMsbFirst)
 import Page.Commons as Commons
 import Route (Route)
 import Route as Route
@@ -627,8 +628,8 @@ infraredBitpatterns (Tuple leader vs) =
       $ map (HH.text <<< show) xs
 
 -- |
-infraredCordFormat :: forall p i. InfraredCodeFormat -> Array (H.HTML p i)
-infraredCordFormat =
+infraredCodeFrame :: forall p i. InfraredCodeFrame -> Array (H.HTML p i)
+infraredCodeFrame =
   case _ of
     FormatNEC irValue ->
       [ HH.dl_
@@ -653,11 +654,11 @@ infraredCordFormat =
         [ dt [ HH.text "format" ]
         , dd [ HH.text "AEHA" ]
         , dt [ HH.text "custom code (LSB first)" ]
-        , dd [ HH.text $ showHex <<< unwrap $ toLsbFirst irValue.custom ]
+        , dd $ map (showOctet <<< unwrap <<< toLsbFirst) $ NEA.toArray irValue.custom
         , dt [ HH.text "octets (LSB first)" ]
         , dd $ map (showOctet <<< unwrap <<< toLsbFirst) irValue.octets
         , dt [ HH.text "custom code (MSB first)" ]
-        , dd [ HH.text $ showHex <<< unwrap $ toMsbFirst irValue.custom ]
+        , dd $ map (showOctet <<< unwrap <<< toMsbFirst) $ NEA.toArray irValue.custom
         , dt [ HH.text "octets (MSB first)" ]
         , dd $ map (showOctet <<< unwrap <<< toMsbFirst) irValue.octets
         , dt [ HH.text "stop" ]
@@ -712,8 +713,8 @@ infraredRemoteControlCode = case _ of
       , dd [ HH.text (show v.temperature) ]
       , dt [ HH.text "Mode" ]
       , dd [ HH.text (show v.mode) ]
-      , dt [ HH.text "Switch ON" ]
-      , dd [ HH.text (show v.switchOn) ]
+      , dt [ HH.text "Switch" ]
+      , dd [ HH.text (show v.switch) ]
       , dt [ HH.text "Fan" ]
       , dd [ HH.text (show v.fan) ]
       , dt [ HH.text "Swing" ]
@@ -850,10 +851,10 @@ renderInfraredRemoconCode state =
         , HH.p
           [ HP.class_ HB.p3 ]
           $ either (Array.singleton <<< HH.text) (intercalate [HH.hr_] <<< map infraredBitpatterns) bitPatterns
-        , HH.h3_ [ HH.text "Infrared code format" ]
+        , HH.h3_ [ HH.text "Infrared code frames" ]
         , HH.p
           [ HP.class_ HB.p3 ]
-          $ either (Array.singleton <<< HH.text) (intercalate [HH.hr_] <<< map infraredCordFormat) irframes
+          $ either (Array.singleton <<< HH.text) (intercalate [HH.hr_] <<< map infraredCodeFrame) irframes
         , HH.h3_ [ HH.text "Infrared remote control code" ]
         , HH.p
           [ HP.class_ HB.p3 ]
@@ -964,7 +965,7 @@ popoverContents input =
     IrRemotePanasonicHvac _ ->
       "PanasonicHVAC"
 
-  showFormat :: InfraredCodeFormat -> String
+  showFormat :: InfraredCodeFrame -> String
   showFormat = case _ of
     FormatNEC irValue ->
       String.joinWith " "
@@ -976,9 +977,8 @@ popoverContents input =
 
     FormatAEHA irValue ->
       String.joinWith " " $ Array.concat
-        [ [ "AEHA"
-          , showHex <<< unwrap $ toLsbFirst irValue.custom
-          ]
+        [ Array.singleton "AEHA"
+        , map (showHex <<< unwrap <<< toLsbFirst) $ NEA.toArray irValue.custom
         , map (showHex <<< unwrap <<< toLsbFirst) irValue.octets
         ]
 

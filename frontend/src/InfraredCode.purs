@@ -22,10 +22,11 @@ module InfraredCode
   , Count(..)
   , Celsius(..)
   , Swing(..)
+  , Switch(..)
   , Mode(..)
   , Fan(..)
   , Profile(..)
-  , InfraredCodeFormat(..)
+  , InfraredCodeFrame(..)
   , InfraredHexString
   , InfraredLeader(..)
   , IrRemoteControlCode(..)
@@ -49,7 +50,7 @@ module InfraredCode
   , toStringLsbFirstWithHex
   , toStringMsbFirst
   , toStringMsbFirstWithHex
-  , toIrCodeFormats
+  , toIrCodeFrames
   , toIrRemoteControlCode
   ) where
 
@@ -65,7 +66,7 @@ import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NEA
 import Data.Bifunctor as Bifunctor
 import Data.Either (Either(..))
-import Data.Enum (toEnum)
+import Data.Enum (class Enum, class BoundedEnum, toEnum)
 import Data.Foldable (all)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
@@ -334,14 +335,14 @@ toMsbFirst bits =
   f acc Negate = acc * 2 + 0
 
 -- |
-data InfraredCodeFormat
+data InfraredCodeFrame
   = FormatUnknown (Array Bit)
-  | FormatAEHA {custom :: BitStream, octets :: Array BitStream, stop :: Bit}
+  | FormatAEHA {custom :: NonEmptyArray BitStream, octets :: Array BitStream, stop :: Bit}
   | FormatNEC  {custom :: BitStream, data :: BitStream, invData :: BitStream, stop :: Bit}
   | FormatSIRC {command :: BitStream, address :: BitStream}
-derive instance genericInfraredCodeFormat :: Generic InfraredCodeFormat _
-derive instance eqInfraredCodeFormat      :: Eq InfraredCodeFormat
-instance showInfraredCodeFormat           :: Show InfraredCodeFormat where
+derive instance genericInfraredCodeFrame  :: Generic InfraredCodeFrame _
+derive instance eqInfraredCodeFrame       :: Eq InfraredCodeFrame
+instance showInfraredCodeFrame            :: Show InfraredCodeFrame where
   show = genericShow
 
 -- |
@@ -357,6 +358,18 @@ derive instance genericMode :: Generic Mode _
 derive instance eqMode      :: Eq Mode
 instance showMode           :: Show Mode where
   show = genericShow
+
+-- |
+newtype Switch = Switch Boolean
+derive instance newtypeSwitch             :: Newtype Switch _
+derive newtype instance eqSwitch          :: Eq Switch
+derive newtype instance ordSwitch         :: Ord Switch
+derive newtype instance enumSwitch        :: Enum Switch
+derive newtype instance boundedSwitch     :: Bounded Switch
+derive newtype instance boundedEnumSwitch :: BoundedEnum Switch
+instance showSwitch :: Show Switch where
+  show (Switch true) = "ON"
+  show (Switch false) = "OFF"
 
 -- |
 data Swing = SAuto | SHorizontal | SNotch2 | SNotch3 | SNotch4 | SNotch5
@@ -381,22 +394,22 @@ instance showProfile            :: Show Profile where
 
 -- |
 data IrRemoteControlCode
-  = UnknownIrRemote       (Array InfraredCodeFormat)
-  | IrRemotePanasonicHvac {temperature :: Celsius, mode :: Mode, switchOn :: Boolean, swing :: Swing, fan :: Fan, profile :: Profile, crc :: Int}
+  = UnknownIrRemote       (Array InfraredCodeFrame)
+  | IrRemotePanasonicHvac {temperature :: Celsius, mode :: Mode, switch :: Switch, swing :: Swing, fan :: Fan, profile :: Profile, crc :: Int}
 derive instance genericIrRemoteControlCode  :: Generic IrRemoteControlCode _
 derive instance eqIrRemoteControlCode       :: Eq IrRemoteControlCode
 instance showIrRemoteControlCode            :: Show IrRemoteControlCode where
   show = genericShow
 
 -- |
-toIrCodeFormats :: Baseband -> Either ProcessError (Array InfraredCodeFormat)
-toIrCodeFormats =
+toIrCodeFrames :: Baseband -> Either ProcessError (Array InfraredCodeFrame)
+toIrCodeFrames =
   traverse (decodePhase3 <=< decodePhase2) <<< decodePhase1 
 
 -- |
 toIrRemoteControlCode :: Baseband -> Either ProcessError IrRemoteControlCode
 toIrRemoteControlCode =
-  Bifunctor.rmap decodePhase4 <<< toIrCodeFormats
+  Bifunctor.rmap decodePhase4 <<< toIrCodeFrames
 
 -- | 入力を各フレームに分ける
 decodePhase1 :: Baseband -> Array (Array Pulse)
@@ -434,12 +447,12 @@ decodePhase2 tokens =
       Left "Unexpected end of input"
 
 -- | 入力リーダ部とビット配列から赤外線信号にする
-decodePhase3 :: Tuple InfraredLeader (Array Bit) -> Either ProcessError InfraredCodeFormat
+decodePhase3 :: Tuple InfraredLeader (Array Bit) -> Either ProcessError InfraredCodeFrame
 decodePhase3 (Tuple leader bitarray) =
   evalState (runExceptT decoder) bitarray
   where
 
-  decoder :: DecodeMonad ProcessError InfraredCodeFormat
+  decoder :: DecodeMonad ProcessError InfraredCodeFrame
   decoder = case leader of
     LeaderAeha _    -> decodeAeha
     LeaderNec _     -> decodeNec
@@ -480,11 +493,13 @@ takeEnd errmsg = do
   maybe (throwError errmsg) pure $ NEA.fromArray array
 
 -- |
-decodeAeha :: DecodeMonad ProcessError InfraredCodeFormat
+decodeAeha :: DecodeMonad ProcessError InfraredCodeFrame
 decodeAeha = do
-  custom <- takeBits 16 "fail to read: custom code (AEHA)"
+  custom0 <- takeBits 8 "fail to read: custom code (AEHA)"
+  custom1 <- takeBits 8 "fail to read: custom code (AEHA)"
   data_N <- takeEnd "fail to read: data (AEHA)"
-  let init = NEA.init data_N
+  let custom = NEA.singleton custom0 <> NEA.singleton custom1
+      init = NEA.init data_N
       last = NEA.last data_N
       octets = toArrayNonEmptyArray 8 init
   pure $ FormatAEHA { custom: custom
@@ -493,7 +508,7 @@ decodeAeha = do
                     }
 
 -- |
-decodeNec :: DecodeMonad ProcessError InfraredCodeFormat
+decodeNec :: DecodeMonad ProcessError InfraredCodeFrame
 decodeNec = do
   custom <- takeBits 16 "fail to read: custom code (NEC)"
   data__ <- takeBits 8 "fail to read: data (NEC)"
@@ -506,7 +521,7 @@ decodeNec = do
                     }
 
 -- |
-decodeSirc :: DecodeMonad ProcessError InfraredCodeFormat
+decodeSirc :: DecodeMonad ProcessError InfraredCodeFrame
 decodeSirc = do
   comm <- takeBits 7 "fail to read: command code (SIRC)"
   addr <- takeEnd "fail to read: address (SIRC)"
@@ -515,14 +530,14 @@ decodeSirc = do
                     }
 
 -- |
-decodeUnknown :: DecodeMonad ProcessError InfraredCodeFormat
+decodeUnknown :: DecodeMonad ProcessError InfraredCodeFrame
 decodeUnknown = do
   array <- State.get
   State.put []
   pure $ FormatUnknown array
 
 -- | 各機種の赤外線信号にする
-decodePhase4 :: Array InfraredCodeFormat -> IrRemoteControlCode
+decodePhase4 :: Array InfraredCodeFrame -> IrRemoteControlCode
 decodePhase4 irFrames =
   fromMaybe (UnknownIrRemote irFrames) $ do
     ff <- decodePanasonicHVAC irFrames
@@ -531,13 +546,13 @@ decodePhase4 irFrames =
 -- |
 -- Panasonic HVAC remote control
 --
-decodePanasonicHVAC :: Array InfraredCodeFormat -> Maybe IrRemoteControlCode
+decodePanasonicHVAC :: Array InfraredCodeFrame -> Maybe IrRemoteControlCode
 decodePanasonicHVAC = case _ of
   [ a, b ] | a == firstFrame -> decode b
   _ -> Nothing
   where
 
-  decode :: InfraredCodeFormat -> Maybe IrRemoteControlCode
+  decode :: InfraredCodeFrame -> Maybe IrRemoteControlCode
   decode = case _ of
     FormatAEHA 
       { custom: b1b2
@@ -553,31 +568,29 @@ decodePanasonicHVAC = case _ of
     _ ->  Nothing
 
   make b_6 b_7 b_9 b14 b19 =
-    let temp  = (unwrap (toLsbFirst b_7) `shr` 1) .&. 0xf
-        mode  = (unwrap (toLsbFirst b_6) `shr` 4) .&. 0xf
-        switch= unwrap (toLsbFirst b_6) .&. 0x1
-        fan   = (unwrap (toLsbFirst b_9) `shr` 4) .&. 0xf
-        swing = unwrap (toLsbFirst b_9) .&. 0xf
-        prof  = unwrap (toLsbFirst b14)
-        crc   = unwrap (toLsbFirst b19)
+    let
+      temp  = (unwrap (toLsbFirst b_7) `shr` 1) .&. 0xf
+      mode  = (unwrap (toLsbFirst b_6) `shr` 4) .&. 0xf
+      switch = unwrap (toLsbFirst b_6) .&. 0x1
+      fan   = (unwrap (toLsbFirst b_9) `shr` 4) .&. 0xf
+      swing = unwrap (toLsbFirst b_9) .&. 0xf
+      prof  = unwrap (toLsbFirst b14)
+      crc   = unwrap (toLsbFirst b19)
     in do
-    m <- toMode mode
-    sw <- toSwitch switch
-    s <- toSwingNotch swing
-    f <- toFanNotch fan
+    mode_ <- toMode mode
+    switch_ <- toEnum switch
+    swing_ <- toSwingNotch swing
+    fan_ <- toFanNotch fan
     pure $ IrRemotePanasonicHvac
       { temperature: Celsius (16 + temp)
-      , mode: m
-      , switchOn: sw
-      , swing: s
-      , fan: f
+      , mode: mode_
+      , switch: switch_
+      , swing: swing_
+      , fan: fan_
       , profile: toProfile prof
       , crc: crc
       }
   
-  toSwitch :: Int -> Maybe Boolean
-  toSwitch = toEnum
-
   toMode = case _ of
     0x0 -> Just MAuto
     0x2 -> Just MDry
@@ -611,19 +624,63 @@ decodePanasonicHVAC = case _ of
     value -> POther value
 
   -- |
-  firstFrame :: InfraredCodeFormat
+  firstFrame :: InfraredCodeFrame
   firstFrame =
-    let custom = "01000000" <> "00000100"  -- 40 04
-        octets =  [ "00000111"  -- 07
-                  , "00100000"  -- 20
-                  , "00000000"  -- 00
-                  , "00000000"  -- 00
-                  , "00000000"  -- 00
-                  , "01100000"  -- 60
-                  ]
-    in
-    FormatAEHA
-    { custom: unsafePartial $ fromJust $ fromBinaryString custom
-    , octets: Array.mapMaybe fromBinaryString octets
-    , stop: Assert
-    }
+    --
+    -- Panasonic HVAC first frame value is
+    -- LSB first                                    -- MSB first
+    -- 0x02 20 e0 04 00 00 00 06                    -- 0x40 04 07 20 00 00 00 60
+    --
+    -- first byte "01000000"
+    -- LSB first                                    -- MSB first
+    -- 1   2   4   8  16  32  64 128                -- 128  64  32  16   8   4   2   1
+    -- |   |   |   |   |   |   |   |                --   |   |   |   |   |   |   |   |
+    -- 0   1   0   0   0   0   0   0 == 02h         --   0   1   0   0   0   0   0   0 == 40h
+    --
+    -- second byte "00000100"
+    -- LSB first                                    -- MSB first
+    -- 1   2   4   8  16  32  64 128                -- 128  64  32  16   8   4   2   1
+    -- |   |   |   |   |   |   |   |                --   |   |   |   |   |   |   |   |
+    -- 0   0   0   0   0   1   0   0 == 20h         --   0   0   0   0   0   1   0   0 == 04h
+    --
+    -- 3rd byte "00000111"
+    -- LSB first                                    -- MSB first
+    -- 1   2   4   8  16  32  64 128                -- 128  64  32  16   8   4   2   1
+    -- |   |   |   |   |   |   |   | 32+64+128=224  --   |   |   |   |   |   |   |   | 1+2+4=7
+    -- 0   0   0   0   0   1   1   1 == e0h         --   0   0   0   0   0   1   1   1 == 07h
+    --
+    -- 4th byte "00100000"
+    -- LSB first                                    -- MSB first
+    -- 1   2   4   8  16  32  64 128                -- 128  64  32  16   8   4   2   1
+    -- |   |   |   |   |   |   |   |                --   |   |   |   |   |   |   |   |
+    -- 0   0   1   0   0   0   0   0 == 04h         --   0   0   1   0   0   0   0   0 == 20h
+    --
+    -- 5th byte "00000000"
+    -- 6th byte "00000000"
+    -- 7th byte "00000000"
+    --
+    -- 8th byte "01100000"
+    -- LSB first                                    -- MSB first
+    -- 1   2   4   8  16  32  64 128                -- 128  64  32  16   8   4   2   1
+    -- |   |   |   |   |   |   |   | 2+4=6          --   |   |   |   |   |   |   |   | 32+64=96
+    -- 0   1   1   0   0   0   0   0 == 06h         --   0   1   1   0   0   0   0   0 == 60h
+    --
+    FormatAEHA  { custom: unsafePartial $ fromJust $ NEA.fromArray custom
+                , octets: octets
+                , stop: Assert
+                }
+    where
+    custom :: Array BitStream
+    custom = Array.mapMaybe fromBinaryString
+              [ "01000000"  -- 02 (LSB first) | 40 (MSB first)
+              , "00000100"  -- 20 (LSB first) | 04 (MSB first)
+              ]
+    octets :: Array BitStream
+    octets = Array.mapMaybe fromBinaryString
+              [ "00000111"  -- e0 (LSB first) | 07 (MSB first)
+              , "00100000"  -- 04 (LSB first) | 20 (MSB first)
+              , "00000000"  -- 00 (LSB first) | 00 (MSB first)
+              , "00000000"  -- 00 (LSB first) | 00 (MSB first)
+              , "00000000"  -- 00 (LSB first) | 00 (MSB first)
+              , "01100000"  -- 06 (LSB first) | 60 (MSB first)
+              ]

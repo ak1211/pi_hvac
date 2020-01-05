@@ -99414,6 +99414,7 @@ var Data_Array_NonEmpty = require("../Data.Array.NonEmpty/index.js");
 var Data_Array_NonEmpty_Internal = require("../Data.Array.NonEmpty.Internal/index.js");
 var Data_Bifunctor = require("../Data.Bifunctor/index.js");
 var Data_Boolean = require("../Data.Boolean/index.js");
+var Data_Bounded = require("../Data.Bounded/index.js");
 var Data_CommutativeRing = require("../Data.CommutativeRing/index.js");
 var Data_Either = require("../Data.Either/index.js");
 var Data_Enum = require("../Data.Enum/index.js");
@@ -99443,6 +99444,11 @@ var Text_Parsing_Parser_Combinators = require("../Text.Parsing.Parser.Combinator
 var Text_Parsing_Parser_String = require("../Text.Parsing.Parser.String/index.js");
 var Text_Parsing_Parser_Token = require("../Text.Parsing.Parser.Token/index.js");
 var Utils = require("../Utils/index.js");
+
+// |
+var Switch = function (x) {
+    return x;
+};
 
 // |
 var SAuto = (function () {
@@ -99798,7 +99804,7 @@ var toMsbFirst = function (bits) {
             if (v instanceof Negate) {
                 return (acc * 2 | 0) + 0 | 0;
             };
-            throw new Error("Failed pattern match at InfraredCode (line 332, column 3 - line 332, column 25): " + [ acc.constructor.name, v.constructor.name ]);
+            throw new Error("Failed pattern match at InfraredCode (line 333, column 3 - line 333, column 25): " + [ acc.constructor.name, v.constructor.name ]);
         };
     };
     return Data_Foldable.foldl(Data_Array_NonEmpty_Internal.foldableNonEmptyArray)(f)(0)(bits);
@@ -99819,7 +99825,7 @@ var toLsbFirst = function (bits) {
             if (v instanceof Negate) {
                 return (acc * 2 | 0) + 0 | 0;
             };
-            throw new Error("Failed pattern match at InfraredCode (line 305, column 3 - line 305, column 25): " + [ acc.constructor.name, v.constructor.name ]);
+            throw new Error("Failed pattern match at InfraredCode (line 306, column 3 - line 306, column 25): " + [ acc.constructor.name, v.constructor.name ]);
         };
     };
     return Data_Foldable.foldl(Data_Array_NonEmpty_Internal.foldableNonEmptyArray)(f)(0)(Data_Array_NonEmpty.reverse(bits));
@@ -99833,7 +99839,7 @@ var toBoolean = function (v) {
     if (v instanceof Assert) {
         return true;
     };
-    throw new Error("Failed pattern match at InfraredCode (line 187, column 1 - line 187, column 28): " + [ v.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 188, column 1 - line 188, column 28): " + [ v.constructor.name ]);
 };
 
 // |
@@ -99872,9 +99878,18 @@ var takeBit = function (errmsg) {
                 return Control_Applicative.pure(Control_Monad_Except_Trans.applicativeExceptT(Control_Monad_State_Trans.monadStateT(Data_Identity.monadIdentity)))(v1.value0.head);
             });
         };
-        throw new Error("Failed pattern match at InfraredCode (line 456, column 3 - line 462, column 18): " + [ v1.constructor.name ]);
+        throw new Error("Failed pattern match at InfraredCode (line 469, column 3 - line 475, column 18): " + [ v1.constructor.name ]);
     });
 };
+var showSwitch = new Data_Show.Show(function (v) {
+    if (v) {
+        return "ON";
+    };
+    if (!v) {
+        return "OFF";
+    };
+    throw new Error("Failed pattern match at InfraredCode (line 370, column 1 - line 370, column 35): " + [ v.constructor.name ]);
+});
 var showMsbFirst = new Data_Show.Show(function (v) {
     return "0x" + (Data_Int.toStringAs(Data_Int.hexadecimal)(v) + "(MSBFirst)");
 });
@@ -99892,7 +99907,7 @@ var showBit = function (v) {
     if (v instanceof Assert) {
         return "1";
     };
-    throw new Error("Failed pattern match at InfraredCode (line 177, column 1 - line 177, column 25): " + [ v.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 178, column 1 - line 178, column 25): " + [ v.constructor.name ]);
 };
 var showBit$prime = new Data_Show.Show(showBit);
 var showBaseband = Data_Show.showArray(Data_Show.showRecord()(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
@@ -99902,35 +99917,39 @@ var showBaseband = Data_Show.showArray(Data_Show.showRecord()(Data_Show.showReco
 }))(Data_Show.showRecordFieldsNil)(showCount))(showCount)));
 var semiringCount = Data_Semiring.semiringInt;
 var ringCount = Data_Ring.ringInt;
+var ordSwitch = Data_Ord.ordBoolean;
 var ordMsbFirst = Data_Ord.ordInt;
 var ordLsbFirst = Data_Ord.ordInt;
 var ordCount = Data_Ord.ordInt;
 var ordCelsius = Data_Ord.ordInt;
+var newtypeSwitch = new Data_Newtype.Newtype(function (n) {
+    return n;
+}, Switch);
 var newtypeMsbFirst = new Data_Newtype.Newtype(function (n) {
     return n;
 }, MsbFirst);
 
 // |
-var toStringMsbFirst = function ($362) {
-    return Data_Int.toStringAs(Data_Int.decimal)(Data_Newtype.unwrap(newtypeMsbFirst)($362));
+var toStringMsbFirst = function ($369) {
+    return Data_Int.toStringAs(Data_Int.decimal)(Data_Newtype.unwrap(newtypeMsbFirst)($369));
 };
 
 // |
-var toStringMsbFirstWithHex = function ($363) {
-    return Data_Int.toStringAs(Data_Int.hexadecimal)(Data_Newtype.unwrap(newtypeMsbFirst)($363));
+var toStringMsbFirstWithHex = function ($370) {
+    return Data_Int.toStringAs(Data_Int.hexadecimal)(Data_Newtype.unwrap(newtypeMsbFirst)($370));
 };
 var newtypeLsbFirst = new Data_Newtype.Newtype(function (n) {
     return n;
 }, LsbFirst);
 
 // |
-var toStringLsbFirst = function ($364) {
-    return Data_Int.toStringAs(Data_Int.decimal)(Data_Newtype.unwrap(newtypeLsbFirst)($364));
+var toStringLsbFirst = function ($371) {
+    return Data_Int.toStringAs(Data_Int.decimal)(Data_Newtype.unwrap(newtypeLsbFirst)($371));
 };
 
 // |
-var toStringLsbFirstWithHex = function ($365) {
-    return Data_Int.toStringAs(Data_Int.hexadecimal)(Data_Newtype.unwrap(newtypeLsbFirst)($365));
+var toStringLsbFirstWithHex = function ($372) {
+    return Data_Int.toStringAs(Data_Int.hexadecimal)(Data_Newtype.unwrap(newtypeLsbFirst)($372));
 };
 var newtypeCelsius = new Data_Newtype.Newtype(function (n) {
     return n;
@@ -99987,7 +100006,7 @@ var genericSwing = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof SNotch5) {
         return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(Data_Generic_Rep.NoArguments.value)))));
     };
-    throw new Error("Failed pattern match at InfraredCode (line 363, column 8 - line 363, column 49): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 376, column 8 - line 376, column 49): " + [ x.constructor.name ]);
 }, function (x) {
     if (x instanceof Data_Generic_Rep.Inl) {
         return SAuto.value;
@@ -100007,7 +100026,7 @@ var genericSwing = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && (x.value0.value0 instanceof Data_Generic_Rep.Inr && (x.value0.value0.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0.value0.value0 instanceof Data_Generic_Rep.Inr)))) {
         return SNotch5.value;
     };
-    throw new Error("Failed pattern match at InfraredCode (line 363, column 8 - line 363, column 49): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 376, column 8 - line 376, column 49): " + [ x.constructor.name ]);
 });
 var showSwing = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericSwing)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
     return "SAuto";
@@ -100035,7 +100054,7 @@ var genericProfile = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof POther) {
         return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(x.value0)));
     };
-    throw new Error("Failed pattern match at InfraredCode (line 377, column 8 - line 377, column 53): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 390, column 8 - line 390, column 53): " + [ x.constructor.name ]);
 }, function (x) {
     if (x instanceof Data_Generic_Rep.Inl) {
         return PNormal.value;
@@ -100049,7 +100068,7 @@ var genericProfile = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0 instanceof Data_Generic_Rep.Inr)) {
         return new POther(x.value0.value0.value0);
     };
-    throw new Error("Failed pattern match at InfraredCode (line 377, column 8 - line 377, column 53): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 390, column 8 - line 390, column 53): " + [ x.constructor.name ]);
 });
 var showProfile = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericProfile)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
     return "PNormal";
@@ -100076,7 +100095,7 @@ var genericMode = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof MHeat) {
         return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(Data_Generic_Rep.NoArguments.value))));
     };
-    throw new Error("Failed pattern match at InfraredCode (line 356, column 8 - line 356, column 46): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 357, column 8 - line 357, column 46): " + [ x.constructor.name ]);
 }, function (x) {
     if (x instanceof Data_Generic_Rep.Inl) {
         return MAuto.value;
@@ -100093,7 +100112,7 @@ var genericMode = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && (x.value0.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0.value0 instanceof Data_Generic_Rep.Inr))) {
         return MHeat.value;
     };
-    throw new Error("Failed pattern match at InfraredCode (line 356, column 8 - line 356, column 46): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 357, column 8 - line 357, column 46): " + [ x.constructor.name ]);
 });
 var showMode = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericMode)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
     return "MAuto";
@@ -100113,7 +100132,7 @@ var genericIrRemoteControlCode = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof IrRemotePanasonicHvac) {
         return new Data_Generic_Rep.Inr(x.value0);
     };
-    throw new Error("Failed pattern match at InfraredCode (line 386, column 8 - line 386, column 77): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 399, column 8 - line 399, column 77): " + [ x.constructor.name ]);
 }, function (x) {
     if (x instanceof Data_Generic_Rep.Inl) {
         return new UnknownIrRemote(x.value0);
@@ -100121,7 +100140,7 @@ var genericIrRemoteControlCode = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof Data_Generic_Rep.Inr) {
         return new IrRemotePanasonicHvac(x.value0);
     };
-    throw new Error("Failed pattern match at InfraredCode (line 386, column 8 - line 386, column 77): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 399, column 8 - line 399, column 77): " + [ x.constructor.name ]);
 });
 var genericInfraredLeader = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof LeaderAeha) {
@@ -100136,7 +100155,7 @@ var genericInfraredLeader = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof LeaderUnknown) {
         return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(x.value0)));
     };
-    throw new Error("Failed pattern match at InfraredCode (line 213, column 8 - line 213, column 66): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 214, column 8 - line 214, column 66): " + [ x.constructor.name ]);
 }, function (x) {
     if (x instanceof Data_Generic_Rep.Inl) {
         return new LeaderAeha(x.value0);
@@ -100150,7 +100169,7 @@ var genericInfraredLeader = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0 instanceof Data_Generic_Rep.Inr)) {
         return new LeaderUnknown(x.value0.value0.value0);
     };
-    throw new Error("Failed pattern match at InfraredCode (line 213, column 8 - line 213, column 66): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 214, column 8 - line 214, column 66): " + [ x.constructor.name ]);
 });
 var showInfraredLeader = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericInfraredLeader)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsArgument(Data_Show.showRecord()(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
     return "off";
@@ -100177,7 +100196,7 @@ var showInfraredLeader = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(ge
 }))(Data_Show.showRecordFieldsNil)(showCount))(showCount))))(new Data_Symbol.IsSymbol(function () {
     return "LeaderUnknown";
 })))))));
-var genericInfraredCodeFormat = new Data_Generic_Rep.Generic(function (x) {
+var genericInfraredCodeFrame = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof FormatUnknown) {
         return new Data_Generic_Rep.Inl(x.value0);
     };
@@ -100190,7 +100209,7 @@ var genericInfraredCodeFormat = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof FormatSIRC) {
         return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(x.value0)));
     };
-    throw new Error("Failed pattern match at InfraredCode (line 342, column 8 - line 342, column 74): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 343, column 8 - line 343, column 73): " + [ x.constructor.name ]);
 }, function (x) {
     if (x instanceof Data_Generic_Rep.Inl) {
         return new FormatUnknown(x.value0);
@@ -100204,9 +100223,9 @@ var genericInfraredCodeFormat = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0 instanceof Data_Generic_Rep.Inr)) {
         return new FormatSIRC(x.value0.value0.value0);
     };
-    throw new Error("Failed pattern match at InfraredCode (line 342, column 8 - line 342, column 74): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 343, column 8 - line 343, column 73): " + [ x.constructor.name ]);
 });
-var showInfraredCodeFormat = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericInfraredCodeFormat)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsArgument(Data_Show.showArray(showBit$prime)))(new Data_Symbol.IsSymbol(function () {
+var showInfraredCodeFrame = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericInfraredCodeFrame)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsArgument(Data_Show.showArray(showBit$prime)))(new Data_Symbol.IsSymbol(function () {
     return "FormatUnknown";
 })))(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsArgument(Data_Show.showRecord()(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
     return "custom";
@@ -100214,7 +100233,7 @@ var showInfraredCodeFormat = new Data_Show.Show(Data_Generic_Rep_Show.genericSho
     return "octets";
 }))(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
     return "stop";
-}))(Data_Show.showRecordFieldsNil)(showBit$prime))(Data_Show.showArray(Data_Array_NonEmpty_Internal.showNonEmptyArray(showBit$prime))))(Data_Array_NonEmpty_Internal.showNonEmptyArray(showBit$prime)))))(new Data_Symbol.IsSymbol(function () {
+}))(Data_Show.showRecordFieldsNil)(showBit$prime))(Data_Show.showArray(Data_Array_NonEmpty_Internal.showNonEmptyArray(showBit$prime))))(Data_Array_NonEmpty_Internal.showNonEmptyArray(Data_Array_NonEmpty_Internal.showNonEmptyArray(showBit$prime))))))(new Data_Symbol.IsSymbol(function () {
     return "FormatAEHA";
 })))(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsArgument(Data_Show.showRecord()(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
     return "custom";
@@ -100252,7 +100271,7 @@ var genericFan = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof FNotch5) {
         return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(Data_Generic_Rep.NoArguments.value)))));
     };
-    throw new Error("Failed pattern match at InfraredCode (line 370, column 8 - line 370, column 45): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 383, column 8 - line 383, column 45): " + [ x.constructor.name ]);
 }, function (x) {
     if (x instanceof Data_Generic_Rep.Inl) {
         return FAuto.value;
@@ -100272,7 +100291,7 @@ var genericFan = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && (x.value0.value0 instanceof Data_Generic_Rep.Inr && (x.value0.value0.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0.value0.value0 instanceof Data_Generic_Rep.Inr)))) {
         return FNotch5.value;
     };
-    throw new Error("Failed pattern match at InfraredCode (line 370, column 8 - line 370, column 45): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 383, column 8 - line 383, column 45): " + [ x.constructor.name ]);
 });
 var showFan = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericFan)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
     return "FAuto";
@@ -100287,7 +100306,7 @@ var showFan = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericFan)(D
 })))(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsNoArguments)(new Data_Symbol.IsSymbol(function () {
     return "FNotch5";
 })))))))));
-var showIrRemoteControlCode = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericIrRemoteControlCode)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsArgument(Data_Show.showArray(showInfraredCodeFormat)))(new Data_Symbol.IsSymbol(function () {
+var showIrRemoteControlCode = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericIrRemoteControlCode)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsArgument(Data_Show.showArray(showInfraredCodeFrame)))(new Data_Symbol.IsSymbol(function () {
     return "UnknownIrRemote";
 })))(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsArgument(Data_Show.showRecord()(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
     return "crc";
@@ -100300,10 +100319,10 @@ var showIrRemoteControlCode = new Data_Show.Show(Data_Generic_Rep_Show.genericSh
 }))(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
     return "swing";
 }))(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
-    return "switchOn";
+    return "switch";
 }))(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
     return "temperature";
-}))(Data_Show.showRecordFieldsNil)(showCelsius))(Data_Show.showBoolean))(showSwing))(showProfile))(showMode))(showFan))(Data_Show.showInt))))(new Data_Symbol.IsSymbol(function () {
+}))(Data_Show.showRecordFieldsNil)(showCelsius))(showSwitch))(showSwing))(showProfile))(showMode))(showFan))(Data_Show.showInt))))(new Data_Symbol.IsSymbol(function () {
     return "IrRemotePanasonicHvac";
 })))));
 
@@ -100330,7 +100349,7 @@ var fromBoolean = function (v) {
     if (v) {
         return Assert.value;
     };
-    throw new Error("Failed pattern match at InfraredCode (line 182, column 1 - line 182, column 30): " + [ v.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 183, column 1 - line 183, column 30): " + [ v.constructor.name ]);
 };
 
 // |
@@ -100350,6 +100369,7 @@ var fromBinaryString = function (input) {
     });
 };
 var eucideanRingCount = Data_EuclideanRing.euclideanRingInt;
+var eqSwitch = Data_Eq.eqBoolean;
 var eqSwing = new Data_Eq.Eq(function (x) {
     return function (y) {
         if (x instanceof SAuto && y instanceof SAuto) {
@@ -100511,7 +100531,7 @@ var aeha = function (pulse) {
         if (Data_Boolean.otherwise) {
             return new LeaderUnknown(v);
         };
-        throw new Error("Failed pattern match at InfraredCode (line 220, column 22 - line 224, column 35): " + [ v.constructor.name ]);
+        throw new Error("Failed pattern match at InfraredCode (line 221, column 22 - line 225, column 35): " + [ v.constructor.name ]);
     };
 })();
 var eqCelsius = Data_Eq.eqInt;
@@ -100526,13 +100546,13 @@ var eqBit = new Data_Eq.Eq(function (x) {
         return false;
     };
 });
-var eqInfraredCodeFormat = new Data_Eq.Eq(function (x) {
+var eqInfraredCodeFrame = new Data_Eq.Eq(function (x) {
     return function (y) {
         if (x instanceof FormatUnknown && y instanceof FormatUnknown) {
             return Data_Eq.eq(Data_Eq.eqArray(eqBit))(x.value0)(y.value0);
         };
         if (x instanceof FormatAEHA && y instanceof FormatAEHA) {
-            return Data_Eq.eq(Data_Array_NonEmpty_Internal.eqNonEmptyArray(eqBit))(x.value0.custom)(y.value0.custom) && Data_Eq.eq(Data_Eq.eqArray(Data_Array_NonEmpty_Internal.eqNonEmptyArray(eqBit)))(x.value0.octets)(y.value0.octets) && Data_Eq.eq(eqBit)(x.value0.stop)(y.value0.stop);
+            return Data_Eq.eq(Data_Array_NonEmpty_Internal.eqNonEmptyArray(Data_Array_NonEmpty_Internal.eqNonEmptyArray(eqBit)))(x.value0.custom)(y.value0.custom) && Data_Eq.eq(Data_Eq.eqArray(Data_Array_NonEmpty_Internal.eqNonEmptyArray(eqBit)))(x.value0.octets)(y.value0.octets) && Data_Eq.eq(eqBit)(x.value0.stop)(y.value0.stop);
         };
         if (x instanceof FormatNEC && y instanceof FormatNEC) {
             return Data_Eq.eq(Data_Array_NonEmpty_Internal.eqNonEmptyArray(eqBit))(x.value0.custom)(y.value0.custom) && Data_Eq.eq(Data_Array_NonEmpty_Internal.eqNonEmptyArray(eqBit))(x.value0.data)(y.value0.data) && Data_Eq.eq(Data_Array_NonEmpty_Internal.eqNonEmptyArray(eqBit))(x.value0.invData)(y.value0.invData) && Data_Eq.eq(eqBit)(x.value0.stop)(y.value0.stop);
@@ -100546,10 +100566,10 @@ var eqInfraredCodeFormat = new Data_Eq.Eq(function (x) {
 var eqIrRemoteControlCode = new Data_Eq.Eq(function (x) {
     return function (y) {
         if (x instanceof UnknownIrRemote && y instanceof UnknownIrRemote) {
-            return Data_Eq.eq(Data_Eq.eqArray(eqInfraredCodeFormat))(x.value0)(y.value0);
+            return Data_Eq.eq(Data_Eq.eqArray(eqInfraredCodeFrame))(x.value0)(y.value0);
         };
         if (x instanceof IrRemotePanasonicHvac && y instanceof IrRemotePanasonicHvac) {
-            return x.value0.crc === y.value0.crc && Data_Eq.eq(eqFan)(x.value0.fan)(y.value0.fan) && Data_Eq.eq(eqMode)(x.value0.mode)(y.value0.mode) && Data_Eq.eq(eqProfile)(x.value0.profile)(y.value0.profile) && Data_Eq.eq(eqSwing)(x.value0.swing)(y.value0.swing) && x.value0.switchOn === y.value0.switchOn && Data_Eq.eq(eqCelsius)(x.value0.temperature)(y.value0.temperature);
+            return x.value0.crc === y.value0.crc && Data_Eq.eq(eqFan)(x.value0.fan)(y.value0.fan) && Data_Eq.eq(eqMode)(x.value0.mode)(y.value0.mode) && Data_Eq.eq(eqProfile)(x.value0.profile)(y.value0.profile) && Data_Eq.eq(eqSwing)(x.value0.swing)(y.value0.swing) && Data_Eq.eq(eqSwitch)(x["value0"]["switch"])(y["value0"]["switch"]) && Data_Eq.eq(eqCelsius)(x.value0.temperature)(y.value0.temperature);
         };
         return false;
     };
@@ -100559,6 +100579,7 @@ var eqBaseband = Data_Eq.eqArray(Data_Eq.eqRec()(Data_Eq.eqRowCons(Data_Eq.eqRow
 }))(eqCount))()(new Data_Symbol.IsSymbol(function () {
     return "off";
 }))(eqCount)));
+var enumSwitch = Data_Enum.enumBoolean;
 
 // |
 var demodulate = function (leader) {
@@ -100583,7 +100604,7 @@ var pulseDistanceModulation = function (v) {
             if (Data_Boolean.otherwise) {
                 return Negate.value;
             };
-            throw new Error("Failed pattern match at InfraredCode (line 269, column 29 - line 271, column 44): " + [ v.constructor.name ]);
+            throw new Error("Failed pattern match at InfraredCode (line 270, column 29 - line 272, column 44): " + [ v.constructor.name ]);
         };
         if (leader instanceof LeaderSirc) {
             return Data_Functor.map(Data_Functor.functorArray)(sircModulation)(ps);
@@ -100619,7 +100640,7 @@ var decodePhase2 = function (tokens) {
     if (v instanceof Data_Maybe.Nothing) {
         return new Data_Either.Left("Unexpected end of input");
     };
-    throw new Error("Failed pattern match at InfraredCode (line 427, column 3 - line 436, column 1): " + [ v.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredCode (line 440, column 3 - line 449, column 1): " + [ v.constructor.name ]);
 };
 
 // | 入力を各フレームに分ける
@@ -100645,10 +100666,70 @@ var decodePhase1 = function (v) {
 };
 
 // |
+var decodeNec = Control_Bind.bind(Control_Monad_Except_Trans.bindExceptT(Control_Monad_State_Trans.monadStateT(Data_Identity.monadIdentity)))(takeBits(16)("fail to read: custom code (NEC)"))(function (v) {
+    return Control_Bind.bind(Control_Monad_Except_Trans.bindExceptT(Control_Monad_State_Trans.monadStateT(Data_Identity.monadIdentity)))(takeBits(8)("fail to read: data (NEC)"))(function (v1) {
+        return Control_Bind.bind(Control_Monad_Except_Trans.bindExceptT(Control_Monad_State_Trans.monadStateT(Data_Identity.monadIdentity)))(takeBits(8)("fail to read: inv-data (NEC)"))(function (v2) {
+            return Control_Bind.bind(Control_Monad_Except_Trans.bindExceptT(Control_Monad_State_Trans.monadStateT(Data_Identity.monadIdentity)))(takeBit("fail to read: stop bit (NEC)"))(function (v3) {
+                return Control_Applicative.pure(Control_Monad_Except_Trans.applicativeExceptT(Control_Monad_State_Trans.monadStateT(Data_Identity.monadIdentity)))(new FormatNEC({
+                    custom: v,
+                    data: v1,
+                    invData: v2,
+                    stop: v3
+                }));
+            });
+        });
+    });
+});
+
+// |
+var decodeAeha = Control_Bind.bind(Control_Monad_Except_Trans.bindExceptT(Control_Monad_State_Trans.monadStateT(Data_Identity.monadIdentity)))(takeBits(8)("fail to read: custom code (AEHA)"))(function (v) {
+    return Control_Bind.bind(Control_Monad_Except_Trans.bindExceptT(Control_Monad_State_Trans.monadStateT(Data_Identity.monadIdentity)))(takeBits(8)("fail to read: custom code (AEHA)"))(function (v1) {
+        return Control_Bind.bind(Control_Monad_Except_Trans.bindExceptT(Control_Monad_State_Trans.monadStateT(Data_Identity.monadIdentity)))(takeEnd("fail to read: data (AEHA)"))(function (v2) {
+            var last = Data_Array_NonEmpty.last(v2);
+            var init = Data_Array_NonEmpty.init(v2);
+            var octets = Utils.toArrayNonEmptyArray(8)(init);
+            var custom = Data_Semigroup.append(Data_Array_NonEmpty_Internal.semigroupNonEmptyArray)(Data_Array_NonEmpty.singleton(v))(Data_Array_NonEmpty.singleton(v1));
+            return Control_Applicative.pure(Control_Monad_Except_Trans.applicativeExceptT(Control_Monad_State_Trans.monadStateT(Data_Identity.monadIdentity)))(new FormatAEHA({
+                custom: custom,
+                octets: octets,
+                stop: last
+            }));
+        });
+    });
+});
+
+// | 入力リーダ部とビット配列から赤外線信号にする
+var decodePhase3 = function (v) {
+    var decoder = (function () {
+        if (v.value0 instanceof LeaderAeha) {
+            return decodeAeha;
+        };
+        if (v.value0 instanceof LeaderNec) {
+            return decodeNec;
+        };
+        if (v.value0 instanceof LeaderSirc) {
+            return decodeSirc;
+        };
+        if (v.value0 instanceof LeaderUnknown) {
+            return decodeUnknown;
+        };
+        throw new Error("Failed pattern match at InfraredCode (line 456, column 13 - line 460, column 37): " + [ v.value0.constructor.name ]);
+    })();
+    return Control_Monad_State.evalState(Control_Monad_Except_Trans.runExceptT(decoder))(v.value1);
+};
+
+// |
+var toIrCodeFrames = function ($373) {
+    return Data_Traversable.traverse(Data_Traversable.traversableArray)(Data_Either.applicativeEither)(Control_Bind.composeKleisliFlipped(Data_Either.bindEither)(decodePhase3)(decodePhase2))(decodePhase1($373));
+};
+var commutativeRingCount = Data_CommutativeRing.commutativeRingInt;
+var boundedSwitch = Data_Bounded.boundedBoolean;
+var boundedEnumSwitch = Data_Enum.boundedEnumBoolean;
+
+// |
 // Panasonic HVAC remote control
 //
 var decodePanasonicHVAC = (function () {
-    var toSwitch = Data_Enum.toEnum(Data_Enum.boundedEnumBoolean);
     var toSwingNotch = function (v) {
         if (v === 15) {
             return new Data_Maybe.Just(SAuto.value);
@@ -100734,13 +100815,13 @@ var decodePanasonicHVAC = (function () {
                         var fan = Data_Newtype.unwrap(newtypeLsbFirst)(toLsbFirst(b_9)) >> 4 & 15;
                         var crc = Data_Newtype.unwrap(newtypeLsbFirst)(toLsbFirst(b19));
                         return Control_Bind.bind(Data_Maybe.bindMaybe)(toMode(mode))(function (v) {
-                            return Control_Bind.bind(Data_Maybe.bindMaybe)(toSwitch($$switch))(function (v1) {
+                            return Control_Bind.bind(Data_Maybe.bindMaybe)(Data_Enum.toEnum(boundedEnumSwitch)($$switch))(function (v1) {
                                 return Control_Bind.bind(Data_Maybe.bindMaybe)(toSwingNotch(swing))(function (v2) {
                                     return Control_Bind.bind(Data_Maybe.bindMaybe)(toFanNotch(fan))(function (v3) {
                                         return Control_Applicative.pure(Data_Maybe.applicativeMaybe)(new IrRemotePanasonicHvac({
                                             temperature: 16 + temp | 0,
                                             mode: v,
-                                            switchOn: v1,
+                                            "switch": v1,
                                             swing: v2,
                                             fan: v3,
                                             profile: toProfile(prof),
@@ -100757,14 +100838,51 @@ var decodePanasonicHVAC = (function () {
     };
     
     // |
+    //
+    // Panasonic HVAC first frame value is
+    // LSB first                                    -- MSB first
+    // 0x02 20 e0 04 00 00 00 06                    -- 0x40 04 07 20 00 00 00 60
+    //
+    // first byte "01000000"
+    // LSB first                                    -- MSB first
+    // 1   2   4   8  16  32  64 128                -- 128  64  32  16   8   4   2   1
+    // |   |   |   |   |   |   |   |                --   |   |   |   |   |   |   |   |
+    // 0   1   0   0   0   0   0   0 == 02h         --   0   1   0   0   0   0   0   0 == 40h
+    //
+    // second byte "00000100"
+    // LSB first                                    -- MSB first
+    // 1   2   4   8  16  32  64 128                -- 128  64  32  16   8   4   2   1
+    // |   |   |   |   |   |   |   |                --   |   |   |   |   |   |   |   |
+    // 0   0   0   0   0   1   0   0 == 20h         --   0   0   0   0   0   1   0   0 == 04h
+    //
+    // 3rd byte "00000111"
+    // LSB first                                    -- MSB first
+    // 1   2   4   8  16  32  64 128                -- 128  64  32  16   8   4   2   1
+    // |   |   |   |   |   |   |   | 32+64+128=224  --   |   |   |   |   |   |   |   | 1+2+4=7
+    // 0   0   0   0   0   1   1   1 == e0h         --   0   0   0   0   0   1   1   1 == 07h
+    //
+    // 4th byte "00100000"
+    // LSB first                                    -- MSB first
+    // 1   2   4   8  16  32  64 128                -- 128  64  32  16   8   4   2   1
+    // |   |   |   |   |   |   |   |                --   |   |   |   |   |   |   |   |
+    // 0   0   1   0   0   0   0   0 == 04h         --   0   0   1   0   0   0   0   0 == 20h
+    //
+    // 5th byte "00000000"
+    // 6th byte "00000000"
+    // 7th byte "00000000"
+    //
+    // 8th byte "01100000"
+    // LSB first                                    -- MSB first
+    // 1   2   4   8  16  32  64 128                -- 128  64  32  16   8   4   2   1
+    // |   |   |   |   |   |   |   | 2+4=6          --   |   |   |   |   |   |   |   | 32+64=96
+    // 0   1   1   0   0   0   0   0 == 06h         --   0   1   1   0   0   0   0   0 == 60h
+    //
 var firstFrame = (function () {
-        
-        // 40 04
-var octets = [ "00000111", "00100000", "00000000", "00000000", "00000000", "01100000" ];
-        var custom = "01000000" + "00000100";
+        var octets = Data_Array.mapMaybe(fromBinaryString)([ "00000111", "00100000", "00000000", "00000000", "00000000", "01100000" ]);
+        var custom = Data_Array.mapMaybe(fromBinaryString)([ "01000000", "00000100" ]);
         return new FormatAEHA({
-            custom: Data_Maybe.fromJust()(fromBinaryString(custom)),
-            octets: Data_Array.mapMaybe(fromBinaryString)(octets),
+            custom: Data_Maybe.fromJust()(Data_Array_NonEmpty.fromArray(custom)),
+            octets: octets,
             stop: Assert.value
         });
     })();
@@ -100775,7 +100893,7 @@ var octets = [ "00000111", "00100000", "00000000", "00000000", "00000000", "0110
         return Data_Maybe.Nothing.value;
     };
     return function (v) {
-        if (v.length === 2 && Data_Eq.eq(eqInfraredCodeFormat)(v[0])(firstFrame)) {
+        if (v.length === 2 && Data_Eq.eq(eqInfraredCodeFrame)(v[0])(firstFrame)) {
             return decode(v[1]);
         };
         return Data_Maybe.Nothing.value;
@@ -100790,65 +100908,9 @@ var decodePhase4 = function (irFrames) {
 };
 
 // |
-var decodeNec = Control_Bind.bind(Control_Monad_Except_Trans.bindExceptT(Control_Monad_State_Trans.monadStateT(Data_Identity.monadIdentity)))(takeBits(16)("fail to read: custom code (NEC)"))(function (v) {
-    return Control_Bind.bind(Control_Monad_Except_Trans.bindExceptT(Control_Monad_State_Trans.monadStateT(Data_Identity.monadIdentity)))(takeBits(8)("fail to read: data (NEC)"))(function (v1) {
-        return Control_Bind.bind(Control_Monad_Except_Trans.bindExceptT(Control_Monad_State_Trans.monadStateT(Data_Identity.monadIdentity)))(takeBits(8)("fail to read: inv-data (NEC)"))(function (v2) {
-            return Control_Bind.bind(Control_Monad_Except_Trans.bindExceptT(Control_Monad_State_Trans.monadStateT(Data_Identity.monadIdentity)))(takeBit("fail to read: stop bit (NEC)"))(function (v3) {
-                return Control_Applicative.pure(Control_Monad_Except_Trans.applicativeExceptT(Control_Monad_State_Trans.monadStateT(Data_Identity.monadIdentity)))(new FormatNEC({
-                    custom: v,
-                    data: v1,
-                    invData: v2,
-                    stop: v3
-                }));
-            });
-        });
-    });
-});
-
-// |
-var decodeAeha = Control_Bind.bind(Control_Monad_Except_Trans.bindExceptT(Control_Monad_State_Trans.monadStateT(Data_Identity.monadIdentity)))(takeBits(16)("fail to read: custom code (AEHA)"))(function (v) {
-    return Control_Bind.bind(Control_Monad_Except_Trans.bindExceptT(Control_Monad_State_Trans.monadStateT(Data_Identity.monadIdentity)))(takeEnd("fail to read: data (AEHA)"))(function (v1) {
-        var last = Data_Array_NonEmpty.last(v1);
-        var init = Data_Array_NonEmpty.init(v1);
-        var octets = Utils.toArrayNonEmptyArray(8)(init);
-        return Control_Applicative.pure(Control_Monad_Except_Trans.applicativeExceptT(Control_Monad_State_Trans.monadStateT(Data_Identity.monadIdentity)))(new FormatAEHA({
-            custom: v,
-            octets: octets,
-            stop: last
-        }));
-    });
-});
-
-// | 入力リーダ部とビット配列から赤外線信号にする
-var decodePhase3 = function (v) {
-    var decoder = (function () {
-        if (v.value0 instanceof LeaderAeha) {
-            return decodeAeha;
-        };
-        if (v.value0 instanceof LeaderNec) {
-            return decodeNec;
-        };
-        if (v.value0 instanceof LeaderSirc) {
-            return decodeSirc;
-        };
-        if (v.value0 instanceof LeaderUnknown) {
-            return decodeUnknown;
-        };
-        throw new Error("Failed pattern match at InfraredCode (line 443, column 13 - line 447, column 37): " + [ v.value0.constructor.name ]);
-    })();
-    return Control_Monad_State.evalState(Control_Monad_Except_Trans.runExceptT(decoder))(v.value1);
+var toIrRemoteControlCode = function ($374) {
+    return Data_Bifunctor.rmap(Data_Either.bifunctorEither)(decodePhase4)(toIrCodeFrames($374));
 };
-
-// |
-var toIrCodeFormats = function ($366) {
-    return Data_Traversable.traverse(Data_Traversable.traversableArray)(Data_Either.applicativeEither)(Control_Bind.composeKleisliFlipped(Data_Either.bindEither)(decodePhase3)(decodePhase2))(decodePhase1($366));
-};
-
-// |
-var toIrRemoteControlCode = function ($367) {
-    return Data_Bifunctor.rmap(Data_Either.bifunctorEither)(decodePhase4)(toIrCodeFormats($367));
-};
-var commutativeRingCount = Data_CommutativeRing.commutativeRingInt;
 module.exports = {
     Baseband: Baseband,
     Negate: Negate,
@@ -100861,6 +100923,7 @@ module.exports = {
     SNotch3: SNotch3,
     SNotch4: SNotch4,
     SNotch5: SNotch5,
+    Switch: Switch,
     MAuto: MAuto,
     MFan: MFan,
     MDry: MDry,
@@ -100904,7 +100967,7 @@ module.exports = {
     toStringLsbFirstWithHex: toStringLsbFirstWithHex,
     toStringMsbFirst: toStringMsbFirst,
     toStringMsbFirstWithHex: toStringMsbFirstWithHex,
-    toIrCodeFormats: toIrCodeFormats,
+    toIrCodeFrames: toIrCodeFrames,
     toIrRemoteControlCode: toIrRemoteControlCode,
     eqBaseband: eqBaseband,
     showBaseband: showBaseband,
@@ -100928,9 +100991,9 @@ module.exports = {
     eqMsbFirst: eqMsbFirst,
     ordMsbFirst: ordMsbFirst,
     showMsbFirst: showMsbFirst,
-    genericInfraredCodeFormat: genericInfraredCodeFormat,
-    eqInfraredCodeFormat: eqInfraredCodeFormat,
-    showInfraredCodeFormat: showInfraredCodeFormat,
+    genericInfraredCodeFrame: genericInfraredCodeFrame,
+    eqInfraredCodeFrame: eqInfraredCodeFrame,
+    showInfraredCodeFrame: showInfraredCodeFrame,
     newtypeCelsius: newtypeCelsius,
     eqCelsius: eqCelsius,
     ordCelsius: ordCelsius,
@@ -100938,6 +101001,13 @@ module.exports = {
     genericMode: genericMode,
     eqMode: eqMode,
     showMode: showMode,
+    newtypeSwitch: newtypeSwitch,
+    eqSwitch: eqSwitch,
+    ordSwitch: ordSwitch,
+    enumSwitch: enumSwitch,
+    boundedSwitch: boundedSwitch,
+    boundedEnumSwitch: boundedEnumSwitch,
+    showSwitch: showSwitch,
     genericSwing: genericSwing,
     eqSwing: eqSwing,
     showSwing: showSwing,
@@ -100952,7 +101022,7 @@ module.exports = {
     showIrRemoteControlCode: showIrRemoteControlCode
 };
 
-},{"../Control.Applicative/index.js":87,"../Control.Apply/index.js":89,"../Control.Bind/index.js":93,"../Control.Monad.Error.Class/index.js":108,"../Control.Monad.Except.Trans/index.js":109,"../Control.Monad.State.Class/index.js":122,"../Control.Monad.State.Trans/index.js":123,"../Control.Monad.State/index.js":124,"../Control.MonadZero/index.js":130,"../Data.Array.NonEmpty.Internal/index.js":155,"../Data.Array.NonEmpty/index.js":156,"../Data.Array/index.js":161,"../Data.Bifunctor/index.js":168,"../Data.Boolean/index.js":171,"../Data.CommutativeRing/index.js":180,"../Data.Either/index.js":193,"../Data.Enum/index.js":195,"../Data.Eq/index.js":197,"../Data.EuclideanRing/index.js":199,"../Data.Foldable/index.js":203,"../Data.Functor/index.js":224,"../Data.Generic.Rep.Show/index.js":227,"../Data.Generic.Rep/index.js":228,"../Data.HeytingAlgebra/index.js":231,"../Data.Identity/index.js":232,"../Data.Int/index.js":234,"../Data.Maybe/index.js":266,"../Data.Newtype/index.js":276,"../Data.Ord/index.js":285,"../Data.Ring/index.js":295,"../Data.Semigroup/index.js":301,"../Data.Semiring/index.js":304,"../Data.Show/index.js":307,"../Data.String.CodeUnits/index.js":311,"../Data.Symbol/index.js":322,"../Data.Traversable/index.js":330,"../Data.Tuple/index.js":332,"../Data.Unfoldable1/index.js":334,"../Text.Parsing.Parser.Combinators/index.js":462,"../Text.Parsing.Parser.String/index.js":464,"../Text.Parsing.Parser.Token/index.js":465,"../Text.Parsing.Parser/index.js":466,"../Utils/index.js":475}],433:[function(require,module,exports){
+},{"../Control.Applicative/index.js":87,"../Control.Apply/index.js":89,"../Control.Bind/index.js":93,"../Control.Monad.Error.Class/index.js":108,"../Control.Monad.Except.Trans/index.js":109,"../Control.Monad.State.Class/index.js":122,"../Control.Monad.State.Trans/index.js":123,"../Control.Monad.State/index.js":124,"../Control.MonadZero/index.js":130,"../Data.Array.NonEmpty.Internal/index.js":155,"../Data.Array.NonEmpty/index.js":156,"../Data.Array/index.js":161,"../Data.Bifunctor/index.js":168,"../Data.Boolean/index.js":171,"../Data.Bounded/index.js":173,"../Data.CommutativeRing/index.js":180,"../Data.Either/index.js":193,"../Data.Enum/index.js":195,"../Data.Eq/index.js":197,"../Data.EuclideanRing/index.js":199,"../Data.Foldable/index.js":203,"../Data.Functor/index.js":224,"../Data.Generic.Rep.Show/index.js":227,"../Data.Generic.Rep/index.js":228,"../Data.HeytingAlgebra/index.js":231,"../Data.Identity/index.js":232,"../Data.Int/index.js":234,"../Data.Maybe/index.js":266,"../Data.Newtype/index.js":276,"../Data.Ord/index.js":285,"../Data.Ring/index.js":295,"../Data.Semigroup/index.js":301,"../Data.Semiring/index.js":304,"../Data.Show/index.js":307,"../Data.String.CodeUnits/index.js":311,"../Data.Symbol/index.js":322,"../Data.Traversable/index.js":330,"../Data.Tuple/index.js":332,"../Data.Unfoldable1/index.js":334,"../Text.Parsing.Parser.Combinators/index.js":462,"../Text.Parsing.Parser.String/index.js":464,"../Text.Parsing.Parser.Token/index.js":465,"../Text.Parsing.Parser/index.js":466,"../Utils/index.js":475}],433:[function(require,module,exports){
 // Generated by purs version 0.12.5
 "use strict";
 var AppM = require("../AppM/index.js");
@@ -101706,6 +101776,7 @@ var Control_Category = require("../Control.Category/index.js");
 var Control_Monad_State_Class = require("../Control.Monad.State.Class/index.js");
 var Control_Parallel_Class = require("../Control.Parallel.Class/index.js");
 var Data_Array = require("../Data.Array/index.js");
+var Data_Array_NonEmpty = require("../Data.Array.NonEmpty/index.js");
 var Data_Bifunctor = require("../Data.Bifunctor/index.js");
 var Data_Boolean = require("../Data.Boolean/index.js");
 var Data_Bounded = require("../Data.Bounded/index.js");
@@ -101907,7 +101978,7 @@ var showHex = function (v) {
     if (Data_Boolean.otherwise) {
         return str;
     };
-    throw new Error("Failed pattern match at Page.Infrared (line 739, column 3 - line 741, column 25): " + [ v1.constructor.name ]);
+    throw new Error("Failed pattern match at Page.Infrared (line 740, column 3 - line 742, column 25): " + [ v1.constructor.name ]);
 };
 var popoverContents = function (input) {
     var toBaseband = function (inp) {
@@ -101919,8 +101990,10 @@ var popoverContents = function (input) {
             return Data_String_Common.joinWith(" ")([ "NEC", showHex(Data_Newtype.unwrap(InfraredCode.newtypeLsbFirst)(InfraredCode.toLsbFirst(v.value0.custom))), showHex(Data_Newtype.unwrap(InfraredCode.newtypeLsbFirst)(InfraredCode.toLsbFirst(v.value0.data))), showHex(Data_Newtype.unwrap(InfraredCode.newtypeLsbFirst)(InfraredCode.toLsbFirst(v.value0.invData))) ]);
         };
         if (v instanceof InfraredCode.FormatAEHA) {
-            return Data_String_Common.joinWith(" ")(Data_Array.concat([ [ "AEHA", showHex(Data_Newtype.unwrap(InfraredCode.newtypeLsbFirst)(InfraredCode.toLsbFirst(v.value0.custom))) ], Data_Functor.map(Data_Functor.functorArray)(function ($297) {
+            return Data_String_Common.joinWith(" ")(Data_Array.concat([ Data_Array.singleton("AEHA"), Data_Functor.map(Data_Functor.functorArray)(function ($297) {
                 return showHex(Data_Newtype.unwrap(InfraredCode.newtypeLsbFirst)(InfraredCode.toLsbFirst($297)));
+            })(Data_Array_NonEmpty.toArray(v.value0.custom)), Data_Functor.map(Data_Functor.functorArray)(function ($298) {
+                return showHex(Data_Newtype.unwrap(InfraredCode.newtypeLsbFirst)(InfraredCode.toLsbFirst($298)));
             })(v.value0.octets) ]));
         };
         if (v instanceof InfraredCode.FormatSIRC) {
@@ -101929,7 +102002,7 @@ var popoverContents = function (input) {
         if (v instanceof InfraredCode.FormatUnknown) {
             return Data_String_Common.joinWith(" ")(Data_Array.concat([ [ "Unkown", Data_Show.show(Data_Show.showArray(InfraredCode["showBit'"]))(v.value0) ] ]));
         };
-        throw new Error("Failed pattern match at Page.Infrared (line 968, column 16 - line 997, column 9): " + [ v.constructor.name ]);
+        throw new Error("Failed pattern match at Page.Infrared (line 969, column 16 - line 997, column 9): " + [ v.constructor.name ]);
     };
     var display = function (v) {
         if (v instanceof InfraredCode.UnknownIrRemote) {
@@ -101938,7 +102011,7 @@ var popoverContents = function (input) {
         if (v instanceof InfraredCode.IrRemotePanasonicHvac) {
             return "PanasonicHVAC";
         };
-        throw new Error("Failed pattern match at Page.Infrared (line 960, column 13 - line 967, column 3): " + [ v.constructor.name ]);
+        throw new Error("Failed pattern match at Page.Infrared (line 961, column 13 - line 968, column 3): " + [ v.constructor.name ]);
     };
     return Data_Either.either(Control_Category.identity(Control_Category.categoryFn))(display)(toIrCode(input));
 };
@@ -101948,8 +102021,8 @@ var irdbTable = function (v) {
         return Halogen_HTML_Elements.tr_([ Halogen_HTML_Elements.th([ Halogen_HTML_Events.onClick(Halogen_HTML_Events.input_(OnClickIrdbTable.create(v1.code))) ])([ Halogen_HTML_Core.text(Data_Int.toStringAs(Data_Int.decimal)(v1.id)) ]), Halogen_HTML_Elements.td([ clk ])([ Halogen_HTML_Core.text(v1.manuf) ]), Halogen_HTML_Elements.td([ clk ])([ Halogen_HTML_Core.text(v1.prod) ]), Halogen_HTML_Elements.td([ clk ])([ Halogen_HTML_Core.text(v1.key) ]), Halogen_HTML_Elements.td_([ Halogen_HTML_Elements.button([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.btn, Halogen_Themes_Bootstrap4.btnSecondary, Halogen_Themes_Bootstrap4.justifyContentCenter ]), Halogen_HTML_Properties.attr("data-container")("body"), Halogen_HTML_Properties.attr("data-toggle")("popover"), Halogen_HTML_Properties.attr("data-placement")("left"), Halogen_HTML_Properties.attr("data-content")(popoverContents(v1.code)) ])([ Halogen_HTML_Core.text(Data_String_CodePoints.take(8)(v1.code)), Halogen_HTML_Core.text("...") ]) ]) ]);
     };
     var tableHeading = (function () {
-        var items = Data_Functor.map(Data_Functor.functorArray)(function ($298) {
-            return Halogen_HTML_Elements.th_(Data_Array.singleton(Halogen_HTML_Core.text($298)));
+        var items = Data_Functor.map(Data_Functor.functorArray)(function ($299) {
+            return Halogen_HTML_Elements.th_(Data_Array.singleton(Halogen_HTML_Core.text($299)));
         })([ "id", "manufacturer", "product", "key", "code" ]);
         return Halogen_HTML_Elements.thead_([ Halogen_HTML_Elements.tr_(items) ]);
     })();
@@ -101994,7 +102067,7 @@ var renderIrdbTable = function (dictMonadAff) {
             if (v instanceof Data_Maybe.Just && v.value0 instanceof Data_Either.Right) {
                 return Halogen_HTML_Elements.div_([ Halogen_HTML_Elements.h2_([ Halogen_HTML_Core.text("Infrared code database") ]), Halogen_HTML_Elements.div_([ Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.formGroup) ])([ irdbPagination(v.value0.value0), irdbTable(v.value0.value0) ]) ]) ]);
             };
-            throw new Error("Failed pattern match at Page.Infrared (line 472, column 11 - line 487, column 10): " + [ v.constructor.name ]);
+            throw new Error("Failed pattern match at Page.Infrared (line 473, column 11 - line 488, column 10): " + [ v.constructor.name ]);
         };
         var dropdownManuf = function (v) {
             var item = function (number) {
@@ -102026,7 +102099,7 @@ var renderIrdbTable = function (dictMonadAff) {
         if (state.irdbManufacturers instanceof Data_Maybe.Just && state.irdbManufacturers.value0 instanceof Data_Either.Right) {
             return Halogen_HTML_Elements.div_([ dropdownManuf(state.irdbManufacturers.value0.value0), dropdownLimits, table(state.irdb) ]);
         };
-        throw new Error("Failed pattern match at Page.Infrared (line 461, column 3 - line 469, column 70): " + [ state.irdbManufacturers.constructor.name ]);
+        throw new Error("Failed pattern match at Page.Infrared (line 462, column 3 - line 470, column 70): " + [ state.irdbManufacturers.constructor.name ]);
     };
 };
 var irUploadButton = function (isActive) {
@@ -102037,7 +102110,7 @@ var irUploadButton = function (isActive) {
         if (!v) {
             return Halogen_HTML_Properties.attr("disabled")("disabled");
         };
-        throw new Error("Failed pattern match at Page.Infrared (line 777, column 14 - line 781, column 1): " + [ v.constructor.name ]);
+        throw new Error("Failed pattern match at Page.Infrared (line 778, column 14 - line 782, column 1): " + [ v.constructor.name ]);
     };
     return Halogen_HTML_Elements.button([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.btn, Halogen_Themes_Bootstrap4.btnOutlineDanger, Halogen_Themes_Bootstrap4.justifyContentCenter ]), Halogen_HTML_Events.onClick(Halogen_HTML_Events.input_(OnClickIRCodeUpload.create)), Halogen_HTML_CSS.style(Control_Bind.discard(Control_Bind.discardUnit)(CSS_Stylesheet.bindStyleM)(CSS_Geometry.margin(CSS_Size.px(2.0))(CSS_Size.px(2.0))(CSS_Size.px(2.0))(CSS_Size.px(2.0)))(function () {
         return CSS_Geometry.width(CSS_Size.rem(8.0));
@@ -102051,7 +102124,7 @@ var irTransmitButton = function (isActive) {
         if (!v) {
             return Halogen_HTML_Properties.attr("disabled")("disabled");
         };
-        throw new Error("Failed pattern match at Page.Infrared (line 798, column 3 - line 800, column 3): " + [ v.constructor.name ]);
+        throw new Error("Failed pattern match at Page.Infrared (line 799, column 3 - line 801, column 3): " + [ v.constructor.name ]);
     };
     return Halogen_HTML_Elements.button([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.btn, Halogen_Themes_Bootstrap4.btnOutlinePrimary, Halogen_Themes_Bootstrap4.justifyContentCenter ]), Halogen_HTML_Events.onClick(Halogen_HTML_Events.input_(OnClickIRCodeTransmit.create)), Halogen_HTML_CSS.style(Control_Bind.discard(Control_Bind.discardUnit)(CSS_Stylesheet.bindStyleM)(CSS_Geometry.margin(CSS_Size.px(2.0))(CSS_Size.px(2.0))(CSS_Size.px(2.0))(CSS_Size.px(2.0)))(function () {
         return CSS_Geometry.width(CSS_Size.rem(8.0));
@@ -102067,12 +102140,12 @@ var infraredRemoteControlCode = (function () {
             return [ Halogen_HTML_Core.text("Unknown IR remote Code") ];
         };
         if (v instanceof InfraredCode.IrRemotePanasonicHvac) {
-            return [ Halogen_HTML_Core.text("Panasonic HVAC"), Halogen_HTML_Elements.dl_([ Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Temperature") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(InfraredCode.showCelsius)(v.value0.temperature)) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Mode") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(InfraredCode.showMode)(v.value0.mode)) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Switch ON") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(Data_Show.showBoolean)(v.value0.switchOn)) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Fan") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(InfraredCode.showFan)(v.value0.fan)) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Swing") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(InfraredCode.showSwing)(v.value0.swing)) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Profile") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(InfraredCode.showProfile)(v.value0.profile)) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("CRC") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(Data_Show.showInt)(v.value0.crc)) ]) ]) ];
+            return [ Halogen_HTML_Core.text("Panasonic HVAC"), Halogen_HTML_Elements.dl_([ Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Temperature") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(InfraredCode.showCelsius)(v.value0.temperature)) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Mode") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(InfraredCode.showMode)(v.value0.mode)) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Switch") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(InfraredCode.showSwitch)(v["value0"]["switch"])) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Fan") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(InfraredCode.showFan)(v.value0.fan)) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Swing") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(InfraredCode.showSwing)(v.value0.swing)) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("Profile") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(InfraredCode.showProfile)(v.value0.profile)) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("CRC") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(Data_Show.showInt)(v.value0.crc)) ]) ]) ];
         };
-        throw new Error("Failed pattern match at Page.Infrared (line 703, column 29 - line 726, column 6): " + [ v.constructor.name ]);
+        throw new Error("Failed pattern match at Page.Infrared (line 704, column 29 - line 727, column 6): " + [ v.constructor.name ]);
     };
 })();
-var infraredCordFormat = (function () {
+var infraredCodeFrame = (function () {
     var showOctet = function (x) {
         return Halogen_HTML_Elements.span([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.col6, Halogen_Themes_Bootstrap4.colMd2 ]) ])([ Halogen_HTML_Core.text(showHex(x)), Halogen_HTML_Core.text(" ") ]);
     };
@@ -102082,10 +102155,14 @@ var infraredCordFormat = (function () {
             return [ Halogen_HTML_Elements.dl_([ Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("format") ]), dd([ Halogen_HTML_Core.text("NEC") ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("custom code") ]), dd([ Halogen_HTML_Core.text(showHex(Data_Newtype.unwrap(InfraredCode.newtypeLsbFirst)(InfraredCode.toLsbFirst(v.value0.custom)))) ]), dd([ Halogen_HTML_Core.text(showHex(Data_Newtype.unwrap(InfraredCode.newtypeMsbFirst)(InfraredCode.toMsbFirst(v.value0.custom)))) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("data") ]), dd([ Halogen_HTML_Core.text(showHex(Data_Newtype.unwrap(InfraredCode.newtypeLsbFirst)(InfraredCode.toLsbFirst(v.value0.data)))) ]), dd([ Halogen_HTML_Core.text(showHex(Data_Newtype.unwrap(InfraredCode.newtypeMsbFirst)(InfraredCode.toMsbFirst(v.value0.data)))) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Elements.span([ Halogen_HTML_CSS.style(CSS_Text.textDecoration(CSS_Text.overline)) ])([ Halogen_HTML_Core.text("data") ]) ]), dd([ Halogen_HTML_Core.text(showHex(Data_Newtype.unwrap(InfraredCode.newtypeLsbFirst)(InfraredCode.toLsbFirst(v.value0.invData)))) ]), dd([ Halogen_HTML_Core.text(showHex(Data_Newtype.unwrap(InfraredCode.newtypeMsbFirst)(InfraredCode.toMsbFirst(v.value0.invData)))) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("stop") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(InfraredCode["showBit'"])(v.value0.stop)) ]) ]) ];
         };
         if (v instanceof InfraredCode.FormatAEHA) {
-            return [ Halogen_HTML_Elements.dl_([ Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("format") ]), dd([ Halogen_HTML_Core.text("AEHA") ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("custom code (LSB first)") ]), dd([ Halogen_HTML_Core.text(showHex(Data_Newtype.unwrap(InfraredCode.newtypeLsbFirst)(InfraredCode.toLsbFirst(v.value0.custom)))) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("octets (LSB first)") ]), dd(Data_Functor.map(Data_Functor.functorArray)(function ($299) {
-                return showOctet(Data_Newtype.unwrap(InfraredCode.newtypeLsbFirst)(InfraredCode.toLsbFirst($299)));
-            })(v.value0.octets)), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("custom code (MSB first)") ]), dd([ Halogen_HTML_Core.text(showHex(Data_Newtype.unwrap(InfraredCode.newtypeMsbFirst)(InfraredCode.toMsbFirst(v.value0.custom)))) ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("octets (MSB first)") ]), dd(Data_Functor.map(Data_Functor.functorArray)(function ($300) {
-                return showOctet(Data_Newtype.unwrap(InfraredCode.newtypeMsbFirst)(InfraredCode.toMsbFirst($300)));
+            return [ Halogen_HTML_Elements.dl_([ Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("format") ]), dd([ Halogen_HTML_Core.text("AEHA") ]), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("custom code (LSB first)") ]), dd(Data_Functor.map(Data_Functor.functorArray)(function ($300) {
+                return showOctet(Data_Newtype.unwrap(InfraredCode.newtypeLsbFirst)(InfraredCode.toLsbFirst($300)));
+            })(Data_Array_NonEmpty.toArray(v.value0.custom))), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("octets (LSB first)") ]), dd(Data_Functor.map(Data_Functor.functorArray)(function ($301) {
+                return showOctet(Data_Newtype.unwrap(InfraredCode.newtypeLsbFirst)(InfraredCode.toLsbFirst($301)));
+            })(v.value0.octets)), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("custom code (MSB first)") ]), dd(Data_Functor.map(Data_Functor.functorArray)(function ($302) {
+                return showOctet(Data_Newtype.unwrap(InfraredCode.newtypeMsbFirst)(InfraredCode.toMsbFirst($302)));
+            })(Data_Array_NonEmpty.toArray(v.value0.custom))), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("octets (MSB first)") ]), dd(Data_Functor.map(Data_Functor.functorArray)(function ($303) {
+                return showOctet(Data_Newtype.unwrap(InfraredCode.newtypeMsbFirst)(InfraredCode.toMsbFirst($303)));
             })(v.value0.octets)), Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("stop") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(InfraredCode["showBit'"])(v.value0.stop)) ]) ]) ];
         };
         if (v instanceof InfraredCode.FormatSIRC) {
@@ -102094,13 +102171,13 @@ var infraredCordFormat = (function () {
         if (v instanceof InfraredCode.FormatUnknown) {
             return [ Halogen_HTML_Elements.dl_([ Halogen_HTML_Elements.dt_([ Halogen_HTML_Core.text("unknown format") ]), dd([ Halogen_HTML_Core.text(Data_Show.show(Data_Show.showArray(InfraredCode["showBit'"]))(v.value0)) ]) ]) ];
         };
-        throw new Error("Failed pattern match at Page.Infrared (line 632, column 3 - line 688, column 8): " + [ v.constructor.name ]);
+        throw new Error("Failed pattern match at Page.Infrared (line 633, column 3 - line 689, column 8): " + [ v.constructor.name ]);
     };
 })();
 var infraredBitpatterns = function (v) {
     var col = function (xs) {
-        return Halogen_HTML_Elements.div([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.col6, Halogen_Themes_Bootstrap4.colMd2 ]) ])(Data_Functor.map(Data_Functor.functorArray)(function ($301) {
-            return Halogen_HTML_Core.text(Data_Show.show(InfraredCode["showBit'"])($301));
+        return Halogen_HTML_Elements.div([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.col6, Halogen_Themes_Bootstrap4.colMd2 ]) ])(Data_Functor.map(Data_Functor.functorArray)(function ($304) {
+            return Halogen_HTML_Core.text(Data_Show.show(InfraredCode["showBit'"])($304));
         })(xs));
     };
     var row = function (xxs) {
@@ -102120,7 +102197,7 @@ var infraredBitpatterns = function (v) {
     if (v.value0 instanceof InfraredCode.LeaderUnknown) {
         return [ Halogen_HTML_Core.text("Unknown"), Halogen_HTML_Elements.br_, row(Utils.toArrayArray(8)(v.value1)) ];
     };
-    throw new Error("Failed pattern match at Page.Infrared (line 594, column 3 - line 617, column 8): " + [ v.value0.constructor.name ]);
+    throw new Error("Failed pattern match at Page.Infrared (line 595, column 3 - line 618, column 8): " + [ v.value0.constructor.name ]);
 };
 var infraredBaseband = function (v) {
     var strMillisec = function (n) {
@@ -102139,8 +102216,8 @@ var renderInfraredRemoconCode = function (dictMonadAff) {
     return function (state) {
         var display = function (ir) {
             var baseband = Data_Bifunctor.lmap(Data_Either.bifunctorEither)(Text_Parsing_Parser.parseErrorMessage)(Text_Parsing_Parser.runParser(ir.code)(InfraredCode.infraredHexStringParser));
-            var bitPatterns = Control_Bind.bindFlipped(Data_Either.bindEither)(function ($302) {
-                return Data_Traversable.traverse(Data_Traversable.traversableArray)(Data_Either.applicativeEither)(InfraredCode.decodePhase2)(InfraredCode.decodePhase1($302));
+            var bitPatterns = Control_Bind.bindFlipped(Data_Either.bindEither)(function ($305) {
+                return Data_Traversable.traverse(Data_Traversable.traversableArray)(Data_Either.applicativeEither)(InfraredCode.decodePhase2)(InfraredCode.decodePhase1($305));
             })(baseband);
             var irframes = Control_Bind.bindFlipped(Data_Either.bindEither)(Data_Traversable.traverse(Data_Traversable.traversableArray)(Data_Either.applicativeEither)(InfraredCode.decodePhase3))(bitPatterns);
             var irRemoteCode = Data_Bifunctor.rmap(Data_Either.bifunctorEither)(InfraredCode.decodePhase4)(irframes);
@@ -102156,17 +102233,17 @@ var renderInfraredRemoconCode = function (dictMonadAff) {
                 if (state.infraredValue instanceof Data_Maybe.Just && state.infraredValue.value0 instanceof Data_Either.Right) {
                     return Halogen_HTML_Core.text((Data_Newtype.unwrap(Api.newtypeDatumInfraRed)(state.infraredValue.value0.value0)).code);
                 };
-                throw new Error("Failed pattern match at Page.Infrared (line 840, column 13 - line 843, column 56): " + [ state.infraredValue.constructor.name ]);
-            })() ]), Halogen_HTML_Elements.h3_([ Halogen_HTML_Core.text("Baseband in milliseconds") ]), Halogen_HTML_Elements.p([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.p3) ])([ Data_Either.either(Halogen_HTML_Core.text)(infraredBaseband)(baseband) ]), Halogen_HTML_Elements.h3_([ Halogen_HTML_Core.text("Bit patterns") ]), Halogen_HTML_Elements.p([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.p3) ])(Data_Either.either(function ($303) {
-                return Data_Array.singleton(Halogen_HTML_Core.text($303));
-            })(function ($304) {
-                return Data_Foldable.intercalate(Data_Foldable.foldableArray)(Data_Monoid.monoidArray)([ Halogen_HTML_Elements.hr_ ])(Data_Functor.map(Data_Functor.functorArray)(infraredBitpatterns)($304));
-            })(bitPatterns)), Halogen_HTML_Elements.h3_([ Halogen_HTML_Core.text("Infrared code format") ]), Halogen_HTML_Elements.p([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.p3) ])(Data_Either.either(function ($305) {
-                return Data_Array.singleton(Halogen_HTML_Core.text($305));
-            })(function ($306) {
-                return Data_Foldable.intercalate(Data_Foldable.foldableArray)(Data_Monoid.monoidArray)([ Halogen_HTML_Elements.hr_ ])(Data_Functor.map(Data_Functor.functorArray)(infraredCordFormat)($306));
-            })(irframes)), Halogen_HTML_Elements.h3_([ Halogen_HTML_Core.text("Infrared remote control code") ]), Halogen_HTML_Elements.p([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.p3) ])(Data_Either.either(function ($307) {
-                return Data_Array.singleton(Halogen_HTML_Core.text($307));
+                throw new Error("Failed pattern match at Page.Infrared (line 841, column 13 - line 844, column 56): " + [ state.infraredValue.constructor.name ]);
+            })() ]), Halogen_HTML_Elements.h3_([ Halogen_HTML_Core.text("Baseband in milliseconds") ]), Halogen_HTML_Elements.p([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.p3) ])([ Data_Either.either(Halogen_HTML_Core.text)(infraredBaseband)(baseband) ]), Halogen_HTML_Elements.h3_([ Halogen_HTML_Core.text("Bit patterns") ]), Halogen_HTML_Elements.p([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.p3) ])(Data_Either.either(function ($306) {
+                return Data_Array.singleton(Halogen_HTML_Core.text($306));
+            })(function ($307) {
+                return Data_Foldable.intercalate(Data_Foldable.foldableArray)(Data_Monoid.monoidArray)([ Halogen_HTML_Elements.hr_ ])(Data_Functor.map(Data_Functor.functorArray)(infraredBitpatterns)($307));
+            })(bitPatterns)), Halogen_HTML_Elements.h3_([ Halogen_HTML_Core.text("Infrared code frames") ]), Halogen_HTML_Elements.p([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.p3) ])(Data_Either.either(function ($308) {
+                return Data_Array.singleton(Halogen_HTML_Core.text($308));
+            })(function ($309) {
+                return Data_Foldable.intercalate(Data_Foldable.foldableArray)(Data_Monoid.monoidArray)([ Halogen_HTML_Elements.hr_ ])(Data_Functor.map(Data_Functor.functorArray)(infraredCodeFrame)($309));
+            })(irframes)), Halogen_HTML_Elements.h3_([ Halogen_HTML_Core.text("Infrared remote control code") ]), Halogen_HTML_Elements.p([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.p3) ])(Data_Either.either(function ($310) {
+                return Data_Array.singleton(Halogen_HTML_Core.text($310));
             })(infraredRemoteControlCode)(irRemoteCode)) ]);
         };
         return Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.formGroup) ])((function () {
@@ -102179,14 +102256,14 @@ var renderInfraredRemoconCode = function (dictMonadAff) {
             if (state.infraredValue instanceof Data_Maybe.Just && state.infraredValue.value0 instanceof Data_Either.Right) {
                 return [ Halogen_HTML_Elements.h3_([ Halogen_HTML_Core.text("Edit codes") ]), Halogen_HTML.slot(Data_Unit.unit)(Components_InfraredCodeEditor.component(dictMonadAff))(state.infraredValue.value0.value0.code)(Halogen_HTML_Events.input(HandleEditorUpdate.create)), display(state.infraredValue.value0.value0) ];
             };
-            throw new Error("Failed pattern match at Page.Infrared (line 808, column 7 - line 823, column 10): " + [ state.infraredValue.constructor.name ]);
+            throw new Error("Failed pattern match at Page.Infrared (line 809, column 7 - line 824, column 10): " + [ state.infraredValue.constructor.name ]);
         })());
     };
 };
 var renderControlPanel = function (dictMonadAff) {
     return function (state) {
-        return Halogen_HTML_Elements.div_([ Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.formInline) ])([ Halogen_HTML_Elements.div([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.formGroup ]) ])([ Halogen_HTML_Elements.label_([ Halogen_HTML_Core.text("Button Number") ]), Halogen_HTML_Elements.select([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.m3, Halogen_Themes_Bootstrap4.formControl ]), Halogen_HTML_Events.onValueChange(Halogen_HTML_Events.input(OnValueChangeButtonNumber.create)) ])(Data_Functor.map(Data_Functor.functorArray)(function ($308) {
-            return Halogen_HTML_Elements.option_(Data_Array.singleton(Halogen_HTML_Core.text(Data_Int.toStringAs(Data_Int.decimal)($308))));
+        return Halogen_HTML_Elements.div_([ Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.formInline) ])([ Halogen_HTML_Elements.div([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.formGroup ]) ])([ Halogen_HTML_Elements.label_([ Halogen_HTML_Core.text("Button Number") ]), Halogen_HTML_Elements.select([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.m3, Halogen_Themes_Bootstrap4.formControl ]), Halogen_HTML_Events.onValueChange(Halogen_HTML_Events.input(OnValueChangeButtonNumber.create)) ])(Data_Functor.map(Data_Functor.functorArray)(function ($311) {
+            return Halogen_HTML_Elements.option_(Data_Array.singleton(Halogen_HTML_Core.text(Data_Int.toStringAs(Data_Int.decimal)($311))));
         })(Data_Array.range(1)(10))) ]), Halogen_HTML_Elements.div([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.m3, Halogen_Themes_Bootstrap4.formGroup ]) ])([ irDownloadButton, irUploadButton(Data_Maybe.maybe(false)(Data_Either.isRight)(state.infraredValue)), irTransmitButton(Data_Maybe.maybe(false)(Data_Either.isRight)(state.infraredValue)) ]) ]), renderInfraredRemoconCode(dictMonadAff)(state) ]);
     };
 };
@@ -102197,7 +102274,7 @@ var genericSelectedTab = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof TabIrdbTable) {
         return new Data_Generic_Rep.Inr(Data_Generic_Rep.NoArguments.value);
     };
-    throw new Error("Failed pattern match at Page.Infrared (line 68, column 8 - line 68, column 60): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at Page.Infrared (line 69, column 8 - line 69, column 60): " + [ x.constructor.name ]);
 }, function (x) {
     if (x instanceof Data_Generic_Rep.Inl) {
         return TabControlPanel.value;
@@ -102205,7 +102282,7 @@ var genericSelectedTab = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof Data_Generic_Rep.Inr) {
         return TabIrdbTable.value;
     };
-    throw new Error("Failed pattern match at Page.Infrared (line 68, column 8 - line 68, column 60): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at Page.Infrared (line 69, column 8 - line 69, column 60): " + [ x.constructor.name ]);
 });
 var eqSelectedTab = new Data_Eq.Eq(function (x) {
     return function (y) {
@@ -102234,7 +102311,7 @@ var ordSelectedTab = new Data_Ord.Ord(function () {
         if (x instanceof TabIrdbTable && y instanceof TabIrdbTable) {
             return Data_Ordering.EQ.value;
         };
-        throw new Error("Failed pattern match at Page.Infrared (line 70, column 8 - line 70, column 50): " + [ x.constructor.name, y.constructor.name ]);
+        throw new Error("Failed pattern match at Page.Infrared (line 71, column 8 - line 71, column 50): " + [ x.constructor.name, y.constructor.name ]);
     };
 });
 var enumSelectedTab = new Data_Enum.Enum(function () {
@@ -102278,7 +102355,7 @@ var renderTab = function (dictMonadAff) {
             if (v instanceof Data_Maybe.Just && v.value0 instanceof TabIrdbTable) {
                 return [ tabControlPanel([  ]), tabIrdbTable([ Halogen_Themes_Bootstrap4.active ]) ];
             };
-            throw new Error("Failed pattern match at Page.Infrared (line 400, column 5 - line 408, column 57): " + [ v.constructor.name ]);
+            throw new Error("Failed pattern match at Page.Infrared (line 401, column 5 - line 409, column 57): " + [ v.constructor.name ]);
         })());
     };
 };
@@ -102295,7 +102372,7 @@ var render = function (dictMonadAff) {
             if (v instanceof Data_Maybe.Just && v.value0 instanceof TabIrdbTable) {
                 return renderIrdbTable(dictMonadAff)(state);
             };
-            throw new Error("Failed pattern match at Page.Infrared (line 377, column 9 - line 380, column 57): " + [ v.constructor.name ]);
+            throw new Error("Failed pattern match at Page.Infrared (line 378, column 9 - line 381, column 57): " + [ v.constructor.name ]);
         })() ]), Page_Commons.footer ]);
     };
 };
@@ -102442,7 +102519,7 @@ var component = function (dictMonadAff) {
                                                             });
                                                         });
                                                     };
-                                                    throw new Error("Failed pattern match at Page.Infrared (line 188, column 11 - line 194, column 53): " + [ v5.constructor.name ]);
+                                                    throw new Error("Failed pattern match at Page.Infrared (line 189, column 11 - line 195, column 53): " + [ v5.constructor.name ]);
                                                 });
                                             });
                                         });
@@ -102657,7 +102734,7 @@ var component = function (dictMonadAff) {
                                 return $263;
                             });
                         };
-                        throw new Error("Failed pattern match at Page.Infrared (line 278, column 7 - line 280, column 59): " + [ v1.constructor.name ]);
+                        throw new Error("Failed pattern match at Page.Infrared (line 279, column 7 - line 281, column 59): " + [ v1.constructor.name ]);
                     })())(function () {
                         return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(v.value1);
                     });
@@ -102759,7 +102836,7 @@ var component = function (dictMonadAff) {
                         });
                     });
                 };
-                throw new Error("Failed pattern match at Page.Infrared (line 156, column 10 - line 325, column 16): " + [ v.constructor.name ]);
+                throw new Error("Failed pattern match at Page.Infrared (line 157, column 10 - line 326, column 16): " + [ v.constructor.name ]);
             };
             return Halogen_Component.lifecycleParentComponent(Data_Ord.ordUnit)({
                 initialState: initialState,
@@ -102782,7 +102859,7 @@ module.exports = {
     boundedEnumSelectedTab: boundedEnumSelectedTab
 };
 
-},{"../Api/index.js":69,"../AppM/index.js":70,"../CSS.Geometry/index.js":72,"../CSS.Size/index.js":76,"../CSS.Stylesheet/index.js":78,"../CSS.Text/index.js":79,"../Components.InfraredCodeEditor/index.js":83,"../Control.Alt/index.js":84,"../Control.Applicative/index.js":87,"../Control.Bind/index.js":93,"../Control.Category/index.js":94,"../Control.Monad.State.Class/index.js":122,"../Control.Parallel.Class/index.js":132,"../Data.Array/index.js":161,"../Data.Bifunctor/index.js":168,"../Data.Boolean/index.js":171,"../Data.Bounded/index.js":173,"../Data.Char/index.js":179,"../Data.Either/index.js":193,"../Data.Enum/index.js":195,"../Data.Eq/index.js":197,"../Data.Foldable/index.js":203,"../Data.Formatter.Number/index.js":207,"../Data.Function/index.js":213,"../Data.Functor/index.js":224,"../Data.Generic.Rep.Bounded/index.js":225,"../Data.Generic.Rep.Enum/index.js":226,"../Data.Generic.Rep/index.js":228,"../Data.Int/index.js":234,"../Data.Maybe/index.js":266,"../Data.Monoid/index.js":275,"../Data.Newtype/index.js":276,"../Data.Ord/index.js":285,"../Data.Ordering/index.js":286,"../Data.Semigroup/index.js":301,"../Data.Show/index.js":307,"../Data.String.CodePoints/index.js":309,"../Data.String.Common/index.js":313,"../Data.Time.Duration/index.js":325,"../Data.Traversable/index.js":330,"../Data.Unit/index.js":338,"../Effect.Aff.Class/index.js":346,"../Effect.Aff/index.js":349,"../Effect.Class/index.js":350,"../Effect.Console/index.js":352,"../Halogen.Component/index.js":409,"../Halogen.HTML.CSS/index.js":412,"../Halogen.HTML.Core/index.js":413,"../Halogen.HTML.Elements/index.js":414,"../Halogen.HTML.Events/index.js":415,"../Halogen.HTML.Properties/index.js":416,"../Halogen.HTML/index.js":417,"../Halogen.Query.HalogenM/index.js":420,"../Halogen.Query/index.js":422,"../Halogen.Themes.Bootstrap4/index.js":423,"../InfraredCode/index.js":432,"../Page.Commons/index.js":438,"../Route/index.js":455,"../Text.Parsing.Parser/index.js":466,"../Utils/index.js":475}],441:[function(require,module,exports){
+},{"../Api/index.js":69,"../AppM/index.js":70,"../CSS.Geometry/index.js":72,"../CSS.Size/index.js":76,"../CSS.Stylesheet/index.js":78,"../CSS.Text/index.js":79,"../Components.InfraredCodeEditor/index.js":83,"../Control.Alt/index.js":84,"../Control.Applicative/index.js":87,"../Control.Bind/index.js":93,"../Control.Category/index.js":94,"../Control.Monad.State.Class/index.js":122,"../Control.Parallel.Class/index.js":132,"../Data.Array.NonEmpty/index.js":156,"../Data.Array/index.js":161,"../Data.Bifunctor/index.js":168,"../Data.Boolean/index.js":171,"../Data.Bounded/index.js":173,"../Data.Char/index.js":179,"../Data.Either/index.js":193,"../Data.Enum/index.js":195,"../Data.Eq/index.js":197,"../Data.Foldable/index.js":203,"../Data.Formatter.Number/index.js":207,"../Data.Function/index.js":213,"../Data.Functor/index.js":224,"../Data.Generic.Rep.Bounded/index.js":225,"../Data.Generic.Rep.Enum/index.js":226,"../Data.Generic.Rep/index.js":228,"../Data.Int/index.js":234,"../Data.Maybe/index.js":266,"../Data.Monoid/index.js":275,"../Data.Newtype/index.js":276,"../Data.Ord/index.js":285,"../Data.Ordering/index.js":286,"../Data.Semigroup/index.js":301,"../Data.Show/index.js":307,"../Data.String.CodePoints/index.js":309,"../Data.String.Common/index.js":313,"../Data.Time.Duration/index.js":325,"../Data.Traversable/index.js":330,"../Data.Unit/index.js":338,"../Effect.Aff.Class/index.js":346,"../Effect.Aff/index.js":349,"../Effect.Class/index.js":350,"../Effect.Console/index.js":352,"../Halogen.Component/index.js":409,"../Halogen.HTML.CSS/index.js":412,"../Halogen.HTML.Core/index.js":413,"../Halogen.HTML.Elements/index.js":414,"../Halogen.HTML.Events/index.js":415,"../Halogen.HTML.Properties/index.js":416,"../Halogen.HTML/index.js":417,"../Halogen.Query.HalogenM/index.js":420,"../Halogen.Query/index.js":422,"../Halogen.Themes.Bootstrap4/index.js":423,"../InfraredCode/index.js":432,"../Page.Commons/index.js":438,"../Route/index.js":455,"../Text.Parsing.Parser/index.js":466,"../Utils/index.js":475}],441:[function(require,module,exports){
 // Generated by purs version 0.12.5
 "use strict";
 var Api = require("../Api/index.js");
