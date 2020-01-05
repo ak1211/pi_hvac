@@ -57,7 +57,7 @@ import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Themes.Bootstrap4 as HB
-import InfraredCode (Baseband(..), Bit, Count, InfraredCodeFrame(..), InfraredHexString, InfraredLeader(..), IrRemoteControlCode(..), decodePhase1, decodePhase2, decodePhase3, decodePhase4, infraredHexStringParser, toIrRemoteControlCode, toLsbFirst, toMilliseconds, toMsbFirst)
+import InfraredCode (Baseband(..), Bit, Count, InfraredCodeFrame(..), InfraredHexString, InfraredLeader(..), IrRemoteControlCode(..), decodePhase1, decodePhase2, decodePhase3, decodePhase4, validCrc, infraredHexStringParser, toIrRemoteControlCode, toLsbFirst, toMilliseconds, toMsbFirst)
 import Page.Commons as Commons
 import Route (Route)
 import Route as Route
@@ -722,7 +722,9 @@ infraredRemoteControlCode = case _ of
       , dt [ HH.text "Profile" ]
       , dd [ HH.text (show v.profile) ]
       , dt [ HH.text "CRC" ]
-      , dd [ HH.text (show v.crc) ]
+      , dd [ HH.text (if validCrc v.crc v.body18bytes then "Checksum is valid." else "Checksum is NOT valid.")
+           , HH.text $ " " <> (show v.crc)
+           ]
       ]
     ]
   where

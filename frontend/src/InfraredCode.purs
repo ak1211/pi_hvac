@@ -25,6 +25,7 @@ module InfraredCode
   , Switch(..)
   , Mode(..)
   , Fan(..)
+  , Crc(..)
   , Profile(..)
   , InfraredCodeFrame(..)
   , InfraredHexString
@@ -41,6 +42,7 @@ module InfraredCode
   , fromBoolean
   , fromMilliseconds
   , infraredHexStringParser
+  , validCrc
   , showBit
   , toBoolean 
   , toMilliseconds
@@ -67,7 +69,7 @@ import Data.Array.NonEmpty as NEA
 import Data.Bifunctor as Bifunctor
 import Data.Either (Either(..))
 import Data.Enum (class Enum, class BoundedEnum, toEnum)
-import Data.Foldable (all)
+import Data.Foldable (all, sum)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Int as Int
@@ -393,9 +395,39 @@ instance showProfile            :: Show Profile where
   show = genericShow
 
 -- |
+newtype Crc = Crc Int
+derive instance genericCrc      :: Generic Crc _
+derive instance newtypeCrc      :: Newtype Crc _
+derive newtype instance eqCrc   :: Eq Crc
+instance showCrc                :: Show Crc where
+  show = genericShow
+
+-- |
+validCrc :: Crc -> Array BitStream -> Boolean
+validCrc crc body18bytes =
+  let
+    x = unwrap crc
+    y = (sum values) .&. 0xff
+  in
+  x == y
+  where
+  values :: Array Int
+  values = map (unwrap <<< toLsbFirst) body18bytes
+
+-- |
 data IrRemoteControlCode
   = UnknownIrRemote       (Array InfraredCodeFrame)
-  | IrRemotePanasonicHvac {temperature :: Celsius, mode :: Mode, switch :: Switch, swing :: Swing, fan :: Fan, profile :: Profile, crc :: Int}
+  | IrRemotePanasonicHvac
+    { body18bytes :: Array BitStream
+    , temperature :: Celsius
+    , mode :: Mode
+    , switch :: Switch
+    , swing :: Swing
+    , fan :: Fan
+    , profile :: Profile
+    , crc :: Crc
+    }
+
 derive instance genericIrRemoteControlCode  :: Generic IrRemoteControlCode _
 derive instance eqIrRemoteControlCode       :: Eq IrRemoteControlCode
 instance showIrRemoteControlCode            :: Show IrRemoteControlCode where
@@ -563,33 +595,38 @@ decodePanasonicHVAC = case _ of
                 , b19
                 ]
       , stop: _
-      } -> make b_6 b_7 b_9 b14 b19
-
+      } ->
+        let
+          body = [ NEA.toArray b1b2
+                  , [ b_3, b_4, b_5, b_6
+                    , b_7, b_8, b_9, b10
+                    , b11, b12, b13, b14
+                    , b15, b16, b17, b18
+                    ]
+                  ]
+          temp  = (unwrap (toLsbFirst b_7) `shr` 1) .&. 0xf
+          mode  = (unwrap (toLsbFirst b_6) `shr` 4) .&. 0xf
+          switch = unwrap (toLsbFirst b_6) .&. 0x1
+          fan   = (unwrap (toLsbFirst b_9) `shr` 4) .&. 0xf
+          swing = unwrap (toLsbFirst b_9) .&. 0xf
+          prof  = unwrap (toLsbFirst b14)
+          crc   = unwrap (toLsbFirst b19)
+        in do
+        mode_ <- toMode mode
+        switch_ <- toEnum switch
+        swing_ <- toSwingNotch swing
+        fan_ <- toFanNotch fan
+        pure $ IrRemotePanasonicHvac
+          { body18bytes: Array.concat body
+          , temperature: Celsius (16 + temp)
+          , mode: mode_
+          , switch: switch_
+          , swing: swing_
+          , fan: fan_
+          , profile: toProfile prof
+          , crc: Crc crc
+          }
     _ ->  Nothing
-
-  make b_6 b_7 b_9 b14 b19 =
-    let
-      temp  = (unwrap (toLsbFirst b_7) `shr` 1) .&. 0xf
-      mode  = (unwrap (toLsbFirst b_6) `shr` 4) .&. 0xf
-      switch = unwrap (toLsbFirst b_6) .&. 0x1
-      fan   = (unwrap (toLsbFirst b_9) `shr` 4) .&. 0xf
-      swing = unwrap (toLsbFirst b_9) .&. 0xf
-      prof  = unwrap (toLsbFirst b14)
-      crc   = unwrap (toLsbFirst b19)
-    in do
-    mode_ <- toMode mode
-    switch_ <- toEnum switch
-    swing_ <- toSwingNotch swing
-    fan_ <- toFanNotch fan
-    pure $ IrRemotePanasonicHvac
-      { temperature: Celsius (16 + temp)
-      , mode: mode_
-      , switch: switch_
-      , swing: swing_
-      , fan: fan_
-      , profile: toProfile prof
-      , crc: crc
-      }
   
   toMode = case _ of
     0x0 -> Just MAuto
