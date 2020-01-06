@@ -30,6 +30,7 @@ module InfraredRemote.Code
   , fromMilliseconds
   , infraredHexStringParser
   , toMilliseconds
+  , toInfraredHexString
   , toIrCodeFrames
   , toIrRemoteControlCode
   , module InfraredRemote.Type
@@ -37,13 +38,12 @@ module InfraredRemote.Code
 
 import Prelude
 
-import InfraredRemote.Type (Bit(..), BitStream, Celsius(..), InfraredCodeFrame(..), LsbFirst(..), MsbFirst(..), fromBinaryString, fromBoolean, showBit, toBoolean, toLsbFirst, toMsbFirst, toStringLsbFirst, toStringLsbFirstWithHex, toStringMsbFirst, toStringMsbFirstWithHex)
 import Control.Alt ((<|>))
 import Control.Monad.Except (ExceptT, runExceptT, throwError)
 import Control.Monad.State (State, evalState)
 import Control.Monad.State as State
 import Control.MonadZero (guard)
-import Data.Array ((..))
+import Data.Array (catMaybes, (..))
 import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NEA
@@ -52,7 +52,9 @@ import Data.Either (Either(..))
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Int as Int
+import Data.Int.Bits ((.&.), shr)
 import Data.Maybe (Maybe(..), fromJust, fromMaybe, maybe)
+import Data.String as String
 import Data.String.CodeUnits (fromCharArray)
 import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (traverse)
@@ -60,12 +62,13 @@ import Data.Tuple (Tuple(..))
 import Data.Unfoldable (unfoldr1)
 import InfraredRemote.MitsubishiElectricHvac (MitsubishiElectricHvac, decodeMitsubishiElectricHvac)
 import InfraredRemote.PanasonicHvac (PanasonicHvac, decodePanasonicHvac)
+import InfraredRemote.Type (Bit(..), BitStream, Celsius(..), InfraredCodeFrame(..), LsbFirst(..), MsbFirst(..), fromBinaryString, fromBoolean, showBit, toBoolean, toLsbFirst, toMsbFirst, toStringLsbFirst, toStringLsbFirstWithHex, toStringMsbFirst, toStringMsbFirstWithHex)
 import Partial.Unsafe (unsafePartial)
-import Text.Parsing.Parser (Parser)
-import Text.Parsing.Parser.Combinators ((<?>))
-import Text.Parsing.Parser.String (eof, skipSpaces)
-import Text.Parsing.Parser.Token (hexDigit)
-import Utils (toArrayNonEmptyArray)
+import Text.Parsing.Parser (Parser, fail)
+import Text.Parsing.Parser.Combinators ((<?>), between)
+import Text.Parsing.Parser.String (char, eof, noneOf, oneOf, skipSpaces, string)
+import Text.Parsing.Parser.Token (digit, hexDigit)
+import Utils (toArrayArray, toArrayNonEmptyArray)
 
 -- | input infrared hexadecimal code
 type InfraredHexString = String
@@ -82,19 +85,105 @@ derive newtype instance eqBaseband    :: Eq Baseband
 derive newtype instance showBaseband  :: Show Baseband
 
 -- |
+toInfraredHexString :: Baseband -> InfraredHexString
+toInfraredHexString (Baseband pulses) =
+  String.joinWith "" $ map f pulses
+  where
+    f :: Pulse -> String
+    f x =
+      countToHex x.on <> countToHex x.off
+
+    countToHex :: Count -> String
+    countToHex (Count val) =
+      let
+        hi = (val `shr` 8) .&. 0xff
+        lo = val .&. 0xff
+      in
+        toHex lo  <> toHex hi
+
+    toHex :: Int -> String
+    toHex
+      x | x < 16    = "0" <> Int.toStringAs Int.hexadecimal x
+        | otherwise = Int.toStringAs Int.hexadecimal x
+
+-- |
 infraredHexStringParser:: Parser InfraredHexString Baseband
-infraredHexStringParser = do
-    arr <- Array.some (pulse <* skipSpaces)
-    eof
-    pure (Baseband arr)
+infraredHexStringParser =
+  formatOnOffPair <|> formatPigpioIrrp 
+
+--| 
+formatPigpioIrrp :: Parser InfraredHexString Baseband
+formatPigpioIrrp = do
+  Tuple _ times <- (skipSpaces *> jsonObject <* skipSpaces)
+  eof
+  case toPulses times of
+    Nothing -> fail "must be on-off pair."
+    Just xs -> pure $ Baseband xs
   where
 
+  toPulses :: (Array Int) -> Maybe (Array Pulse)
+  toPulses input =
+    --
+    -- 最後のoffは適当な値を入れる
+    --
+    let
+      xs = map pulse $ toArrayArray 2 $ Array.snoc input (35*1000)
+    in
+    pure $ catMaybes xs
+    where
+      pulse :: (Array Int) -> Maybe Pulse
+      pulse [on_microsec, off_microsec] =
+        let
+          a = Milliseconds (Int.toNumber on_microsec / 1000.0)
+          b = Milliseconds (Int.toNumber off_microsec / 1000.0)
+        in
+        Just {on: fromMilliseconds a, off: fromMilliseconds b}
+      pulse _ = Nothing
+
+  jsonObject :: Parser InfraredHexString (Tuple String (Array Int))
+  jsonObject = do
+    void $ char '{'
+    k <- (skipSpaces *> key <* skipSpaces)
+    void $ char ':'
+    values <- (skipSpaces *> jsonArray <* skipSpaces)
+    void $ char '}'
+    pure $ Tuple (fromCharArray k) values
+    where
+      key :: Parser InfraredHexString (Array Char)
+      key =
+        between (string "\"") (string "\"") (Array.some $ noneOf ['\"'])
+
+  jsonArray :: Parser InfraredHexString (Array Int)
+  jsonArray = do
+    void $ char '['
+    vs <- Array.some value
+    void $ char ']'
+    pure vs
+    where
+      value = do
+        skipSpaces
+        strValue <- fromCharArray <$> Array.some digit
+        void $ Array.many (oneOf [' ', '\t', ','])
+        case Int.fromStringAs Int.decimal strValue of
+          Nothing -> fail "not a number"
+          Just x -> pure x
+
+--| 
+formatOnOffPair :: Parser InfraredHexString Baseband
+formatOnOffPair = do
+  xs <- Array.some (pulse <* skipSpaces)
+  eof
+  pure (Baseband xs)
+  where
+
+  pulse :: Parser InfraredHexString Pulse
   pulse = do
     -- 入力値はon -> offの順番
     ton <- valueOf32Bit <?> "on-counts"
     toff <- valueOf32Bit <?> "off-counts"
     pure {on: Count ton, off: Count toff}
 
+  valueOf32Bit :: Parser InfraredHexString Int
   valueOf32Bit = do
     -- 入力値はLower -> Higherの順番
     lower <- hexd16bit <?> "lower-pair hex digit"

@@ -56,11 +56,11 @@ import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Themes.Bootstrap4 as HB
-import InfraredRemote.Code (Baseband(..), Bit, Count, InfraredCodeFrame(..), InfraredHexString, InfraredLeader(..), IrRemoteControlCode(..), decodePhase1, decodePhase2, decodePhase3, decodePhase4, infraredHexStringParser, toIrRemoteControlCode, toLsbFirst, toMilliseconds)
-import InfraredRemote.PanasonicHvac (PanasonicHvac(..))
-import InfraredRemote.PanasonicHvac as P
+import InfraredRemote.Code (Baseband(..), Bit, Count, InfraredCodeFrame(..), InfraredHexString, InfraredLeader(..), IrRemoteControlCode(..), decodePhase1, decodePhase2, decodePhase3, decodePhase4, infraredHexStringParser, toInfraredHexString, toIrRemoteControlCode, toLsbFirst, toMilliseconds)
 import InfraredRemote.MitsubishiElectricHvac (MitsubishiElectricHvac(..))
 import InfraredRemote.MitsubishiElectricHvac as M
+import InfraredRemote.PanasonicHvac (PanasonicHvac(..))
+import InfraredRemote.PanasonicHvac as P
 import Page.Commons as Commons
 import Route (Route)
 import Route as Route
@@ -847,7 +847,12 @@ renderInfraredRemoconCode state =
           [ case state.infraredValue of
               Nothing -> HH.text ""
               Just (Left x) -> HH.text x
-              Just (Right x) -> HH.text (unwrap x).code
+              Just (Right x) -> 
+                let
+                  input = (unwrap x).code
+                  bb = toBaseband input
+                in
+                either HH.text (HH.text <<< toInfraredHexString) bb
           ]
         , HH.h3_ [ HH.text "Timing table in milliseconds" ]
         , HH.p
@@ -949,6 +954,10 @@ irdbTable (Api.RespGetIrdb irdb) =
         ]
       ]
 
+toBaseband :: InfraredHexString -> Either String Baseband
+toBaseband inp =
+  Bifunctor.lmap parseErrorMessage (runParser inp infraredHexStringParser)
+
 -- |
 popoverContents :: InfraredHexString -> String
 popoverContents input =
@@ -958,11 +967,7 @@ popoverContents input =
   toIrCode :: InfraredHexString -> Either String IrRemoteControlCode
   toIrCode =
     toIrRemoteControlCode <=< toBaseband
-
-  toBaseband :: InfraredHexString -> Either String Baseband
-  toBaseband inp =
-    Bifunctor.lmap parseErrorMessage (runParser inp infraredHexStringParser)
-  
+ 
   display :: IrRemoteControlCode -> String
   display = case _ of
     IrRemoteUnknown formats ->

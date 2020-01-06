@@ -257,7 +257,7 @@ renderFormless state =
     HH.textarea
       [ HP.classes [ HB.formControl, HB.textMonospace ]
       , HP.rows 5
-      , HP.placeholder "Write an on-off pair count (32-bit little endianness) hexadecimal number or Click download button."
+      , HP.placeholder "Write an on-off pair count (32-bit little endianness) hexadecimal number or json made with 'pigpio irrp.py' file or Click download button."
       , HP.value $ Formless.getInput _textarea state.form
       , HE.onValueInput $ HE.input $ Formless.setValidate _textarea
       , HE.onValueChange $ HE.input_ Formless.submit
