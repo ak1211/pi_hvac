@@ -638,9 +638,9 @@ infraredCodeFrame =
       [ HH.dl_
         [ dt [ HH.text "format" ]
         , dd [ HH.text "NEC" ]
-        , dt [ HH.text "custom code (LSB first)" ]
+        , dt [ HH.text "custom code (LSBit first)" ]
         , dd $ map (showOctet <<< unwrap <<< toLsbFirst) [irValue.custom0, irValue.custom1]
-        , dt [ HH.text "octets (LSB first)" ]
+        , dt [ HH.text "octets (LSBit first)" ]
         , dd $ map (showOctet <<< unwrap <<< toLsbFirst) [irValue.data0, irValue.data1]
         , dt [ HH.text "stop" ]
         , dd [ HH.text $ show irValue.stop ]
@@ -651,7 +651,7 @@ infraredCodeFrame =
       [ HH.dl_
         [ dt [ HH.text "format" ]
         , dd [ HH.text "AEHA" ]
-        , dt [ HH.text "octets (LSB first)" ]
+        , dt [ HH.text "octets (LSBit first)" ]
         , dd $ map (showOctet <<< unwrap <<< toLsbFirst) irValue.octets
         , dt [ HH.text "stop" ]
         , dd [ HH.text $ show irValue.stop ]
@@ -662,9 +662,9 @@ infraredCodeFrame =
       [ HH.dl_
         [ dt [ HH.text "format" ]
         , dd [ HH.text "SIRC" ]
-        , dt [ HH.text "command (LSB first)" ]
+        , dt [ HH.text "command (LSBit first)" ]
         , dd [ HH.text $ showHex <<< unwrap $ toLsbFirst irValue.command ]
-        , dt [ HH.text "address (LSB first)" ]
+        , dt [ HH.text "address (LSBit first)" ]
         , dd [ HH.text $ showHex <<< unwrap $ toLsbFirst irValue.address ]
         ]
       ]
