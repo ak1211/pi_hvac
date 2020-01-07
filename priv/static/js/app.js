@@ -99382,6 +99382,7 @@ var Data_Symbol = require("../Data.Symbol/index.js");
 var Data_Traversable = require("../Data.Traversable/index.js");
 var Data_Tuple = require("../Data.Tuple/index.js");
 var Data_Unfoldable1 = require("../Data.Unfoldable1/index.js");
+var Data_Unit = require("../Data.Unit/index.js");
 var InfraredRemote_MitsubishiElectricHvac = require("../InfraredRemote.MitsubishiElectricHvac/index.js");
 var InfraredRemote_PanasonicHvac = require("../InfraredRemote.PanasonicHvac/index.js");
 var InfraredRemote_Type = require("../InfraredRemote.Type/index.js");
@@ -99541,7 +99542,7 @@ var takeBit = function (errmsg) {
                 return Control_Applicative.pure(Control_Monad_Except_Trans.applicativeExceptT(Control_Monad_State_Trans.monadStateT(Data_Identity.monadIdentity)))(v1.value0.head);
             });
         };
-        throw new Error("Failed pattern match at InfraredRemote.Code (line 406, column 3 - line 412, column 18): " + [ v1.constructor.name ]);
+        throw new Error("Failed pattern match at InfraredRemote.Code (line 412, column 3 - line 418, column 18): " + [ v1.constructor.name ]);
     });
 };
 var showCount = Data_Show.showInt;
@@ -99563,7 +99564,7 @@ var genericIrRemoteControlCode = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof IrRemoteMitsubishiElectricHvac) {
         return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(x.value0));
     };
-    throw new Error("Failed pattern match at InfraredRemote.Code (line 380, column 8 - line 380, column 77): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredRemote.Code (line 386, column 8 - line 386, column 77): " + [ x.constructor.name ]);
 }, function (x) {
     if (x instanceof Data_Generic_Rep.Inl) {
         return new IrRemoteUnknown(x.value0);
@@ -99574,7 +99575,7 @@ var genericIrRemoteControlCode = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof Data_Generic_Rep.Inr && x.value0 instanceof Data_Generic_Rep.Inr) {
         return new IrRemoteMitsubishiElectricHvac(x.value0.value0);
     };
-    throw new Error("Failed pattern match at InfraredRemote.Code (line 380, column 8 - line 380, column 77): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredRemote.Code (line 386, column 8 - line 386, column 77): " + [ x.constructor.name ]);
 });
 var showIrRemoteControlCode = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericIrRemoteControlCode)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsArgument(Data_Show.showArray(InfraredRemote_Type.showInfraredCodeFrame)))(new Data_Symbol.IsSymbol(function () {
     return "IrRemoteUnknown";
@@ -99596,7 +99597,7 @@ var genericInfraredLeader = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof LeaderUnknown) {
         return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(x.value0)));
     };
-    throw new Error("Failed pattern match at InfraredRemote.Code (line 252, column 8 - line 252, column 66): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredRemote.Code (line 258, column 8 - line 258, column 66): " + [ x.constructor.name ]);
 }, function (x) {
     if (x instanceof Data_Generic_Rep.Inl) {
         return new LeaderAeha(x.value0);
@@ -99610,7 +99611,7 @@ var genericInfraredLeader = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0 instanceof Data_Generic_Rep.Inr)) {
         return new LeaderUnknown(x.value0.value0.value0);
     };
-    throw new Error("Failed pattern match at InfraredRemote.Code (line 252, column 8 - line 252, column 66): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredRemote.Code (line 258, column 8 - line 258, column 66): " + [ x.constructor.name ]);
 });
 var showInfraredLeader = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericInfraredLeader)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsArgument(Data_Show.showRecord()(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
     return "off";
@@ -99670,23 +99671,22 @@ var formatPigpioIrrp = (function () {
         var xs = Data_Functor.map(Data_Functor.functorArray)(pulse)(Utils.toArrayArray(2)(Data_Array.snoc(input)(35 * 1000 | 0)));
         return Control_Applicative.pure(Data_Maybe.applicativeMaybe)(Data_Array.catMaybes(xs));
     };
+    var sepalator = Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(function () {
+        return Control_Alt.alt(Text_Parsing_Parser.altParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_Combinators["try"](Data_Identity.monadIdentity)(Data_Functor["void"](Text_Parsing_Parser.functorParserT(Data_Identity.functorIdentity))(Text_Parsing_Parser_String["char"](Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)(","))))(Control_Applicative.pure(Text_Parsing_Parser.applicativeParserT(Data_Identity.monadIdentity))(Data_Unit.unit));
+    });
     var jsonArray = (function () {
         var number = Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Functor.map(Text_Parsing_Parser.functorParserT(Data_Identity.functorIdentity))(Data_String_CodeUnits.fromCharArray)(Data_Array.some(Text_Parsing_Parser.alternativeParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser.lazyParserT)(Text_Parsing_Parser_Token.digit(Data_Identity.monadIdentity))))(function (v) {
-            return Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(function () {
-                return Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Functor["void"](Text_Parsing_Parser.functorParserT(Data_Identity.functorIdentity))(Text_Parsing_Parser_Combinators["try"](Data_Identity.monadIdentity)(Text_Parsing_Parser_String["char"](Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)(","))))(function () {
-                    var v2 = Data_Int.fromStringAs(Data_Int.decimal)(v);
-                    if (v2 instanceof Data_Maybe.Nothing) {
-                        return Text_Parsing_Parser.fail(Data_Identity.monadIdentity)("value is must be numeric.");
-                    };
-                    if (v2 instanceof Data_Maybe.Just) {
-                        return Control_Applicative.pure(Text_Parsing_Parser.applicativeParserT(Data_Identity.monadIdentity))(v2.value0);
-                    };
-                    throw new Error("Failed pattern match at InfraredRemote.Code (line 175, column 9 - line 177, column 27): " + [ v2.constructor.name ]);
-                });
-            });
+            var v2 = Data_Int.fromStringAs(Data_Int.decimal)(v);
+            if (v2 instanceof Data_Maybe.Nothing) {
+                return Text_Parsing_Parser.fail(Data_Identity.monadIdentity)("value is must be numeric.");
+            };
+            if (v2 instanceof Data_Maybe.Just) {
+                return Control_Applicative.pure(Text_Parsing_Parser.applicativeParserT(Data_Identity.monadIdentity))(v2.value0);
+            };
+            throw new Error("Failed pattern match at InfraredRemote.Code (line 175, column 9 - line 177, column 27): " + [ v2.constructor.name ]);
         });
         return Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Functor["void"](Text_Parsing_Parser.functorParserT(Data_Identity.functorIdentity))(Text_Parsing_Parser_String["char"](Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)("[")))(function () {
-            return Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Array.some(Text_Parsing_Parser.alternativeParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser.lazyParserT)(Control_Apply.applySecond(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(number)))(function (v) {
+            return Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Array.some(Text_Parsing_Parser.alternativeParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser.lazyParserT)(Control_Apply.applyFirst(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Control_Apply.applySecond(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(number))(sepalator)))(function (v) {
                 return Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Functor["void"](Text_Parsing_Parser.functorParserT(Data_Identity.functorIdentity))(Text_Parsing_Parser_String["char"](Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)("]")))(function () {
                     return Control_Applicative.pure(Text_Parsing_Parser.applicativeParserT(Data_Identity.monadIdentity))(v);
                 });
@@ -99695,22 +99695,26 @@ var formatPigpioIrrp = (function () {
     })();
     var hashmap = (function () {
         var key = Text_Parsing_Parser_Combinators.between(Data_Identity.monadIdentity)(Text_Parsing_Parser_String.string(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)("\""))(Text_Parsing_Parser_String.string(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)("\""))(Data_Array.some(Text_Parsing_Parser.alternativeParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser.lazyParserT)(Text_Parsing_Parser_String.noneOf(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)([ "\"" ])));
-        return Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Control_Apply.applyFirst(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Control_Apply.applySecond(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(key))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)))(function (v) {
-            return Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Functor["void"](Text_Parsing_Parser.functorParserT(Data_Identity.functorIdentity))(Text_Parsing_Parser_String["char"](Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)(":")))(function () {
-                return Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Control_Apply.applyFirst(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Control_Apply.applySecond(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(jsonArray))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)))(function (v1) {
-                    return Control_Applicative.pure(Text_Parsing_Parser.applicativeParserT(Data_Identity.monadIdentity))(new Data_Tuple.Tuple(Data_String_CodeUnits.fromCharArray(v), v1));
+        return Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(key)(function (v) {
+            return Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(function () {
+                return Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Functor["void"](Text_Parsing_Parser.functorParserT(Data_Identity.functorIdentity))(Text_Parsing_Parser_String["char"](Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)(":")))(function () {
+                    return Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(function () {
+                        return Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(jsonArray)(function (v1) {
+                            return Control_Applicative.pure(Text_Parsing_Parser.applicativeParserT(Data_Identity.monadIdentity))(new Data_Tuple.Tuple(Data_String_CodeUnits.fromCharArray(v), v1));
+                        });
+                    });
                 });
             });
         });
     })();
     var jsonObject = Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Functor["void"](Text_Parsing_Parser.functorParserT(Data_Identity.functorIdentity))(Text_Parsing_Parser_String["char"](Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)("{")))(function () {
-        return Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Array.many(Text_Parsing_Parser.alternativeParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser.lazyParserT)(hashmap))(function (v) {
+        return Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Array.many(Text_Parsing_Parser.alternativeParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser.lazyParserT)(Control_Apply.applyFirst(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Control_Apply.applySecond(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(hashmap))(sepalator)))(function (v) {
             return Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Functor["void"](Text_Parsing_Parser.functorParserT(Data_Identity.functorIdentity))(Text_Parsing_Parser_String["char"](Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)("}")))(function () {
                 return Data_Maybe.maybe(Text_Parsing_Parser.fail(Data_Identity.monadIdentity)("Empty content."))(Control_Applicative.pure(Text_Parsing_Parser.applicativeParserT(Data_Identity.monadIdentity)))(Data_Array.head(v));
             });
         });
     });
-    return Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Control_Apply.applyFirst(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Control_Apply.applySecond(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(jsonObject))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)))(function (v) {
+    return Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Control_Apply.applySecond(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(jsonObject))(function (v) {
         return Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.eof(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(function () {
             var v1 = toPulses(v.value1);
             if (v1 instanceof Data_Maybe.Nothing) {
@@ -99758,7 +99762,7 @@ var pulse = Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.mona
 })();
 
 // |
-var infraredHexStringParser = Control_Alt.alt(Text_Parsing_Parser.altParserT(Data_Identity.monadIdentity))(formatOnOffPair)(formatPigpioIrrp);
+var infraredHexStringParser = Control_Alt.alt(Text_Parsing_Parser.altParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_Combinators["try"](Data_Identity.monadIdentity)(formatOnOffPair))(formatPigpioIrrp);
 var eucideanRingCount = Data_EuclideanRing.euclideanRingInt;
 var eqIrRemoteControlCode = new Data_Eq.Eq(function (x) {
     return function (y) {
@@ -99850,7 +99854,7 @@ var aeha = function (pulse) {
         if (Data_Boolean.otherwise) {
             return new LeaderUnknown(v);
         };
-        throw new Error("Failed pattern match at InfraredRemote.Code (line 259, column 22 - line 263, column 35): " + [ v.constructor.name ]);
+        throw new Error("Failed pattern match at InfraredRemote.Code (line 265, column 22 - line 269, column 35): " + [ v.constructor.name ]);
     };
 })();
 var eqBaseband = Data_Eq.eqArray(Data_Eq.eqRec()(Data_Eq.eqRowCons(Data_Eq.eqRowCons(Data_Eq.eqRowNil)()(new Data_Symbol.IsSymbol(function () {
@@ -99882,7 +99886,7 @@ var pulseDistanceModulation = function (v) {
             if (Data_Boolean.otherwise) {
                 return InfraredRemote_Type.Negate.value;
             };
-            throw new Error("Failed pattern match at InfraredRemote.Code (line 308, column 29 - line 310, column 44): " + [ v.constructor.name ]);
+            throw new Error("Failed pattern match at InfraredRemote.Code (line 314, column 29 - line 316, column 44): " + [ v.constructor.name ]);
         };
         if (leader instanceof LeaderSirc) {
             return Data_Functor.map(Data_Functor.functorArray)(sircModulation)(ps);
@@ -99929,7 +99933,7 @@ var decodePhase2 = function (tokens) {
     if (v instanceof Data_Maybe.Nothing) {
         return new Data_Either.Left("Unexpected end of input");
     };
-    throw new Error("Failed pattern match at InfraredRemote.Code (line 352, column 3 - line 361, column 1): " + [ v.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredRemote.Code (line 358, column 3 - line 367, column 1): " + [ v.constructor.name ]);
 };
 
 // | 入力を各フレームに分ける
@@ -99999,7 +100003,7 @@ var decodePhase3 = function (v) {
         if (v.value0 instanceof LeaderUnknown) {
             return decodeUnknown;
         };
-        throw new Error("Failed pattern match at InfraredRemote.Code (line 368, column 13 - line 372, column 37): " + [ v.value0.constructor.name ]);
+        throw new Error("Failed pattern match at InfraredRemote.Code (line 374, column 13 - line 378, column 37): " + [ v.value0.constructor.name ]);
     })();
     return Control_Monad_State.evalState(Control_Monad_Except_Trans.runExceptT(decoder))(v.value1);
 };
@@ -100051,7 +100055,7 @@ module.exports = {
     showIrRemoteControlCode: showIrRemoteControlCode
 };
 
-},{"../Control.Alt/index.js":83,"../Control.Applicative/index.js":86,"../Control.Apply/index.js":88,"../Control.Bind/index.js":92,"../Control.Monad.Error.Class/index.js":107,"../Control.Monad.Except.Trans/index.js":108,"../Control.Monad.State.Class/index.js":121,"../Control.Monad.State.Trans/index.js":122,"../Control.Monad.State/index.js":123,"../Control.MonadZero/index.js":129,"../Data.Array.NonEmpty/index.js":155,"../Data.Array/index.js":160,"../Data.Bifunctor/index.js":167,"../Data.Boolean/index.js":170,"../Data.CommutativeRing/index.js":179,"../Data.Either/index.js":192,"../Data.Eq/index.js":196,"../Data.EuclideanRing/index.js":198,"../Data.Foldable/index.js":202,"../Data.Functor/index.js":223,"../Data.Generic.Rep.Show/index.js":226,"../Data.Generic.Rep/index.js":227,"../Data.HeytingAlgebra/index.js":230,"../Data.Identity/index.js":231,"../Data.Int/index.js":233,"../Data.Maybe/index.js":265,"../Data.Ord/index.js":284,"../Data.Ring/index.js":294,"../Data.Semigroup/index.js":300,"../Data.Semiring/index.js":303,"../Data.Show/index.js":306,"../Data.String.CodeUnits/index.js":310,"../Data.String.Common/index.js":312,"../Data.Symbol/index.js":321,"../Data.Traversable/index.js":329,"../Data.Tuple/index.js":331,"../Data.Unfoldable1/index.js":333,"../InfraredRemote.MitsubishiElectricHvac/index.js":432,"../InfraredRemote.PanasonicHvac/index.js":433,"../InfraredRemote.Type/index.js":434,"../Text.Parsing.Parser.Combinators/index.js":464,"../Text.Parsing.Parser.String/index.js":466,"../Text.Parsing.Parser.Token/index.js":467,"../Text.Parsing.Parser/index.js":468,"../Utils/index.js":477}],432:[function(require,module,exports){
+},{"../Control.Alt/index.js":83,"../Control.Applicative/index.js":86,"../Control.Apply/index.js":88,"../Control.Bind/index.js":92,"../Control.Monad.Error.Class/index.js":107,"../Control.Monad.Except.Trans/index.js":108,"../Control.Monad.State.Class/index.js":121,"../Control.Monad.State.Trans/index.js":122,"../Control.Monad.State/index.js":123,"../Control.MonadZero/index.js":129,"../Data.Array.NonEmpty/index.js":155,"../Data.Array/index.js":160,"../Data.Bifunctor/index.js":167,"../Data.Boolean/index.js":170,"../Data.CommutativeRing/index.js":179,"../Data.Either/index.js":192,"../Data.Eq/index.js":196,"../Data.EuclideanRing/index.js":198,"../Data.Foldable/index.js":202,"../Data.Functor/index.js":223,"../Data.Generic.Rep.Show/index.js":226,"../Data.Generic.Rep/index.js":227,"../Data.HeytingAlgebra/index.js":230,"../Data.Identity/index.js":231,"../Data.Int/index.js":233,"../Data.Maybe/index.js":265,"../Data.Ord/index.js":284,"../Data.Ring/index.js":294,"../Data.Semigroup/index.js":300,"../Data.Semiring/index.js":303,"../Data.Show/index.js":306,"../Data.String.CodeUnits/index.js":310,"../Data.String.Common/index.js":312,"../Data.Symbol/index.js":321,"../Data.Traversable/index.js":329,"../Data.Tuple/index.js":331,"../Data.Unfoldable1/index.js":333,"../Data.Unit/index.js":337,"../InfraredRemote.MitsubishiElectricHvac/index.js":432,"../InfraredRemote.PanasonicHvac/index.js":433,"../InfraredRemote.Type/index.js":434,"../Text.Parsing.Parser.Combinators/index.js":464,"../Text.Parsing.Parser.String/index.js":466,"../Text.Parsing.Parser.Token/index.js":467,"../Text.Parsing.Parser/index.js":468,"../Utils/index.js":477}],432:[function(require,module,exports){
 
 /**
  * 
