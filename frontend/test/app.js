@@ -99382,6 +99382,7 @@ var Data_Symbol = require("../Data.Symbol/index.js");
 var Data_Traversable = require("../Data.Traversable/index.js");
 var Data_Tuple = require("../Data.Tuple/index.js");
 var Data_Unfoldable1 = require("../Data.Unfoldable1/index.js");
+var Data_Unit = require("../Data.Unit/index.js");
 var InfraredRemote_MitsubishiElectricHvac = require("../InfraredRemote.MitsubishiElectricHvac/index.js");
 var InfraredRemote_PanasonicHvac = require("../InfraredRemote.PanasonicHvac/index.js");
 var InfraredRemote_Type = require("../InfraredRemote.Type/index.js");
@@ -99541,7 +99542,7 @@ var takeBit = function (errmsg) {
                 return Control_Applicative.pure(Control_Monad_Except_Trans.applicativeExceptT(Control_Monad_State_Trans.monadStateT(Data_Identity.monadIdentity)))(v1.value0.head);
             });
         };
-        throw new Error("Failed pattern match at InfraredRemote.Code (line 398, column 3 - line 404, column 18): " + [ v1.constructor.name ]);
+        throw new Error("Failed pattern match at InfraredRemote.Code (line 412, column 3 - line 418, column 18): " + [ v1.constructor.name ]);
     });
 };
 var showCount = Data_Show.showInt;
@@ -99563,7 +99564,7 @@ var genericIrRemoteControlCode = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof IrRemoteMitsubishiElectricHvac) {
         return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(x.value0));
     };
-    throw new Error("Failed pattern match at InfraredRemote.Code (line 372, column 8 - line 372, column 77): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredRemote.Code (line 386, column 8 - line 386, column 77): " + [ x.constructor.name ]);
 }, function (x) {
     if (x instanceof Data_Generic_Rep.Inl) {
         return new IrRemoteUnknown(x.value0);
@@ -99574,7 +99575,7 @@ var genericIrRemoteControlCode = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof Data_Generic_Rep.Inr && x.value0 instanceof Data_Generic_Rep.Inr) {
         return new IrRemoteMitsubishiElectricHvac(x.value0.value0);
     };
-    throw new Error("Failed pattern match at InfraredRemote.Code (line 372, column 8 - line 372, column 77): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredRemote.Code (line 386, column 8 - line 386, column 77): " + [ x.constructor.name ]);
 });
 var showIrRemoteControlCode = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericIrRemoteControlCode)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsArgument(Data_Show.showArray(InfraredRemote_Type.showInfraredCodeFrame)))(new Data_Symbol.IsSymbol(function () {
     return "IrRemoteUnknown";
@@ -99596,7 +99597,7 @@ var genericInfraredLeader = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof LeaderUnknown) {
         return new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(new Data_Generic_Rep.Inr(x.value0)));
     };
-    throw new Error("Failed pattern match at InfraredRemote.Code (line 244, column 8 - line 244, column 66): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredRemote.Code (line 258, column 8 - line 258, column 66): " + [ x.constructor.name ]);
 }, function (x) {
     if (x instanceof Data_Generic_Rep.Inl) {
         return new LeaderAeha(x.value0);
@@ -99610,7 +99611,7 @@ var genericInfraredLeader = new Data_Generic_Rep.Generic(function (x) {
     if (x instanceof Data_Generic_Rep.Inr && (x.value0 instanceof Data_Generic_Rep.Inr && x.value0.value0 instanceof Data_Generic_Rep.Inr)) {
         return new LeaderUnknown(x.value0.value0.value0);
     };
-    throw new Error("Failed pattern match at InfraredRemote.Code (line 244, column 8 - line 244, column 66): " + [ x.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredRemote.Code (line 258, column 8 - line 258, column 66): " + [ x.constructor.name ]);
 });
 var showInfraredLeader = new Data_Show.Show(Data_Generic_Rep_Show.genericShow(genericInfraredLeader)(Data_Generic_Rep_Show.genericShowSum(Data_Generic_Rep_Show.genericShowConstructor(Data_Generic_Rep_Show.genericShowArgsArgument(Data_Show.showRecord()(Data_Show.showRecordFieldsCons(new Data_Symbol.IsSymbol(function () {
     return "off";
@@ -99670,36 +99671,35 @@ var formatPigpioIrrp = (function () {
         var xs = Data_Functor.map(Data_Functor.functorArray)(pulse)(Utils.toArrayArray(2)(Data_Array.snoc(input)(35 * 1000 | 0)));
         return Control_Applicative.pure(Data_Maybe.applicativeMaybe)(Data_Array.catMaybes(xs));
     };
+    var sepalator = Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(function () {
+        return Control_Alt.alt(Text_Parsing_Parser.altParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_Combinators["try"](Data_Identity.monadIdentity)(Data_Functor["void"](Text_Parsing_Parser.functorParserT(Data_Identity.functorIdentity))(Text_Parsing_Parser_String["char"](Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)(","))))(Control_Applicative.pure(Text_Parsing_Parser.applicativeParserT(Data_Identity.monadIdentity))(Data_Unit.unit));
+    });
     var jsonArray = (function () {
-        var value = Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(function () {
-            return Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Functor.map(Text_Parsing_Parser.functorParserT(Data_Identity.functorIdentity))(Data_String_CodeUnits.fromCharArray)(Data_Array.some(Text_Parsing_Parser.alternativeParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser.lazyParserT)(Text_Parsing_Parser_Token.digit(Data_Identity.monadIdentity))))(function (v) {
-                return Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Functor["void"](Text_Parsing_Parser.functorParserT(Data_Identity.functorIdentity))(Data_Array.many(Text_Parsing_Parser.alternativeParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser.lazyParserT)(Text_Parsing_Parser_String.oneOf(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)([ " ", "\x09", "," ]))))(function () {
-                    var v1 = Data_Int.fromStringAs(Data_Int.decimal)(v);
-                    if (v1 instanceof Data_Maybe.Nothing) {
-                        return Text_Parsing_Parser.fail(Data_Identity.monadIdentity)("not a number");
-                    };
-                    if (v1 instanceof Data_Maybe.Just) {
-                        return Control_Applicative.pure(Text_Parsing_Parser.applicativeParserT(Data_Identity.monadIdentity))(v1.value0);
-                    };
-                    throw new Error("Failed pattern match at InfraredRemote.Code (line 167, column 9 - line 169, column 27): " + [ v1.constructor.name ]);
-                });
-            });
+        var number = Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Functor.map(Text_Parsing_Parser.functorParserT(Data_Identity.functorIdentity))(Data_String_CodeUnits.fromCharArray)(Data_Array.some(Text_Parsing_Parser.alternativeParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser.lazyParserT)(Text_Parsing_Parser_Token.digit(Data_Identity.monadIdentity))))(function (v) {
+            var v2 = Data_Int.fromStringAs(Data_Int.decimal)(v);
+            if (v2 instanceof Data_Maybe.Nothing) {
+                return Text_Parsing_Parser.fail(Data_Identity.monadIdentity)("value is must be numeric.");
+            };
+            if (v2 instanceof Data_Maybe.Just) {
+                return Control_Applicative.pure(Text_Parsing_Parser.applicativeParserT(Data_Identity.monadIdentity))(v2.value0);
+            };
+            throw new Error("Failed pattern match at InfraredRemote.Code (line 175, column 9 - line 177, column 27): " + [ v2.constructor.name ]);
         });
         return Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Functor["void"](Text_Parsing_Parser.functorParserT(Data_Identity.functorIdentity))(Text_Parsing_Parser_String["char"](Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)("[")))(function () {
-            return Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Array.some(Text_Parsing_Parser.alternativeParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser.lazyParserT)(value))(function (v) {
+            return Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Array.some(Text_Parsing_Parser.alternativeParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser.lazyParserT)(Control_Apply.applyFirst(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Control_Apply.applySecond(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(number))(sepalator)))(function (v) {
                 return Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Functor["void"](Text_Parsing_Parser.functorParserT(Data_Identity.functorIdentity))(Text_Parsing_Parser_String["char"](Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)("]")))(function () {
                     return Control_Applicative.pure(Text_Parsing_Parser.applicativeParserT(Data_Identity.monadIdentity))(v);
                 });
             });
         });
     })();
-    var jsonObject = (function () {
+    var hashmap = (function () {
         var key = Text_Parsing_Parser_Combinators.between(Data_Identity.monadIdentity)(Text_Parsing_Parser_String.string(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)("\""))(Text_Parsing_Parser_String.string(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)("\""))(Data_Array.some(Text_Parsing_Parser.alternativeParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser.lazyParserT)(Text_Parsing_Parser_String.noneOf(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)([ "\"" ])));
-        return Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Functor["void"](Text_Parsing_Parser.functorParserT(Data_Identity.functorIdentity))(Text_Parsing_Parser_String["char"](Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)("{")))(function () {
-            return Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Control_Apply.applyFirst(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Control_Apply.applySecond(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(key))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)))(function (v) {
+        return Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(key)(function (v) {
+            return Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(function () {
                 return Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Functor["void"](Text_Parsing_Parser.functorParserT(Data_Identity.functorIdentity))(Text_Parsing_Parser_String["char"](Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)(":")))(function () {
-                    return Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Control_Apply.applyFirst(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Control_Apply.applySecond(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(jsonArray))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)))(function (v1) {
-                        return Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Functor["void"](Text_Parsing_Parser.functorParserT(Data_Identity.functorIdentity))(Text_Parsing_Parser_String["char"](Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)("}")))(function () {
+                    return Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(function () {
+                        return Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(jsonArray)(function (v1) {
                             return Control_Applicative.pure(Text_Parsing_Parser.applicativeParserT(Data_Identity.monadIdentity))(new Data_Tuple.Tuple(Data_String_CodeUnits.fromCharArray(v), v1));
                         });
                     });
@@ -99707,7 +99707,14 @@ var formatPigpioIrrp = (function () {
             });
         });
     })();
-    return Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Control_Apply.applyFirst(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Control_Apply.applySecond(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(jsonObject))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)))(function (v) {
+    var jsonObject = Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Functor["void"](Text_Parsing_Parser.functorParserT(Data_Identity.functorIdentity))(Text_Parsing_Parser_String["char"](Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)("{")))(function () {
+        return Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Array.many(Text_Parsing_Parser.alternativeParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser.lazyParserT)(Control_Apply.applyFirst(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Control_Apply.applySecond(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(hashmap))(sepalator)))(function (v) {
+            return Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Data_Functor["void"](Text_Parsing_Parser.functorParserT(Data_Identity.functorIdentity))(Text_Parsing_Parser_String["char"](Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity)("}")))(function () {
+                return Data_Maybe.maybe(Text_Parsing_Parser.fail(Data_Identity.monadIdentity)("Empty content."))(Control_Applicative.pure(Text_Parsing_Parser.applicativeParserT(Data_Identity.monadIdentity)))(Data_Array.head(v));
+            });
+        });
+    });
+    return Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Control_Apply.applySecond(Text_Parsing_Parser.applyParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.skipSpaces(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(jsonObject))(function (v) {
         return Control_Bind.discard(Control_Bind.discardUnit)(Text_Parsing_Parser.bindParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_String.eof(Text_Parsing_Parser_String.stringLikeString)(Data_Identity.monadIdentity))(function () {
             var v1 = toPulses(v.value1);
             if (v1 instanceof Data_Maybe.Nothing) {
@@ -99755,7 +99762,7 @@ var pulse = Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.mona
 })();
 
 // |
-var infraredHexStringParser = Control_Alt.alt(Text_Parsing_Parser.altParserT(Data_Identity.monadIdentity))(formatOnOffPair)(formatPigpioIrrp);
+var infraredHexStringParser = Control_Alt.alt(Text_Parsing_Parser.altParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_Combinators["try"](Data_Identity.monadIdentity)(formatOnOffPair))(formatPigpioIrrp);
 var eucideanRingCount = Data_EuclideanRing.euclideanRingInt;
 var eqIrRemoteControlCode = new Data_Eq.Eq(function (x) {
     return function (y) {
@@ -99847,7 +99854,7 @@ var aeha = function (pulse) {
         if (Data_Boolean.otherwise) {
             return new LeaderUnknown(v);
         };
-        throw new Error("Failed pattern match at InfraredRemote.Code (line 251, column 22 - line 255, column 35): " + [ v.constructor.name ]);
+        throw new Error("Failed pattern match at InfraredRemote.Code (line 265, column 22 - line 269, column 35): " + [ v.constructor.name ]);
     };
 })();
 var eqBaseband = Data_Eq.eqArray(Data_Eq.eqRec()(Data_Eq.eqRowCons(Data_Eq.eqRowCons(Data_Eq.eqRowNil)()(new Data_Symbol.IsSymbol(function () {
@@ -99879,7 +99886,7 @@ var pulseDistanceModulation = function (v) {
             if (Data_Boolean.otherwise) {
                 return InfraredRemote_Type.Negate.value;
             };
-            throw new Error("Failed pattern match at InfraredRemote.Code (line 300, column 29 - line 302, column 44): " + [ v.constructor.name ]);
+            throw new Error("Failed pattern match at InfraredRemote.Code (line 314, column 29 - line 316, column 44): " + [ v.constructor.name ]);
         };
         if (leader instanceof LeaderSirc) {
             return Data_Functor.map(Data_Functor.functorArray)(sircModulation)(ps);
@@ -99926,7 +99933,7 @@ var decodePhase2 = function (tokens) {
     if (v instanceof Data_Maybe.Nothing) {
         return new Data_Either.Left("Unexpected end of input");
     };
-    throw new Error("Failed pattern match at InfraredRemote.Code (line 344, column 3 - line 353, column 1): " + [ v.constructor.name ]);
+    throw new Error("Failed pattern match at InfraredRemote.Code (line 358, column 3 - line 367, column 1): " + [ v.constructor.name ]);
 };
 
 // | 入力を各フレームに分ける
@@ -99996,19 +100003,19 @@ var decodePhase3 = function (v) {
         if (v.value0 instanceof LeaderUnknown) {
             return decodeUnknown;
         };
-        throw new Error("Failed pattern match at InfraredRemote.Code (line 360, column 13 - line 364, column 37): " + [ v.value0.constructor.name ]);
+        throw new Error("Failed pattern match at InfraredRemote.Code (line 374, column 13 - line 378, column 37): " + [ v.value0.constructor.name ]);
     })();
     return Control_Monad_State.evalState(Control_Monad_Except_Trans.runExceptT(decoder))(v.value1);
 };
 
 // |
-var toIrCodeFrames = function ($184) {
-    return Data_Traversable.traverse(Data_Traversable.traversableArray)(Data_Either.applicativeEither)(Control_Bind.composeKleisliFlipped(Data_Either.bindEither)(decodePhase3)(decodePhase2))(decodePhase1($184));
+var toIrCodeFrames = function ($186) {
+    return Data_Traversable.traverse(Data_Traversable.traversableArray)(Data_Either.applicativeEither)(Control_Bind.composeKleisliFlipped(Data_Either.bindEither)(decodePhase3)(decodePhase2))(decodePhase1($186));
 };
 
 // |
-var toIrRemoteControlCode = function ($185) {
-    return Data_Bifunctor.rmap(Data_Either.bifunctorEither)(decodePhase4)(toIrCodeFrames($185));
+var toIrRemoteControlCode = function ($187) {
+    return Data_Bifunctor.rmap(Data_Either.bifunctorEither)(decodePhase4)(toIrCodeFrames($187));
 };
 var commutativeRingCount = Data_CommutativeRing.commutativeRingInt;
 module.exports = {
@@ -100048,7 +100055,7 @@ module.exports = {
     showIrRemoteControlCode: showIrRemoteControlCode
 };
 
-},{"../Control.Alt/index.js":83,"../Control.Applicative/index.js":86,"../Control.Apply/index.js":88,"../Control.Bind/index.js":92,"../Control.Monad.Error.Class/index.js":107,"../Control.Monad.Except.Trans/index.js":108,"../Control.Monad.State.Class/index.js":121,"../Control.Monad.State.Trans/index.js":122,"../Control.Monad.State/index.js":123,"../Control.MonadZero/index.js":129,"../Data.Array.NonEmpty/index.js":155,"../Data.Array/index.js":160,"../Data.Bifunctor/index.js":167,"../Data.Boolean/index.js":170,"../Data.CommutativeRing/index.js":179,"../Data.Either/index.js":192,"../Data.Eq/index.js":196,"../Data.EuclideanRing/index.js":198,"../Data.Foldable/index.js":202,"../Data.Functor/index.js":223,"../Data.Generic.Rep.Show/index.js":226,"../Data.Generic.Rep/index.js":227,"../Data.HeytingAlgebra/index.js":230,"../Data.Identity/index.js":231,"../Data.Int/index.js":233,"../Data.Maybe/index.js":265,"../Data.Ord/index.js":284,"../Data.Ring/index.js":294,"../Data.Semigroup/index.js":300,"../Data.Semiring/index.js":303,"../Data.Show/index.js":306,"../Data.String.CodeUnits/index.js":310,"../Data.String.Common/index.js":312,"../Data.Symbol/index.js":321,"../Data.Traversable/index.js":329,"../Data.Tuple/index.js":331,"../Data.Unfoldable1/index.js":333,"../InfraredRemote.MitsubishiElectricHvac/index.js":432,"../InfraredRemote.PanasonicHvac/index.js":433,"../InfraredRemote.Type/index.js":434,"../Text.Parsing.Parser.Combinators/index.js":464,"../Text.Parsing.Parser.String/index.js":466,"../Text.Parsing.Parser.Token/index.js":467,"../Text.Parsing.Parser/index.js":468,"../Utils/index.js":477}],432:[function(require,module,exports){
+},{"../Control.Alt/index.js":83,"../Control.Applicative/index.js":86,"../Control.Apply/index.js":88,"../Control.Bind/index.js":92,"../Control.Monad.Error.Class/index.js":107,"../Control.Monad.Except.Trans/index.js":108,"../Control.Monad.State.Class/index.js":121,"../Control.Monad.State.Trans/index.js":122,"../Control.Monad.State/index.js":123,"../Control.MonadZero/index.js":129,"../Data.Array.NonEmpty/index.js":155,"../Data.Array/index.js":160,"../Data.Bifunctor/index.js":167,"../Data.Boolean/index.js":170,"../Data.CommutativeRing/index.js":179,"../Data.Either/index.js":192,"../Data.Eq/index.js":196,"../Data.EuclideanRing/index.js":198,"../Data.Foldable/index.js":202,"../Data.Functor/index.js":223,"../Data.Generic.Rep.Show/index.js":226,"../Data.Generic.Rep/index.js":227,"../Data.HeytingAlgebra/index.js":230,"../Data.Identity/index.js":231,"../Data.Int/index.js":233,"../Data.Maybe/index.js":265,"../Data.Ord/index.js":284,"../Data.Ring/index.js":294,"../Data.Semigroup/index.js":300,"../Data.Semiring/index.js":303,"../Data.Show/index.js":306,"../Data.String.CodeUnits/index.js":310,"../Data.String.Common/index.js":312,"../Data.Symbol/index.js":321,"../Data.Traversable/index.js":329,"../Data.Tuple/index.js":331,"../Data.Unfoldable1/index.js":333,"../Data.Unit/index.js":337,"../InfraredRemote.MitsubishiElectricHvac/index.js":432,"../InfraredRemote.PanasonicHvac/index.js":433,"../InfraredRemote.Type/index.js":434,"../Text.Parsing.Parser.Combinators/index.js":464,"../Text.Parsing.Parser.String/index.js":466,"../Text.Parsing.Parser.Token/index.js":467,"../Text.Parsing.Parser/index.js":468,"../Utils/index.js":477}],432:[function(require,module,exports){
 
 /**
  * 
@@ -102687,24 +102694,7 @@ module.exports = {
 };
 
 },{"../Api/index.js":69,"../AppM/index.js":70,"../CSS.Geometry/index.js":72,"../CSS.Size/index.js":76,"../CSS.Stylesheet/index.js":78,"../Component.RadialGauge/index.js":81,"../Control.Alt/index.js":83,"../Control.Applicative/index.js":86,"../Control.Bind/index.js":92,"../Control.Monad.State.Class/index.js":121,"../Control.Parallel.Class/index.js":131,"../Data.Array.NonEmpty/index.js":155,"../Data.DateTime.Instant/index.js":184,"../Data.Either/index.js":192,"../Data.Foldable/index.js":202,"../Data.Function/index.js":212,"../Data.Functor/index.js":223,"../Data.Int/index.js":233,"../Data.Maybe/index.js":265,"../Data.Newtype/index.js":275,"../Data.Ord/index.js":284,"../Data.String.Common/index.js":312,"../Data.Time.Duration/index.js":324,"../Data.Unit/index.js":337,"../Data.Void/index.js":341,"../Effect.Aff.Class/index.js":345,"../Effect.Aff/index.js":348,"../Effect.Class/index.js":349,"../Effect.Now/index.js":356,"../Effect.Timer/index.js":360,"../Halogen.Component.ChildPath/index.js":407,"../Halogen.Component/index.js":408,"../Halogen.HTML.CSS/index.js":411,"../Halogen.HTML.Elements/index.js":413,"../Halogen.HTML.Events/index.js":414,"../Halogen.HTML.Properties/index.js":415,"../Halogen.HTML/index.js":416,"../Halogen.Query.HalogenM/index.js":419,"../Halogen.Query/index.js":421,"../Halogen.Themes.Bootstrap4/index.js":422,"../Page.Commons/index.js":440,"../Route/index.js":457,"../Utils/index.js":477,"../Web.HTML.HTMLElement/index.js":504}],442:[function(require,module,exports){
-
-/**
- * 
- *  PiHVAC <https://github.com/ak1211/pi_hvac>
- *  Copyright 2019 Akihiro Yamamoto
- * 
- *  Licensed under the Apache License, Version 2.0 (the "License");
- *  you may not use this file except in compliance with the License.
- *  You may obtain a copy of the License at
- * 
- *      http://www.apache.org/licenses/LICENSE-2.0
- * 
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
- */
+// Generated by purs version 0.12.5
 "use strict";
 var Api = require("../Api/index.js");
 var AppM = require("../AppM/index.js");
@@ -102768,8 +102758,6 @@ var Page_Commons = require("../Page.Commons/index.js");
 var Route = require("../Route/index.js");
 var Text_Parsing_Parser = require("../Text.Parsing.Parser/index.js");
 var Utils = require("../Utils/index.js");
-
-// |
 var TabControlPanel = (function () {
     function TabControlPanel() {
 
@@ -102777,8 +102765,6 @@ var TabControlPanel = (function () {
     TabControlPanel.value = new TabControlPanel();
     return TabControlPanel;
 })();
-
-// |
 var TabIrdbTable = (function () {
     function TabIrdbTable() {
 
@@ -102786,8 +102772,6 @@ var TabIrdbTable = (function () {
     TabIrdbTable.value = new TabIrdbTable();
     return TabIrdbTable;
 })();
-
-// |
 var NavigateTo = (function () {
     function NavigateTo(value0, value1) {
         this.value0 = value0;
@@ -102800,8 +102784,6 @@ var NavigateTo = (function () {
     };
     return NavigateTo;
 })();
-
-// |
 var Initialize = (function () {
     function Initialize(value0) {
         this.value0 = value0;
@@ -102811,8 +102793,6 @@ var Initialize = (function () {
     };
     return Initialize;
 })();
-
-// |
 var ChangedRoute = (function () {
     function ChangedRoute(value0, value1) {
         this.value0 = value0;
@@ -102825,8 +102805,6 @@ var ChangedRoute = (function () {
     };
     return ChangedRoute;
 })();
-
-// |
 var HandleEditorUpdate = (function () {
     function HandleEditorUpdate(value0, value1) {
         this.value0 = value0;
@@ -102839,8 +102817,6 @@ var HandleEditorUpdate = (function () {
     };
     return HandleEditorUpdate;
 })();
-
-// |
 var OnClickIRCodeDownload = (function () {
     function OnClickIRCodeDownload(value0) {
         this.value0 = value0;
@@ -102850,8 +102826,6 @@ var OnClickIRCodeDownload = (function () {
     };
     return OnClickIRCodeDownload;
 })();
-
-// |
 var OnClickIRCodeUpload = (function () {
     function OnClickIRCodeUpload(value0) {
         this.value0 = value0;
@@ -102861,8 +102835,6 @@ var OnClickIRCodeUpload = (function () {
     };
     return OnClickIRCodeUpload;
 })();
-
-// |
 var OnClickIRCodeTransmit = (function () {
     function OnClickIRCodeTransmit(value0) {
         this.value0 = value0;
@@ -102872,8 +102844,6 @@ var OnClickIRCodeTransmit = (function () {
     };
     return OnClickIRCodeTransmit;
 })();
-
-// |
 var OnClickIrdbPagination = (function () {
     function OnClickIrdbPagination(value0, value1) {
         this.value0 = value0;
@@ -102886,8 +102856,6 @@ var OnClickIrdbPagination = (function () {
     };
     return OnClickIrdbPagination;
 })();
-
-// |
 var OnClickIrdbTable = (function () {
     function OnClickIrdbTable(value0, value1) {
         this.value0 = value0;
@@ -102900,8 +102868,6 @@ var OnClickIrdbTable = (function () {
     };
     return OnClickIrdbTable;
 })();
-
-// |
 var OnValueChangeButtonNumber = (function () {
     function OnValueChangeButtonNumber(value0, value1) {
         this.value0 = value0;
@@ -102914,8 +102880,6 @@ var OnValueChangeButtonNumber = (function () {
     };
     return OnValueChangeButtonNumber;
 })();
-
-// |
 var OnValueChangeManufacturer = (function () {
     function OnValueChangeManufacturer(value0, value1) {
         this.value0 = value0;
@@ -102928,8 +102892,6 @@ var OnValueChangeManufacturer = (function () {
     };
     return OnValueChangeManufacturer;
 })();
-
-// |
 var OnValueChangeLimits = (function () {
     function OnValueChangeLimits(value0, value1) {
         this.value0 = value0;
@@ -102945,8 +102907,6 @@ var OnValueChangeLimits = (function () {
 var toBaseband = function (inp) {
     return Data_Bifunctor.lmap(Data_Either.bifunctorEither)(Text_Parsing_Parser.parseErrorMessage)(Text_Parsing_Parser.runParser(inp)(InfraredRemote_Code.infraredHexStringParser));
 };
-
-// |
 var showHex = function (v) {
     var str = Data_Int.toStringAs(Data_Int.hexadecimal)(v);
     var v1 = Data_String_CodePoints.length(str);
@@ -102958,8 +102918,6 @@ var showHex = function (v) {
     };
     throw new Error("Failed pattern match at Page.Infrared (line 746, column 3 - line 748, column 25): " + [ v1.constructor.name ]);
 };
-
-// |
 var popoverContents = function (input) {
     var toIrCode = Control_Bind.composeKleisliFlipped(Data_Either.bindEither)(InfraredRemote_Code.toIrRemoteControlCode)(toBaseband);
     var showFormat = function (v) {
@@ -102993,8 +102951,6 @@ var popoverContents = function (input) {
     };
     return Data_Either.either(Control_Category.identity(Control_Category.categoryFn))(display)(toIrCode(input));
 };
-
-// |
 var irdbTable = function (v) {
     var tableRow = function (v1) {
         var clk = Halogen_HTML_Events.onClick(Halogen_HTML_Events.input_(OnClickIrdbTable.create(v1.code)));
@@ -103011,8 +102967,6 @@ var irdbTable = function (v) {
     };
     return Halogen_HTML_Elements.p_([ Halogen_HTML_Elements.table([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.table, Halogen_Themes_Bootstrap4.tableHover ]) ])([ tableHeading, tableBody(v.value0.data) ]) ]);
 };
-
-// |
 var irdbPagination = function (v) {
     var text = function (n) {
         var $103 = n === v.value0.page;
@@ -103033,8 +102987,6 @@ var irdbPagination = function (v) {
     };
     return Halogen_HTML_Elements.nav([ Halogen_HTML_Properties.attr("area-label")("Pagination") ])([ Halogen_HTML_Elements.ul([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.pagination, Halogen_Themes_Bootstrap4.row, Halogen_Themes_Bootstrap4.noGutters ]) ])(Data_Functor.map(Data_Functor.functorArray)(item)(Data_Array.range(1)(v.value0.pages))) ]);
 };
-
-// |
 var renderIrdbTable = function (dictMonadAff) {
     return function (state) {
         var nowreading = Halogen_HTML_Elements.p([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.alert, Halogen_Themes_Bootstrap4.alertInfo ]) ])([ Halogen_HTML_Core.text("Now on reading...") ]);
@@ -103086,8 +103038,6 @@ var renderIrdbTable = function (dictMonadAff) {
         throw new Error("Failed pattern match at Page.Infrared (line 465, column 3 - line 473, column 70): " + [ state.irdbManufacturers.constructor.name ]);
     };
 };
-
-// |
 var irUploadButton = function (isActive) {
     var appendix = function (v) {
         if (v) {
@@ -103102,8 +103052,6 @@ var irUploadButton = function (isActive) {
         return CSS_Geometry.width(CSS_Size.rem(8.0));
     })), appendix(isActive) ])([ Halogen_HTML_Core.text("Upload") ]);
 };
-
-// |
 var irTransmitButton = function (isActive) {
     var appendix = function (v) {
         if (v) {
@@ -103118,13 +103066,9 @@ var irTransmitButton = function (isActive) {
         return CSS_Geometry.width(CSS_Size.rem(8.0));
     })), appendix(isActive) ])([ Halogen_HTML_Core.text("Transmit") ]);
 };
-
-// |
 var irDownloadButton = Halogen_HTML_Elements.button([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.btn, Halogen_Themes_Bootstrap4.btnOutlineSuccess, Halogen_Themes_Bootstrap4.justifyContentCenter ]), Halogen_HTML_Events.onClick(Halogen_HTML_Events.input_(OnClickIRCodeDownload.create)), Halogen_HTML_CSS.style(Control_Bind.discard(Control_Bind.discardUnit)(CSS_Stylesheet.bindStyleM)(CSS_Geometry.margin(CSS_Size.px(2.0))(CSS_Size.px(2.0))(CSS_Size.px(2.0))(CSS_Size.px(2.0)))(function () {
     return CSS_Geometry.width(CSS_Size.rem(8.0));
 })) ])([ Halogen_HTML_Core.text("Download") ]);
-
-// |
 var infraredTimingTable = function (v) {
     var strMillisec = function (n) {
         return Data_Either.either(Data_Function["const"]("N/A"))(Control_Category.identity(Control_Category.categoryFn))(Data_Formatter_Number.formatNumber("0.00")(Data_Newtype.unwrap(Data_Time_Duration.newtypeMilliseconds)(InfraredRemote_Code.toMilliseconds(n))));
@@ -103132,16 +103076,12 @@ var infraredTimingTable = function (v) {
     var toText = function (p) {
         return [ Halogen_HTML_Elements.span([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.textPrimary) ])([ Halogen_HTML_Core.text(strMillisec(p.on) + "on") ]), Halogen_HTML_Core.text(", "), Halogen_HTML_Elements.span([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.textSuccess) ])([ Halogen_HTML_Core.text(strMillisec(p.off) + "off") ]) ];
     };
-    
-    // | nbsp - non-break spase
-var nbsp = Data_String_CodePoints.codePointFromChar(Data_Maybe.fromMaybe("?")(Data_Char.fromCharCode(160)));
+    var nbsp = Data_String_CodePoints.codePointFromChar(Data_Maybe.fromMaybe("?")(Data_Char.fromCharCode(160)));
     var col = function (p) {
         return Halogen_HTML_Elements.div([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.col6, Halogen_Themes_Bootstrap4.colMd2 ]) ])([ Halogen_HTML_Elements.div_([ Halogen_HTML_Elements.span([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.textPrimary) ])([ Halogen_HTML_Core.text(strMillisec(p.on) + "on") ]), Halogen_HTML_Core.text("," + Data_String_CodePoints.singleton(nbsp)), Halogen_HTML_Elements.span([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.textSecondary) ])([ Halogen_HTML_Core.text(strMillisec(p.off) + "off") ]) ]) ]);
     };
     return Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.row) ])(Data_Functor.map(Data_Functor.functorArray)(col)(v));
 };
-
-// |
 var infraredRemoteControlCode = (function () {
     var dd = Halogen_HTML_Elements.dd([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.pl4, Halogen_Themes_Bootstrap4.row ]) ]);
     return function (v) {
@@ -103169,8 +103109,6 @@ var infraredRemoteControlCode = (function () {
         throw new Error("Failed pattern match at Page.Infrared (line 692, column 29 - line 733, column 6): " + [ v.constructor.name ]);
     };
 })();
-
-// |
 var infraredCodeFrame = (function () {
     var showOctet = function (x) {
         return Halogen_HTML_Elements.span([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.col6, Halogen_Themes_Bootstrap4.colMd2 ]) ])([ Halogen_HTML_Core.text(showHex(x)), Halogen_HTML_Core.text(" ") ]);
@@ -103198,8 +103136,6 @@ var infraredCodeFrame = (function () {
         throw new Error("Failed pattern match at Page.Infrared (line 636, column 3 - line 677, column 8): " + [ v.constructor.name ]);
     };
 })();
-
-// |
 var infraredBitpatterns = function (v) {
     var col = function (xs) {
         return Halogen_HTML_Elements.div([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.col6, Halogen_Themes_Bootstrap4.colMd2 ]) ])(Data_Functor.map(Data_Functor.functorArray)(function ($306) {
@@ -103225,8 +103161,6 @@ var infraredBitpatterns = function (v) {
     };
     throw new Error("Failed pattern match at Page.Infrared (line 598, column 3 - line 621, column 8): " + [ v.value0.constructor.name ]);
 };
-
-// |
 var renderInfraredRemoconCode = function (dictMonadAff) {
     return function (state) {
         var display = function (ir) {
@@ -103279,8 +103213,6 @@ var renderInfraredRemoconCode = function (dictMonadAff) {
         })());
     };
 };
-
-// |
 var renderControlPanel = function (dictMonadAff) {
     return function (state) {
         return Halogen_HTML_Elements.div_([ Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.formInline) ])([ Halogen_HTML_Elements.div([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.formGroup ]) ])([ Halogen_HTML_Elements.label_([ Halogen_HTML_Core.text("Button Number") ]), Halogen_HTML_Elements.select([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.m3, Halogen_Themes_Bootstrap4.formControl ]), Halogen_HTML_Events.onValueChange(Halogen_HTML_Events.input(OnValueChangeButtonNumber.create)) ])(Data_Functor.map(Data_Functor.functorArray)(function ($314) {
@@ -103346,8 +103278,6 @@ var boundedEnumSelectedTab = new Data_Enum.BoundedEnum(function () {
 }, function () {
     return enumSelectedTab;
 }, Data_Generic_Rep_Enum.genericCardinality(genericSelectedTab)(Data_Generic_Rep_Enum.genericBoundedEnumSum(Data_Generic_Rep_Enum.genericBoundedEnumConstructor(Data_Generic_Rep_Enum.genericBoundedEnumNoArguments))(Data_Generic_Rep_Enum.genericBoundedEnumConstructor(Data_Generic_Rep_Enum.genericBoundedEnumNoArguments))), Data_Generic_Rep_Enum.genericFromEnum(genericSelectedTab)(Data_Generic_Rep_Enum.genericBoundedEnumSum(Data_Generic_Rep_Enum.genericBoundedEnumConstructor(Data_Generic_Rep_Enum.genericBoundedEnumNoArguments))(Data_Generic_Rep_Enum.genericBoundedEnumConstructor(Data_Generic_Rep_Enum.genericBoundedEnumNoArguments))), Data_Generic_Rep_Enum.genericToEnum(genericSelectedTab)(Data_Generic_Rep_Enum.genericBoundedEnumSum(Data_Generic_Rep_Enum.genericBoundedEnumConstructor(Data_Generic_Rep_Enum.genericBoundedEnumNoArguments))(Data_Generic_Rep_Enum.genericBoundedEnumConstructor(Data_Generic_Rep_Enum.genericBoundedEnumNoArguments))));
-
-// |
 var renderTab = function (dictMonadAff) {
     return function (state) {
         var item = function (newTab) {
@@ -103382,8 +103312,6 @@ var renderTab = function (dictMonadAff) {
         })());
     };
 };
-
-//| render
 var render = function (dictMonadAff) {
     return function (state) {
         return Halogen_HTML_Elements.div([ Halogen_HTML_Properties.id_("wrapper") ])([ Page_Commons.navbar(NavigateTo.create)(new Route.Infrared(Data_Maybe.Nothing.value)), Halogen_HTML_Elements.main([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.container) ])([ renderTab(dictMonadAff)(state), (function () {
@@ -103401,8 +103329,6 @@ var render = function (dictMonadAff) {
         })() ]), Page_Commons.footer ]);
     };
 };
-
-//|
 var accessToBackend = function (dictMonadAff) {
     return function (millisec) {
         return function (accessor) {
@@ -103416,8 +103342,6 @@ var accessToBackend = function (dictMonadAff) {
         };
     };
 };
-
-// |
 var getIrdb = function (dictMonadAff) {
     return function (dictHasApiAccessible) {
         return function (queryParams) {
@@ -103438,8 +103362,6 @@ var getIrdb = function (dictMonadAff) {
         };
     };
 };
-
-// | component
 var component = function (dictMonadAff) {
     return function (dictNavigate) {
         return function (dictHasApiAccessible) {

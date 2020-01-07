@@ -65,7 +65,7 @@ import InfraredRemote.PanasonicHvac (PanasonicHvac, decodePanasonicHvac)
 import InfraredRemote.Type (Bit(..), BitStream, Celsius(..), InfraredCodeFrame(..), LsbFirst(..), MsbFirst(..), fromBinaryString, fromBoolean, showBit, toBoolean, toLsbFirst, toMsbFirst, toStringLsbFirst, toStringLsbFirstWithHex, toStringMsbFirst, toStringMsbFirstWithHex)
 import Partial.Unsafe (unsafePartial)
 import Text.Parsing.Parser (Parser, fail)
-import Text.Parsing.Parser.Combinators ((<?>), between)
+import Text.Parsing.Parser.Combinators (between, try, (<?>))
 import Text.Parsing.Parser.String (char, eof, noneOf, oneOf, skipSpaces, string)
 import Text.Parsing.Parser.Token (digit, hexDigit)
 import Utils (toArrayArray, toArrayNonEmptyArray)
@@ -109,12 +109,12 @@ toInfraredHexString (Baseband pulses) =
 -- |
 infraredHexStringParser:: Parser InfraredHexString Baseband
 infraredHexStringParser =
-  formatOnOffPair <|> formatPigpioIrrp 
+  try formatOnOffPair <|> formatPigpioIrrp 
 
 --| 
 formatPigpioIrrp :: Parser InfraredHexString Baseband
 formatPigpioIrrp = do
-  Tuple _ times <- (skipSpaces *> jsonObject <* skipSpaces)
+  Tuple _ times <- (skipSpaces *> jsonObject)
   eof
   case toPulses times of
     Nothing -> fail "must be on-off pair."
@@ -143,10 +143,20 @@ formatPigpioIrrp = do
   jsonObject :: Parser InfraredHexString (Tuple String (Array Int))
   jsonObject = do
     void $ char '{'
-    k <- (skipSpaces *> key <* skipSpaces)
-    void $ char ':'
-    values <- (skipSpaces *> jsonArray <* skipSpaces)
+    vs <- Array.many (skipSpaces *> hashmap <* sepalator)
     void $ char '}'
+    -- todo
+    -- 現在の版では要素がいくつあろうとも先頭だけしか取り出さない
+    --
+    maybe (fail "Empty content.") pure $ Array.head vs
+
+  hashmap :: Parser InfraredHexString (Tuple String (Array Int))
+  hashmap = do
+    k <- key
+    skipSpaces
+    void $ char ':'
+    skipSpaces
+    values <- jsonArray
     pure $ Tuple (fromCharArray k) values
     where
       key :: Parser InfraredHexString (Array Char)
@@ -156,17 +166,21 @@ formatPigpioIrrp = do
   jsonArray :: Parser InfraredHexString (Array Int)
   jsonArray = do
     void $ char '['
-    vs <- Array.some value
+    vs <- Array.some (skipSpaces *> number <* sepalator)
     void $ char ']'
     pure vs
     where
-      value = do
-        skipSpaces
-        strValue <- fromCharArray <$> Array.some digit
-        void $ Array.many (oneOf [' ', '\t', ','])
-        case Int.fromStringAs Int.decimal strValue of
-          Nothing -> fail "not a number"
+      number = do
+        v <- fromCharArray <$> Array.some digit
+        case Int.fromStringAs Int.decimal v of
+          Nothing -> fail "value is must be numeric."
           Just x -> pure x
+
+  sepalator :: Parser InfraredHexString Unit
+  sepalator = do
+    skipSpaces
+    try (void $ char ',') <|> pure unit
+
 
 --| 
 formatOnOffPair :: Parser InfraredHexString Baseband
