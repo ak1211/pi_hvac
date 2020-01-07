@@ -36,7 +36,7 @@ module InfraredRemote.Code
   , module InfraredRemote.Type
   ) where
 
-import Prelude
+import Prelude hiding (between)
 
 import Control.Alt ((<|>))
 import Control.Monad.Except (ExceptT, runExceptT, throwError)
@@ -66,7 +66,7 @@ import InfraredRemote.Type (Bit(..), BitStream, Celsius(..), InfraredCodeFrame(.
 import Partial.Unsafe (unsafePartial)
 import Text.Parsing.Parser (Parser, fail)
 import Text.Parsing.Parser.Combinators (between, try, (<?>))
-import Text.Parsing.Parser.String (char, eof, noneOf, oneOf, skipSpaces, string)
+import Text.Parsing.Parser.String (char, eof, noneOf, skipSpaces, string)
 import Text.Parsing.Parser.Token (digit, hexDigit)
 import Utils (toArrayArray, toArrayNonEmptyArray)
 
@@ -109,7 +109,7 @@ toInfraredHexString (Baseband pulses) =
 -- |
 infraredHexStringParser:: Parser InfraredHexString Baseband
 infraredHexStringParser =
-  try formatOnOffPair <|> formatPigpioIrrp 
+  formatOnOffPair <|> formatPigpioIrrp 
 
 --| 
 formatPigpioIrrp :: Parser InfraredHexString Baseband

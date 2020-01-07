@@ -99762,7 +99762,7 @@ var pulse = Control_Bind.bind(Text_Parsing_Parser.bindParserT(Data_Identity.mona
 })();
 
 // |
-var infraredHexStringParser = Control_Alt.alt(Text_Parsing_Parser.altParserT(Data_Identity.monadIdentity))(Text_Parsing_Parser_Combinators["try"](Data_Identity.monadIdentity)(formatOnOffPair))(formatPigpioIrrp);
+var infraredHexStringParser = Control_Alt.alt(Text_Parsing_Parser.altParserT(Data_Identity.monadIdentity))(formatOnOffPair)(formatPigpioIrrp);
 var eucideanRingCount = Data_EuclideanRing.euclideanRingInt;
 var eqIrRemoteControlCode = new Data_Eq.Eq(function (x) {
     return function (y) {
