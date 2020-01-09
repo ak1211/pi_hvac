@@ -664,9 +664,15 @@ infraredCodeFrame state input =
         [ dt [ HH.text "format" ]
         , dd [ HH.text "NEC" ]
         , dt [ HH.text "custom code (LSBit first)" ]
-        , dd $ map (showOctet <<< unwrap <<< toLsbFirst) [irValue.custom0, irValue.custom1]
+        , dd 
+          [ showOctet <<< unwrap <<< toLsbFirst $ irValue.custom0
+          , showOctet <<< unwrap <<< toLsbFirst $ irValue.custom1
+          ]
         , dt [ HH.text "octets (LSBit first)" ]
-        , dd $ map (showOctet <<< unwrap <<< toLsbFirst) [irValue.data0, irValue.data1]
+        , dd
+          [ showOctet <<< unwrap <<< toLsbFirst $ irValue.data0
+          , showOctet <<< unwrap <<< toLsbFirst $ irValue.data1
+          ]
         , dt [ HH.text "stop" ]
         , dd [ HH.text $ show irValue.stop ]
         ]
@@ -707,9 +713,15 @@ infraredCodeFrame state input =
         [ dt [ HH.text "format" ]
         , dd [ HH.text "NEC" ]
         , dt [ HH.text "custom code (MSBit first)" ]
-        , dd $ map (showOctet <<< unwrap <<< toMsbFirst) [irValue.custom0, irValue.custom1]
+        , dd 
+          [ showOctet <<< unwrap <<< toMsbFirst $ irValue.custom0
+          , showOctet <<< unwrap <<< toMsbFirst $ irValue.custom1
+          ]
         , dt [ HH.text "octets (MSBit first)" ]
-        , dd $ map (showOctet <<< unwrap <<< toMsbFirst) [irValue.data0, irValue.data1]
+        , dd
+          [ showOctet <<< unwrap <<< toMsbFirst $ irValue.data0
+          , showOctet <<< unwrap <<< toMsbFirst $ irValue.data1
+          ]
         , dt [ HH.text "stop" ]
         , dd [ HH.text $ show irValue.stop ]
         ]
