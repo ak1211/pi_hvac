@@ -62,10 +62,11 @@ type PlotdataQueryParams =
 
 -- |
 type InfraredQueryParams =
-  { tab   :: Maybe Int
-  , manuf :: Maybe Int
-  , limits:: Maybe Int
-  , page  :: Maybe Int
+  { tab       :: Maybe Int
+  , bitorder  :: Maybe Int
+  , manuf     :: Maybe Int
+  , limits    :: Maybe Int
+  , page      :: Maybe Int
   }
 
 -- | 
@@ -90,10 +91,11 @@ routing = oneOf
   toIrParams :: M.Map String String -> Maybe InfraredQueryParams
   toIrParams kvsets =
     Just
-    { tab:    Int.fromString =<< M.lookup "tab" kvsets
-    , manuf:  Int.fromString =<< M.lookup "manuf" kvsets
-    , limits: Int.fromString =<< M.lookup "limits" kvsets
-    , page:   Int.fromString =<< M.lookup "page" kvsets
+    { tab:      Int.fromString =<< M.lookup "tab" kvsets
+    , bitorder: Int.fromString =<< M.lookup "bitorder" kvsets
+    , manuf:    Int.fromString =<< M.lookup "manuf" kvsets
+    , limits:   Int.fromString =<< M.lookup "limits" kvsets
+    , page:     Int.fromString =<< M.lookup "page" kvsets
     }
 
 -- | navbarに表示するページ名
@@ -125,6 +127,7 @@ routeToPathQuery route =
     Infrared (Just qryparam) -> 
       "infra-red" <> (
         [ ("tab=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.tab
+        , ("bitorder=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.bitorder
         , ("manuf=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.manuf
         , ("limits=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.limits
         , ("page=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.page

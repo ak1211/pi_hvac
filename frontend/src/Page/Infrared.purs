@@ -17,7 +17,6 @@
 
 module Page.Infrared
   ( Query
-  , SelectedTab
   , component
   ) where
 
@@ -56,7 +55,7 @@ import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Themes.Bootstrap4 as HB
-import InfraredRemote.Code (Baseband(..), Bit, Count, InfraredCodeFrame(..), InfraredHexString, InfraredLeader(..), IrRemoteControlCode(..), decodePhase1, decodePhase2, decodePhase3, decodePhase4, infraredHexStringParser, toInfraredHexString, toIrRemoteControlCode, toLsbFirst, toMilliseconds)
+import InfraredRemote.Code (Baseband(..), Bit, Count, InfraredCodeFrame(..), InfraredHexString, InfraredLeader(..), IrRemoteControlCode(..), decodePhase1, decodePhase2, decodePhase3, decodePhase4, infraredHexStringParser, toInfraredHexString, toIrRemoteControlCode, toLsbFirst, toMilliseconds, toMsbFirst)
 import InfraredRemote.MitsubishiElectricHvac (MitsubishiElectricHvac(..))
 import InfraredRemote.MitsubishiElectricHvac as M
 import InfraredRemote.PanasonicHvac (PanasonicHvac(..))
@@ -79,6 +78,22 @@ instance boundedSelectedTab :: Bounded SelectedTab where
   top = genericTop
   bottom = genericBottom
 instance boundedEnumSelectedTab :: BoundedEnum SelectedTab where
+  cardinality = genericCardinality
+  toEnum = genericToEnum
+  fromEnum = genericFromEnum
+
+-- |
+data SelectedBitOrder = LeastSignBitFirst | MostSignBitFirst | BothBitOrder
+derive instance genericSelectedBitOrder :: Generic SelectedBitOrder _
+derive instance eqSelectedBitOrder :: Eq SelectedBitOrder
+derive instance ordSelectedBitOrder :: Ord SelectedBitOrder
+instance enumSelectedBitOrder :: Enum SelectedBitOrder where
+  succ = genericSucc
+  pred = genericPred
+instance boundedSelectedBitOrder :: Bounded SelectedBitOrder where
+  top = genericTop
+  bottom = genericBottom
+instance boundedEnumSelectedBitOrder :: BoundedEnum SelectedBitOrder where
   cardinality = genericCardinality
   toEnum = genericToEnum
   fromEnum = genericFromEnum
@@ -131,6 +146,7 @@ component =
   initialQueryParams :: Route.InfraredQueryParams
   initialQueryParams =
     { tab: Just $ fromEnum TabControlPanel
+    , bitorder: Just $ fromEnum LeastSignBitFirst
     , manuf: Just 0
     , limits: Just 10
     , page: Just 1
@@ -151,6 +167,7 @@ component =
             , manuf: a.manuf <|> initialQueryParams.manuf
             , limits: a.limits <|> initialQueryParams.limits
             , page: a.page <|> initialQueryParams.page
+            , bitorder: a.page <|> initialQueryParams.bitorder
             }
 
       _ ->
@@ -631,9 +648,17 @@ infraredBitpatterns (Tuple leader vs) =
       $ map (HH.text <<< show) xs
 
 -- |
-infraredCodeFrame :: forall p i. InfraredCodeFrame -> Array (H.HTML p i)
-infraredCodeFrame =
-  case _ of
+infraredCodeFrame :: forall p i. State -> InfraredCodeFrame -> Array (H.HTML p i)
+infraredCodeFrame state input =
+  case toEnum =<< state.queryParams.bitorder of
+    Nothing                 -> leastSignificantBitFirst input
+    Just LeastSignBitFirst  -> leastSignificantBitFirst input
+    Just MostSignBitFirst   -> mostSignificantBitFirst input
+    Just BothBitOrder       -> 
+      leastSignificantBitFirst input <> mostSignificantBitFirst input
+  where
+
+  leastSignificantBitFirst = case _ of
     FormatNEC irValue ->
       [ HH.dl_
         [ dt [ HH.text "format" ]
@@ -675,7 +700,49 @@ infraredCodeFrame =
         , dd [ HH.text $ show irValue ]
         ]
       ]
-  where
+
+  mostSignificantBitFirst = case _ of
+    FormatNEC irValue ->
+      [ HH.dl_
+        [ dt [ HH.text "format" ]
+        , dd [ HH.text "NEC" ]
+        , dt [ HH.text "custom code (MSBit first)" ]
+        , dd $ map (showOctet <<< unwrap <<< toMsbFirst) [irValue.custom0, irValue.custom1]
+        , dt [ HH.text "octets (MSBit first)" ]
+        , dd $ map (showOctet <<< unwrap <<< toMsbFirst) [irValue.data0, irValue.data1]
+        , dt [ HH.text "stop" ]
+        , dd [ HH.text $ show irValue.stop ]
+        ]
+      ]
+
+    FormatAEHA irValue ->
+      [ HH.dl_
+        [ dt [ HH.text "format" ]
+        , dd [ HH.text "AEHA" ]
+        , dt [ HH.text "octets (MSBit first)" ]
+        , dd $ map (showOctet <<< unwrap <<< toMsbFirst) irValue.octets
+        , dt [ HH.text "stop" ]
+        , dd [ HH.text $ show irValue.stop ]
+        ]
+      ]
+
+    FormatSIRC irValue ->
+      [ HH.dl_
+        [ dt [ HH.text "format" ]
+        , dd [ HH.text "SIRC" ]
+        , dt [ HH.text "command (MSBit first)" ]
+        , dd [ HH.text $ showHex <<< unwrap $ toMsbFirst irValue.command ]
+        , dt [ HH.text "address (MSBit first)" ]
+        , dd [ HH.text $ showHex <<< unwrap $ toMsbFirst irValue.address ]
+        ]
+      ]
+
+    FormatUnknown irValue ->
+      [ HH.dl_
+        [ dt [ HH.text "unknown format" ]
+        , dd [ HH.text $ show irValue ]
+        ]
+      ]
 
   dt = HH.dt_
 
@@ -861,16 +928,76 @@ renderInfraredRemoconCode state =
         , HH.h3_ [ HH.text "Bit patterns" ]
         , HH.p
           [ HP.class_ HB.p3 ]
-          $ either (Array.singleton <<< HH.text) (intercalate [HH.hr_] <<< map infraredBitpatterns) bitPatterns
+          $ either
+            (Array.singleton <<< HH.text)
+            (intercalate [HH.hr_] <<< map infraredBitpatterns)
+            bitPatterns
         , HH.h3_ [ HH.text "Infrared remote control frames" ]
+        , renderBitOrderTab state
         , HH.p
           [ HP.class_ HB.p3 ]
-          $ either (Array.singleton <<< HH.text) (intercalate [HH.hr_] <<< map infraredCodeFrame) irframes
+          $ either
+            (Array.singleton <<< HH.text)
+            (intercalate [HH.hr_] <<< map (infraredCodeFrame state))
+            irframes
         , HH.h3_ [ HH.text "Infrared remote control code" ]
         , HH.p
           [ HP.class_ HB.p3 ]
-          $ either (Array.singleton <<< HH.text) infraredRemoteControlCode irRemoteCode
+          $ either
+            (Array.singleton <<< HH.text)
+            infraredRemoteControlCode
+            irRemoteCode
         ]
+
+-- |
+renderBitOrderTab :: forall g p m. MonadAff m => State -> H.ParentHTML Query g p m
+renderBitOrderTab state =
+  HH.ul
+    [ HP.classes
+      [ HB.nav
+      , HB.navTabs
+      , HB.navPills
+      ]
+    , style do
+      marginTop (px 12.0)
+      marginBottom (px 36.0)
+    ]
+    case toEnum =<< state.queryParams.bitorder of
+      Nothing ->
+        [ tabLSBitFirst [HB.active], tabMSBitFirst [], tabBothBitOrder [] ]
+
+      Just LeastSignBitFirst ->
+        [ tabLSBitFirst [HB.active], tabMSBitFirst [], tabBothBitOrder [] ]
+
+      Just MostSignBitFirst ->
+        [ tabLSBitFirst [], tabMSBitFirst [HB.active], tabBothBitOrder [] ]
+
+      Just BothBitOrder ->
+        [ tabLSBitFirst [], tabMSBitFirst [], tabBothBitOrder [HB.active] ]
+  where
+
+  tabLSBitFirst =
+    item LeastSignBitFirst "Least Significant Bit First Order"
+
+  tabMSBitFirst =
+    item MostSignBitFirst "Most Significant Bit First Order"
+
+  tabBothBitOrder =
+    item BothBitOrder "Both Bit Order"
+
+  item newTab caption appendix =
+    let qp = state.queryParams { bitorder = Just $ fromEnum newTab }
+    in
+    HH.li
+      [ HP.class_ HB.navItem
+      ]
+      [ HH.a
+        [ HP.classes $ [HB.navLink] <> appendix
+        , HE.onClick $ HE.input_ (NavigateTo $ Route.Infrared $ Just qp)
+        ]
+        [ HH.text caption
+        ]
+      ]
  
 -- |
 irdbPagination :: forall g p m. Api.RespGetIrdb -> H.ParentHTML Query g p m
