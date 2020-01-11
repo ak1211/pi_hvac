@@ -38,7 +38,7 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.Int.Bits ((.&.), shr)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
-import InfraredRemote.Type (BitStream, Celsius(..), InfraredCodeFrame(..), fromBinaryString, toLsbFirst)
+import InfraredRemote.Types (BitStream, Celsius(..), InfraredCodeFrame(..), fromBinaryString, toLsbFirst)
 
 -- |
 data Mode = MAuto | MDry | MCool | MHeat

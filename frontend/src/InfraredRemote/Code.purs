@@ -33,7 +33,7 @@ module InfraredRemote.Code
   , toInfraredHexString
   , toIrCodeFrames
   , toIrRemoteControlCode
-  , module InfraredRemote.Type
+  , module InfraredRemote.Types
   ) where
 
 import Prelude hiding (between)
@@ -63,7 +63,7 @@ import Data.Unfoldable (unfoldr1)
 import InfraredRemote.HitachiHvac (HitachiHvac, decodeHitachiHvac)
 import InfraredRemote.MitsubishiElectricHvac (MitsubishiElectricHvac, decodeMitsubishiElectricHvac)
 import InfraredRemote.PanasonicHvac (PanasonicHvac, decodePanasonicHvac)
-import InfraredRemote.Type (Bit(..), BitStream, Celsius(..), InfraredCodeFrame(..), LsbFirst(..), MsbFirst(..), fromBinaryString, fromBoolean, showBit, toBoolean, toLsbFirst, toMsbFirst, toStringLsbFirst, toStringLsbFirstWithHex, toStringMsbFirst, toStringMsbFirstWithHex)
+import InfraredRemote.Types (Bit(..), BitStream, Celsius(..), InfraredCodeFrame(..), LsbFirst(..), MsbFirst(..), fromBinaryString, fromBoolean, showBit, toBoolean, toLsbFirst, toMsbFirst, toStringLsbFirst, toStringLsbFirstWithHex, toStringMsbFirst, toStringMsbFirstWithHex)
 import Partial.Unsafe (unsafePartial)
 import Text.Parsing.Parser (Parser, fail)
 import Text.Parsing.Parser.Combinators (between, try, (<?>))

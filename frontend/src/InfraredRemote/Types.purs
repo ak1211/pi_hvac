@@ -15,7 +15,7 @@
  limitations under the License.
 -}
 
-module InfraredRemote.Type
+module InfraredRemote.Types
   ( Bit(..)
   , BitStream
   , Celsius(..)
