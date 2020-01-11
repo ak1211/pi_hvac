@@ -60,6 +60,7 @@ import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Data.Unfoldable (unfoldr1)
+import InfraredRemote.HitachiHvac (HitachiHvac, decodeHitachiHvac)
 import InfraredRemote.MitsubishiElectricHvac (MitsubishiElectricHvac, decodeMitsubishiElectricHvac)
 import InfraredRemote.PanasonicHvac (PanasonicHvac, decodePanasonicHvac)
 import InfraredRemote.Type (Bit(..), BitStream, Celsius(..), InfraredCodeFrame(..), LsbFirst(..), MsbFirst(..), fromBinaryString, fromBoolean, showBit, toBoolean, toLsbFirst, toMsbFirst, toStringLsbFirst, toStringLsbFirstWithHex, toStringMsbFirst, toStringMsbFirstWithHex)
@@ -382,6 +383,7 @@ data IrRemoteControlCode
   = IrRemoteUnknown                 (Array InfraredCodeFrame)
   | IrRemotePanasonicHvac           PanasonicHvac
   | IrRemoteMitsubishiElectricHvac  MitsubishiElectricHvac
+  | IrRemoteHitachiHvac             HitachiHvac
 
 derive instance genericIrRemoteControlCode  :: Generic IrRemoteControlCode _
 derive instance eqIrRemoteControlCode       :: Eq IrRemoteControlCode
@@ -395,12 +397,13 @@ toIrRemoteControlCode =
 
 -- | 各機種の赤外線信号にする
 decodePhase4 :: Array InfraredCodeFrame -> IrRemoteControlCode
-decodePhase4 irFrames =
-  fromMaybe (IrRemoteUnknown irFrames) $ do
-    pana irFrames <|> melco irFrames
+decodePhase4 x =
+  pana x <|> melco x <|> hitachi x
+  # fromMaybe (IrRemoteUnknown x)
   where
-    pana x  = IrRemotePanasonicHvac <$> decodePanasonicHvac x
-    melco x = IrRemoteMitsubishiElectricHvac <$> decodeMitsubishiElectricHvac x
+    pana = map IrRemotePanasonicHvac <<< decodePanasonicHvac
+    melco = map IrRemoteMitsubishiElectricHvac <<< decodeMitsubishiElectricHvac
+    hitachi = map IrRemoteHitachiHvac <<< decodeHitachiHvac
  
 -- |
 type DecodeMonad e a = ExceptT e (State (Array Bit)) a

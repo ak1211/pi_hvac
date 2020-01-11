@@ -142,7 +142,7 @@ decodeMitsubishiElectricHvac = case _ of
         switch= (unwrap (toLsbFirst b_5) `shr` 5) .&. 0x1
         crc   = unwrap (toLsbFirst b17)
       in do
-      guard $ isValidHeader original
+      guard $ isValidIdentifier original
       mode1_ <- toMode1 mode1
       switch_ <- toEnum switch
       pure $ MitsubishiElectricHvac
@@ -164,8 +164,8 @@ decodeMitsubishiElectricHvac = case _ of
     _ -> Nothing
 
   -- |
-  isValidHeader :: Array BitStream -> Boolean
-  isValidHeader input =
+  isValidIdentifier :: Array BitStream -> Boolean
+  isValidIdentifier input =
     (Array.take 5 input) == first5bytes
  
   -- |

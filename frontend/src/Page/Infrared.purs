@@ -56,10 +56,11 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Themes.Bootstrap4 as HB
 import InfraredRemote.Code (Baseband(..), Bit, Count, InfraredCodeFrame(..), InfraredHexString, InfraredLeader(..), IrRemoteControlCode(..), decodePhase1, decodePhase2, decodePhase3, decodePhase4, infraredHexStringParser, toInfraredHexString, toIrRemoteControlCode, toLsbFirst, toMilliseconds, toMsbFirst)
+import InfraredRemote.HitachiHvac (HitachiHvac(..))
 import InfraredRemote.MitsubishiElectricHvac (MitsubishiElectricHvac(..))
-import InfraredRemote.MitsubishiElectricHvac as M
+import InfraredRemote.MitsubishiElectricHvac as Me
 import InfraredRemote.PanasonicHvac (PanasonicHvac(..))
-import InfraredRemote.PanasonicHvac as P
+import InfraredRemote.PanasonicHvac as Pa
 import Page.Commons as Commons
 import Route (Route)
 import Route as Route
@@ -789,7 +790,7 @@ infraredRemoteControlCode = case _ of
       , dt [ HH.text "Profile" ]
       , dd [ HH.text (show v.profile) ]
       , dt [ HH.text "CRC" ]
-      , dd [ HH.text (if P.validCrc v.crc v.original then "Checksum is valid." else "Checksum is NOT valid.")
+      , dd [ HH.text (if Pa.validCrc v.crc v.original then "Checksum is valid." else "Checksum is NOT valid.")
            , HH.text $ " " <> (show v.crc)
            ]
       ]
@@ -805,9 +806,23 @@ infraredRemoteControlCode = case _ of
       , dt [ HH.text "Switch" ]
       , dd [ HH.text (show v.switch) ]
       , dt [ HH.text "CRC" ]
-      , dd [ HH.text (if M.validCrc v.crc v.original then "Checksum is valid." else "Checksum is NOT valid.")
+      , dd [ HH.text (if Me.validCrc v.crc v.original then "Checksum is valid." else "Checksum is NOT valid.")
            , HH.text $ " " <> (show v.crc)
            ]
+      ]
+    ]
+
+  IrRemoteHitachiHvac (HitachiHvac v) ->
+    [ HH.text "Hitachi HVAC"
+    , HH.dl_
+      [ dt [ HH.text "Temperature" ]
+      , dd [ HH.text (show v.temperature) ]
+      , dt [ HH.text "Mode" ]
+      , dd [ HH.text (show v.mode) ]
+      , dt [ HH.text "Switch" ]
+      , dd [ HH.text (show v.switch) ]
+      , dt [ HH.text "Fan" ]
+      , dd [ HH.text (show v.fan) ]
       ]
     ]
   where
@@ -1117,6 +1132,9 @@ popoverContents input =
 
     IrRemoteMitsubishiElectricHvac _ ->
       "Mitsubishi Electric HVAC"
+
+    IrRemoteHitachiHvac _ ->
+      "Hitachi HVAC"
 
   showFormat :: InfraredCodeFrame -> String
   showFormat = case _ of
