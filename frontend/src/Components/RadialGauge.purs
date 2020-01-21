@@ -28,7 +28,6 @@ import Effect.Aff.Class (class MonadAff)
 import Foreign.CanvasGauges (GaugeJsInstance, RadialGaugeOptions, drawRadialGauge, redrawRadialGauge)
 import Halogen as H
 import Halogen.HTML as HH
-import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 
 type State =
@@ -38,8 +37,10 @@ type State =
   }
 
 data Query a
-  = Initialize a
-  | HandleInput Input a
+  = HandleInput Input a
+
+data Action
+  = Initialize
 
 -- |
 type Input =
@@ -50,48 +51,60 @@ type Input =
 -- | canvas gauges component
 component :: forall m. MonadAff m => H.Component HH.HTML Query Input Void m
 component =
-  H.lifecycleComponent
+  H.mkComponent
     { initialState: initialState
     , render
-    , eval
-    , initializer: Just (H.action Initialize)
-    , finalizer: Nothing
-    , receiver: HE.input HandleInput
-    }
-  where
-
-  initialState input =
-    { refLabel: input.refLabel
-    , gaugeInstance: Nothing
-    , options: input.options
+    , eval: H.mkEval $ H.defaultEval
+      { handleAction = handleAction
+      , handleQuery = handleQuery
+      , initialize = Just Initialize
+      , receive = const Nothing
+      }
     }
 
-  render state =
-    HH.canvas [ HP.ref state.refLabel ]
+-- |
+initialState :: Input -> State
+initialState input =
+  { refLabel: input.refLabel
+  , gaugeInstance: Nothing
+  , options: input.options
+  }
+
+-- |
+render :: forall i m. State -> H.ComponentHTML Action i m
+render state =
+  HH.canvas [ HP.ref state.refLabel ]
  
-  eval :: Query ~> H.ComponentDSL State Query Void m
-  eval = case _ of
-    Initialize next -> do
+-- |
+handleAction
+  :: forall i o m
+   . MonadAff m
+  => Action
+  -> H.HalogenM State Action i o m Unit
+handleAction = case _ of
+    Initialize -> do
       state <- H.get
       maybeElem <- H.getHTMLElementRef state.refLabel
       case maybeElem of
         Nothing ->
-          pure next
+          pure mempty
 
         Just elem -> do
           gauge <- H.liftEffect $ drawRadialGauge elem state.options
           H.modify_ \st -> st {gaugeInstance = Just gauge}
-          pure next
+          pure mempty
 
-    HandleInput input next -> do
-      {gaugeInstance} <- H.get
-      case gaugeInstance of
-        Nothing ->
-          pure unit 
+handleQuery :: forall i o m a. MonadAff m => Query a -> H.HalogenM State Action i o m (Maybe a)
+handleQuery = case _ of
+  HandleInput input a -> do
+    {gaugeInstance} <- H.get
+    case gaugeInstance of
+      Nothing ->
+        pure unit 
 
-        Just gauge -> do
-          H.liftEffect $ redrawRadialGauge gauge input.options
-      H.modify_ \st -> st { refLabel = input.refLabel
-                          , options = input.options
-                          }
-      pure next
+      Just gauge -> do
+        H.liftEffect $ redrawRadialGauge gauge input.options
+    H.modify_ \st -> st { refLabel = input.refLabel
+                        , options = input.options
+                        }
+    pure (Just a)

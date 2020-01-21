@@ -28,17 +28,15 @@ import CSS (marginLeft, height, rem, vh)
 import Component.LineChart as LineChart
 import Control.Alt ((<|>))
 import Data.Either (Either(..), either)
-import Data.Either.Nested (Either3)
 import Data.Formatter.Number as FN
-import Data.Functor.Coproduct.Nested (Coproduct3)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), maybe, fromMaybe)
 import Data.Newtype (unwrap)
+import Data.Symbol (SProxy(..))
 import Effect.Aff.Class (class MonadAff)
 import Effect.Console (logShow)
-import Foreign.ChartJs (ChartDatasets, defLineChartOptions, drawLineChart)
+import Foreign.ChartJs (ChartDatasets, defLineChartOptions)
 import Halogen as H
-import Halogen.Component.ChildPath as ChildPath
 import Halogen.HTML as HH
 import Halogen.HTML.CSS (style)
 import Halogen.HTML.Core as HC
@@ -56,13 +54,22 @@ type State =
   }
 
 data Query a
-  = NavigateTo Route a
-  | Initialize a
-  | ChangedRoute Route a
-  | OnInputRecordsLimit String a
 
-type ChildQuery = Coproduct3 LineChart.Query LineChart.Query LineChart.Query
-type ChildSlot = Either3 Unit Unit Unit
+data Action
+  = NavigateTo Route
+  | Initialize
+  | ChangedRoute Route
+  | OnInputRecordsLimit String
+
+type ChildSlots =
+  ( cTemperature  :: H.Slot LineChart.Query Void Unit
+  , cPressure     :: H.Slot LineChart.Query Void Unit
+  , cHum          :: H.Slot LineChart.Query Void Unit
+  )
+ 
+_cTemperature = SProxy :: SProxy "cTemperature"
+_cPressure    = SProxy :: SProxy "cPressure"
+_cHum         = SProxy :: SProxy "cHum"
 
 --| canvas element id
 idChartArea :: { temp :: String, press :: String, hum :: String }
@@ -80,134 +87,140 @@ component
   => HasApiAccessible m
   => H.Component HH.HTML Query Route Void m
 component =
-  H.lifecycleParentComponent
+  H.mkComponent
     { initialState: initialState
     , render
-    , eval
-    , initializer: Just (H.action Initialize)
-    , finalizer: Nothing
-    , receiver: HE.input ChangedRoute
+    , eval: H.mkEval $ H.defaultEval
+      { handleAction = handleAction
+      , initialize = Just Initialize
+      }
     }
-  where
-
-  initialQueryParams :: Route.PlotdataQueryParams
-  initialQueryParams =
-    { limits: Just 30
-    }
-
-  initialState route =
-    let qry = case route of
-                Route.Plotdata Nothing ->
-                  initialQueryParams
-
-                Route.Plotdata (Just qryparams) ->
-                  { limits: qryparams.limits <|> initialQueryParams.limits
-                  }
-
-                _ -> initialQueryParams
-    in
-    { queryParams: qry
-    , measValues: []
-    }
-
-  drawChart opts ds ctx =
-    void $ drawLineChart ctx ds opts
-
-  --| render
-  render :: State -> H.ParentHTML Query ChildQuery ChildSlot m
-  render state =
-    let options = defLineChartOptions
-        chartdatasets = chartDatasets state.measValues
-        tempChartData = {canvasId: idChartArea.temp, datasets: chartdatasets.degc, options: options}
-        pressChartData = {canvasId: idChartArea.press, datasets: chartdatasets.hpa, options: options}
-        humChartData = {canvasId: idChartArea.hum, datasets: chartdatasets.rh, options: options}
-     in
-    HH.div
-      [ HP.id_ "wrapper"
-      ]
-      [ Commons.navbar NavigateTo (Route.Plotdata Nothing)
-      , HH.main
-        [ HP.class_ HB.container
-        ]
-        [ HH.div
-          [ HP.classes [ HB.alert, HB.alertInfo ]
-          ] 
-          [ HH.div
-            [ HP.class_ HB.formGroup
-            ]
-            [ HH.label
-              [ HP.class_ HB.alertHeading
-              ]
-              [ HH.text "表示数"
-              , HH.span [ style $ marginLeft $ rem 1.0 ] []
-              , case state.queryParams.limits of
-                  Nothing -> HH.text "--"
-                  Just x -> HH.text $ Int.toStringAs Int.decimal x
-              ]
-            , HH.input
-              [ HP.class_ HB.customRange
-              , HP.type_ HP.InputRange
-              , HP.attr (HC.AttrName "min") "10"
-              , HP.attr (HC.AttrName "max") "1000"
-              , HP.attr (HC.AttrName "step") "10"
-              , HE.onValueInput $ HE.input OnInputRecordsLimit
-              ]
-            ]
-          ]
-        , card "temp" [{-HB.show-}] "気温" [ HH.slot' ChildPath.cp1 unit LineChart.component tempChartData absurd ]
-        , card "pres" [{-HB.show-}] "気圧" [ HH.slot' ChildPath.cp2 unit LineChart.component pressChartData absurd ]
-        , card "humi" [{-HB.show-}] "相対湿度" [ HH.slot' ChildPath.cp3 unit LineChart.component humChartData absurd ]
-        , card "meas" [] "測定値" [measurementalTable state.measValues]
-        ]
-      , Commons.footer
-      ]
-
-  eval :: Query ~> H.ParentDSL State Query ChildQuery ChildSlot Void m
-  eval = case _ of
-    NavigateTo route next -> do
-      navigate route
-      pure next
-
-    Initialize next -> do
-      {queryParams} <- H.get
-      let newRoute = Route.Plotdata (Just queryParams)
-      void $ eval (ChangedRoute newRoute next)
-      pure next
-
-    ChangedRoute route next -> do
-      curState <- H.get
-      --
-      let state = case route of
-                    Route.Plotdata Nothing ->
-                      curState {queryParams = initialQueryParams}
-
-                    Route.Plotdata (Just qry) ->
-                      curState {queryParams = qry}
-
-                    _ -> curState
-      --
-      url <- getApiBaseURL
-      let param = {baseurl: url, limits: state.queryParams.limits}
-      res <- H.liftAff $ Api.getApiV1Measurements param
-      case res.body of
-        Left a -> do
-          H.put state
-          H.liftEffect $ logShow a
-
-        Right values ->
-          H.put state { measValues = values }
-      pure next
-
-    OnInputRecordsLimit strLimits next -> do
-      let newLimits = Int.fromString strLimits
-      { queryParams } <- H.get
-      let newQueryParams = queryParams { limits = newLimits }
-      H.modify_ _ { queryParams = newQueryParams }
-      navigate $ Route.Plotdata (Just newQueryParams)
-      pure next
 
 -- |
-card :: forall p i. String -> Array HC.ClassName -> String -> Array (H.HTML p i) -> H.HTML p i
+initialQueryParams :: Route.PlotdataQueryParams
+initialQueryParams =
+  { limits: Just 30
+  }
+
+-- |
+initialState :: Route -> State
+initialState route =
+  let qry = case route of
+              Route.Plotdata Nothing ->
+                initialQueryParams
+
+              Route.Plotdata (Just qryparams) ->
+                { limits: qryparams.limits <|> initialQueryParams.limits
+                }
+
+              _ -> initialQueryParams
+  in
+  { queryParams: qry
+  , measValues: []
+  }
+
+--| render
+render :: forall m. MonadAff m => State -> H.ComponentHTML Action ChildSlots m
+render state =
+  let options = defLineChartOptions
+      chartdatasets = chartDatasets state.measValues
+      tempChartData = {canvasId: idChartArea.temp, datasets: chartdatasets.degc, options: options}
+      pressChartData = {canvasId: idChartArea.press, datasets: chartdatasets.hpa, options: options}
+      humChartData = {canvasId: idChartArea.hum, datasets: chartdatasets.rh, options: options}
+  in
+  HH.div
+    [ HP.id_ "wrapper"
+    ]
+    [ Commons.navbar NavigateTo (Route.Plotdata Nothing)
+    , HH.main
+      [ HP.class_ HB.container
+      ]
+      [ HH.div
+        [ HP.classes [ HB.alert, HB.alertInfo ]
+        ] 
+        [ HH.div
+          [ HP.class_ HB.formGroup
+          ]
+          [ HH.label
+            [ HP.class_ HB.alertHeading
+            ]
+            [ HH.text "表示数"
+            , HH.span [ style $ marginLeft $ rem 1.0 ] []
+            , case state.queryParams.limits of
+                Nothing -> HH.text "--"
+                Just x -> HH.text $ Int.toStringAs Int.decimal x
+            ]
+          , HH.input
+            [ HP.class_ HB.customRange
+            , HP.type_ HP.InputRange
+            , HP.attr (HC.AttrName "min") "10"
+            , HP.attr (HC.AttrName "max") "1000"
+            , HP.attr (HC.AttrName "step") "10"
+            , HE.onValueInput (\x -> Just $ OnInputRecordsLimit x)
+            ]
+          ]
+        ]
+      , card "temp" [{-HB.show-}] "気温" [ HH.slot _cTemperature unit LineChart.component tempChartData absurd ]
+      , card "pres" [{-HB.show-}] "気圧" [ HH.slot _cPressure unit LineChart.component pressChartData absurd ]
+      , card "humi" [{-HB.show-}] "相対湿度" [ HH.slot _cHum unit LineChart.component humChartData absurd ]
+      , card "meas" [] "測定値" [measurementalTable state.measValues]
+      ]
+    , Commons.footer
+    ]
+
+-- |
+handleAction
+  :: forall i o m
+   . MonadAff m
+  => Navigate m
+  => HasApiAccessible m
+  => Action
+  -> H.HalogenM State Action i o m Unit
+handleAction = case _ of
+  NavigateTo route -> do
+    navigate route
+    pure mempty
+
+  Initialize -> do
+    {queryParams} <- H.get
+    let newRoute = Route.Plotdata (Just queryParams)
+    void $ handleAction (ChangedRoute newRoute)
+    pure mempty
+
+  ChangedRoute route -> do
+    curState <- H.get
+    --
+    let state = case route of
+                  Route.Plotdata Nothing ->
+                    curState {queryParams = initialQueryParams}
+
+                  Route.Plotdata (Just qry) ->
+                    curState {queryParams = qry}
+
+                  _ -> curState
+    --
+    url <- getApiBaseURL
+    let param = {baseurl: url, limits: state.queryParams.limits}
+    res <- H.liftAff $ Api.getApiV1Measurements param
+    case res of
+      Left a -> do
+        H.put state
+        H.liftEffect $ logShow a
+
+      Right result ->
+        H.put state { measValues = result.body }
+    pure mempty
+
+  OnInputRecordsLimit strLimits -> do
+    let newLimits = Int.fromString strLimits
+    { queryParams } <- H.get
+    let newQueryParams = queryParams { limits = newLimits }
+    H.modify_ _ { queryParams = newQueryParams }
+    navigate $ Route.Plotdata (Just newQueryParams)
+    pure mempty
+
+-- |
+card :: forall p i. String -> Array HC.ClassName -> String -> Array (HH.HTML p i) -> HH.HTML p i
 card id_ class_ header body =
   HH.article
     [ HP.class_ HB.card
@@ -273,7 +286,7 @@ chartDatasets values =
   }
 
 --| temp / press / hum table
-measurementalTable :: forall p i. Api.RespGetMeasurements -> H.HTML p i
+measurementalTable :: forall p i. Api.RespGetMeasurements -> HH.HTML p i
 measurementalTable measValues =
   HH.table [ HP.class_ HB.table ]
     [ HH.thead_ heading

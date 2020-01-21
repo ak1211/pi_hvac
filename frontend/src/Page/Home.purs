@@ -28,15 +28,15 @@ import CSS (marginTop, marginBottom, px)
 import Component.RadialGauge as RadialGauge
 import Control.Alt ((<|>))
 import Data.Array.NonEmpty as NEA
+import Data.Bifunctor as Bifunctor
 import Data.DateTime.Instant (fromDateTime, unInstant)
-import Data.Either (Either(..))
-import Data.Either.Nested (Either3)
+import Data.Either (Either(..), either)
 import Data.Foldable (minimum)
-import Data.Functor.Coproduct.Nested (Coproduct3)
 import Data.Int as Int
 import Data.Maybe (Maybe(..), fromJust, fromMaybe, maybe)
 import Data.Newtype (unwrap)
 import Data.String as String
+import Data.Symbol (SProxy(..))
 import Data.Time.Duration (Milliseconds(..))
 import Effect (Effect)
 import Effect.Aff (delay, sequential, parallel)
@@ -44,13 +44,11 @@ import Effect.Aff.Class (class MonadAff)
 import Effect.Now (now)
 import Effect.Timer as Timer
 import Halogen as H
-import Halogen.Component.ChildPath as ChildPath
 import Halogen.HTML as HH
 import Halogen.HTML.CSS (style)
 import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Halogen.Query as HQ
 import Halogen.Themes.Bootstrap4 as HB
 import Page.Commons as Commons
 import Partial.Unsafe (unsafePartial)
@@ -68,12 +66,21 @@ type State =
   }
 
 data Query a
-  = NavigateTo Route a
-  | Initialize a
-  | Update a
 
-type ChildQuery = Coproduct3 RadialGauge.Query RadialGauge.Query RadialGauge.Query
-type ChildSlot = Either3 Unit Unit Unit
+data Action
+  = NavigateTo Route
+  | Initialize
+  | Update
+
+type ChildSlots =
+  ( gTemperature  :: H.Slot RadialGauge.Query Void Unit
+  , gPressure     :: H.Slot RadialGauge.Query Void Unit
+  , gHygro        :: H.Slot RadialGauge.Query Void Unit
+  )
+ 
+_gTemperature = SProxy :: SProxy "gTemperature"
+_gPressure    = SProxy :: SProxy "gPressure"
+_gHygro       = SProxy :: SProxy "gHygro"
 
 -- | component
 component
@@ -83,32 +90,68 @@ component
   => HasApiAccessible m
   => H.Component HH.HTML Query Unit Void m
 component =
-  H.lifecycleParentComponent
-    { initialState: const initialState
+  H.mkComponent
+    { initialState: initialState
     , render
-    , eval
-    , initializer: Just (H.action Initialize)
-    , finalizer: Nothing
-    , receiver: const Nothing
+    , eval: H.mkEval $ H.defaultEval
+      { handleAction = handleAction
+      , initialize = Just Initialize
+      }
     }
+
+-- |
+initialState :: forall i. i -> State
+initialState _ =
+  { measValues: Nothing
+  , nowTime: Milliseconds 0.0
+  }
+
+--| render
+render :: forall m. MonadAff m => State -> H.ComponentHTML Action ChildSlots m
+render state =
+  let v = latestValue state
+  in
+  HH.div
+    [ HP.id_ "wrapper"
+    ]
+    [ Commons.navbar NavigateTo Route.Home
+    , HH.main
+      [ HP.class_ HB.container
+      ]
+      [ updateButton Update true
+      , HH.div
+        [ HP.class_ HB.row
+        , style do
+          marginTop (px 30.0)
+          marginBottom (px 30.0)
+        ]
+        [ gauge $ HH.slot _gTemperature unit RadialGauge.component v.t absurd
+        , gauge $ HH.slot _gPressure unit RadialGauge.component v.p absurd
+        , gauge $ HH.slot _gHygro unit RadialGauge.component v.h absurd
+        ]
+      , Commons.toast [ v.msg ]
+      ]
+    , Commons.footer
+    ]
   where
 
-  initialState =
-    { measValues: Nothing
-    , nowTime: Milliseconds 0.0
-    }
+  gauge x =
+    HH.div [ HP.class_ HB.colSm ] [ x ]
 
-  timerHandler :: HTMLElement -> Effect Unit
-  timerHandler button =
-    HTMLElement.click button
-
-  eval :: Query ~> H.ParentDSL State Query ChildQuery ChildSlot Void m
-  eval = case _ of
-    NavigateTo route next -> do
+-- |
+handleAction
+  :: forall i o m
+   . MonadAff m
+  => Navigate m
+  => HasApiAccessible m
+  => Action
+  -> H.HalogenM State Action i o m Unit
+handleAction = case _ of
+    NavigateTo route -> do
       navigate route
-      pure next
+      pure mempty
 
-    Initialize next -> do
+    Initialize -> do
       time <- unInstant <$> H.liftEffect now
       H.modify_ \st -> st { nowTime = time }
       H.liftEffect $ Commons.showToast
@@ -118,9 +161,9 @@ component =
           pure unit
         Just elem ->
           void $ H.liftEffect $ Timer.setTimeout 60 (timerHandler elem)
-      pure next
+      pure mempty
 
-    Update next -> do
+    Update -> do
       url <- getApiBaseURL
       millisec <- getApiTimeout
       val <- H.liftAff $
@@ -128,52 +171,24 @@ component =
                   request = Api.getApiV1Measurements param
                   timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
                   nonEmptyVal = maybe (Left "測定値がありません") Right <<< NEA.fromArray
-                  response r = nonEmptyVal =<< r.body
+                  response = either Left (\x -> nonEmptyVal x.body)
               in
               sequential $ parallel (response <$> request) <|> parallel timeout
       time <- unInstant <$> H.liftEffect now
       H.modify_ \st -> st { measValues = Just val, nowTime = time }
       H.liftEffect $ Commons.showToast
-      pure next
-
-  --| render
-  render :: State -> H.ParentHTML Query ChildQuery ChildSlot m
-  render state =
-    let v = latestValue state
-    in
-    HH.div
-      [ HP.id_ "wrapper"
-      ]
-      [ Commons.navbar NavigateTo Route.Home
-      , HH.main
-        [ HP.class_ HB.container
-        ]
-        [ updateButton Update true
-        , HH.div
-          [ HP.class_ HB.row
-          , style do
-            marginTop (px 30.0)
-            marginBottom (px 30.0)
-          ]
-          [ gauge $ HH.slot' ChildPath.cp1 unit RadialGauge.component v.t absurd
-          , gauge $ HH.slot' ChildPath.cp2 unit RadialGauge.component v.p absurd
-          , gauge $ HH.slot' ChildPath.cp3 unit RadialGauge.component v.h absurd
-          ]
-        , Commons.toast [ v.msg ]
-        ]
-      , Commons.footer
-      ]
-    where
-
-    gauge x =
-      HH.div [ HP.class_ HB.colSm ] [ x ]
+      pure mempty
+  where
+  timerHandler :: HTMLElement -> Effect Unit
+  timerHandler button =
+    HTMLElement.click button
 
 -- |
 updateButtonLabel :: H.RefLabel
 updateButtonLabel = H.RefLabel "updatebutton"
 
 -- |
-updateButton :: forall p f. HQ.Action f -> Boolean -> H.HTML p f
+updateButton :: forall p f. f -> Boolean -> HH.HTML p f
 updateButton action isActive =
   HH.button
     [ HP.ref updateButtonLabel
@@ -183,7 +198,7 @@ updateButton action isActive =
       , HB.btnLight
       , HB.justifyContentCenter
       ]
-    , HE.onClick $ HE.input_ action
+    , HE.onClick (\_ -> Just action)
     , appendix isActive
     ]
     [ Commons.icon "fas fa-sync" ]
@@ -197,7 +212,7 @@ updateButton action isActive =
 latestValue
   :: forall p i
   . State
-  -> {t :: RadialGauge.Input, p :: RadialGauge.Input, h :: RadialGauge.Input, msg :: H.HTML p i}
+  -> {t :: RadialGauge.Input, p :: RadialGauge.Input, h :: RadialGauge.Input, msg :: HH.HTML p i}
 latestValue state = case state.measValues of
   Nothing ->
     { t: temperature Nothing
@@ -223,12 +238,12 @@ latestValue state = case state.measValues of
     }
 
 -- |
-msgFailToAccess :: forall p i. String -> H.HTML p i
+msgFailToAccess :: forall p i. String -> HH.HTML p i
 msgFailToAccess reason =
   Commons.toastItem "Error" "" reason
 
 -- |
-msgLastUpdatedAt :: forall p i. Milliseconds -> Api.MeasDateTime -> H.HTML p i
+msgLastUpdatedAt :: forall p i. Milliseconds -> Api.MeasDateTime -> HH.HTML p i
 msgLastUpdatedAt nowTime (Api.MeasDateTime measTime) =
   case Utils.asiaTokyoDateTime measTime of
     Nothing ->

@@ -43,6 +43,7 @@ import Data.Int as Int
 import Data.Maybe (Maybe(..), fromMaybe, maybe)
 import Data.Newtype (unwrap)
 import Data.String as String
+import Data.Symbol (SProxy(..))
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Effect.Aff (Aff, Milliseconds, delay, parallel, sequential)
@@ -110,21 +111,27 @@ type State =
 
 -- |
 data Query a
-  = NavigateTo Route a
-  | Initialize a
-  | ChangedRoute Route a
-  | HandleEditorUpdate Editor.Output a
-  | OnClickIRCodeDownload a
-  | OnClickIRCodeUpload a
-  | OnClickIRCodeTransmit a
-  | OnClickIrdbPagination Int a
-  | OnClickIrdbTable String a
-  | OnValueChangeButtonNumber String a
-  | OnValueChangeManufacturer String a
-  | OnValueChangeLimits String a
+---  = HandleEditorUpdate Editor.Output
 
-type ChildQuery = Editor.Query
-type ChildSlot = Unit
+data Action
+  = NavigateTo Route
+  | Initialize
+  | ChangedRoute Route
+  | OnClickIRCodeDownload
+  | OnClickIRCodeUpload
+  | OnClickIRCodeTransmit
+  | OnClickIrdbPagination Int
+  | OnClickIrdbTable String
+  | OnValueChangeButtonNumber String
+  | OnValueChangeManufacturer String
+  | OnValueChangeLimits String
+  | HandleEditorUpdate Editor.Output
+
+type ChildSlots =
+  ( infraredCodeEditor :: H.Slot Editor.Query Editor.Output Unit
+  )
+ 
+_infraredCodeEditor = SProxy :: SProxy "infraredCodeEditor"
 
 -- | component
 component
@@ -134,217 +141,266 @@ component
   => HasApiAccessible m
   => H.Component HH.HTML Query Route Void m
 component =
-  H.lifecycleParentComponent
+  H.mkComponent
     { initialState: initialState
     , render
-    , eval
-    , initializer: Just (H.action Initialize)
-    , finalizer: Nothing
-    , receiver: HE.input ChangedRoute
-    }
-  where
-
-  initialQueryParams :: Route.InfraredQueryParams
-  initialQueryParams =
-    { tab: Just $ fromEnum TabControlPanel
-    , bitorder: Just $ fromEnum LeastSignBitFirst
-    , manuf: Just 0
-    , limits: Just 10
-    , page: Just 1
+    , eval: H.mkEval $ H.defaultEval
+      { handleAction = handleAction
+---      , handleQuery = handleQuery
+      , initialize = Just Initialize
+      , receive = Just <<< ChangedRoute
+      }
     }
 
-  initialState :: Route -> State
-  initialState route =
-    let st =  { queryParams: _
-              , infraredValue: Nothing
-              , irdb: Nothing
-              , irdbManufacturers: Nothing
-              , buttonNumber: 1
-              }
-    in
-    case route of
-      Route.Infrared (Just a) ->
-        st  { tab: a.tab <|> initialQueryParams.tab
-            , manuf: a.manuf <|> initialQueryParams.manuf
-            , limits: a.limits <|> initialQueryParams.limits
-            , page: a.page <|> initialQueryParams.page
-            , bitorder: a.page <|> initialQueryParams.bitorder
+-- |
+initialQueryParams :: Route.InfraredQueryParams
+initialQueryParams =
+  { tab: Just $ fromEnum TabControlPanel
+  , bitorder: Just $ fromEnum LeastSignBitFirst
+  , manuf: Just 0
+  , limits: Just 10
+  , page: Just 1
+  }
+
+-- |
+initialState :: Route -> State
+initialState route =
+  let st =  { queryParams: _
+            , infraredValue: Nothing
+            , irdb: Nothing
+            , irdbManufacturers: Nothing
+            , buttonNumber: 1
             }
+  in
+  case route of
+    Route.Infrared (Just a) ->
+      st  { tab: a.tab <|> initialQueryParams.tab
+          , manuf: a.manuf <|> initialQueryParams.manuf
+          , limits: a.limits <|> initialQueryParams.limits
+          , page: a.page <|> initialQueryParams.page
+          , bitorder: a.page <|> initialQueryParams.bitorder
+          }
+
+    _ ->
+      st initialQueryParams
+
+--| render
+render
+  :: forall m
+   . MonadAff m
+  => State
+  -> H.ComponentHTML Action ChildSlots m
+render state =
+  HH.div
+    [ HP.id_ "wrapper"
+    ]
+    [ Commons.navbar NavigateTo (Route.Infrared Nothing)
+    , HH.main
+      [ HP.class_ HB.container
+      ]
+      [ renderTab state
+      , case toEnum =<< state.queryParams.tab of
+          Nothing               -> renderControlPanel state
+          Just TabControlPanel  -> renderControlPanel state
+          Just TabIrdbTable     -> renderIrdbTable state
+      ]
+    , Commons.footer
+    ]
+
+-- |
+--  eval :: Query ~> H.ParentDSL State Query ChildQuery ChildSlot Void m
+handleAction
+  :: forall i o m
+   . MonadAff m
+  => Navigate m
+  => HasApiAccessible m
+  => Action
+  -> H.HalogenM State Action i o m Unit
+handleAction = case _ of
+  NavigateTo route -> do
+    H.liftEffect Commons.disposePopover
+    navigate route
+    pure mempty
+
+  Initialize -> do
+    {queryParams} <- H.get
+    let newRoute = Route.Infrared (Just queryParams)
+    void $ handleAction (ChangedRoute newRoute)
+    pure mempty
+
+  ChangedRoute route -> do
+    H.liftEffect Commons.disposePopover
+    --
+    state <- case route of
+              Route.Infrared Nothing ->
+                H.modify _{queryParams = initialQueryParams}
+
+              Route.Infrared (Just qry) ->
+                H.modify _{queryParams = qry}
+
+              _ ->
+                H.get
+    --
+    case toEnum =<< state.queryParams.tab of
+      Just TabIrdbTable -> do
+        url <- getApiBaseURL
+        millisec <- getApiTimeout
+        let accessor = Api.getApiV1IrdbManufacturers {baseurl: url}
+        response <- accessToBackend millisec accessor
+        H.put state {irdbManufacturers = Just response}
+        case response of
+          Left _ ->
+            pure unit
+
+          Right x -> do
+            irdb <- getIrdb state.queryParams x
+            H.modify_ \st -> st {irdb = Just irdb}
 
       _ ->
-        st initialQueryParams
+        pure unit
+    --
+    H.liftEffect Commons.enablePopover
+    pure mempty
 
-  eval :: Query ~> H.ParentDSL State Query ChildQuery ChildSlot Void m
-  eval = case _ of
-    NavigateTo route next -> do
-      H.liftEffect Commons.disposePopover
-      navigate route
-      pure next
+  OnClickIRCodeDownload -> do
+    url <- getApiBaseURL
+    millisec <- getApiTimeout
+    { buttonNumber } <- H.get
+    let accessor = Api.getApiV1InfraRed {baseurl: url, buttonNumber: buttonNumber}
+    response <- accessToBackend millisec accessor
+    H.modify_ \st -> st {infraredValue = Just response}
+    pure mempty
 
-    Initialize next -> do
-      {queryParams} <- H.get
-      let newRoute = Route.Infrared (Just queryParams)
-      void $ eval (ChangedRoute newRoute next)
-      pure next
+  OnClickIRCodeUpload -> do
+    url <- getApiBaseURL
+    millisec <- getApiTimeout
+    state <- H.get
+    case state.infraredValue of
+      Just (Right (Api.DatumInfraRed d)) -> do
+        let newD = Api.DatumInfraRed {button_number: state.buttonNumber, code: d.code}
+            accessor = Api.postApiV1InfraRed {baseurl: url, datum: newD}
+        response <- accessToBackend millisec accessor
+        H.liftEffect $ logShow response
+        pure mempty
 
-    ChangedRoute route next -> do
-      H.liftEffect Commons.disposePopover
-      --
-      state <- case route of
-                Route.Infrared Nothing ->
-                  H.modify _{queryParams = initialQueryParams}
+      _ ->
+        pure mempty
 
-                Route.Infrared (Just qry) ->
-                  H.modify _{queryParams = qry}
+  OnClickIRCodeTransmit -> do
+    url <- getApiBaseURL
+    millisec <- getApiTimeout
+    state <- H.get
+    case state.infraredValue of
+      Just (Right ircode) -> do
+        let accessor = Api.postApiV1TransIR {baseurl: url, datum: ircode}
+        response <- accessToBackend millisec accessor
+        H.liftEffect $ logShow response
+        pure mempty
 
-                _ ->
-                  H.get
-      --
-      case toEnum =<< state.queryParams.tab of
-        Just TabIrdbTable -> do
-          url <- getApiBaseURL
-          millisec <- getApiTimeout
-          let accessor = Api.getApiV1IrdbManufacturers {baseurl: url}
-          response <- accessToBackend millisec accessor
-          H.put state {irdbManufacturers = Just response}
-          case response of
-            Left _ ->
-              pure unit
+      _ ->
+        pure mempty
 
-            Right x -> do
-              irdb <- getIrdb state.queryParams x
-              H.modify_ \st -> st {irdb = Just irdb}
+  OnClickIrdbPagination page -> do
+    H.liftEffect Commons.disposePopover
+    state <- H.get
+    let qp = state.queryParams {page = Just page}
+    newState <- H.modify _ {queryParams = qp}
+    case newState.irdbManufacturers of
+      Just (Right x) -> do
+        irdb <- getIrdb newState.queryParams x
+        H.modify_ \st -> st {irdb = Just irdb}
 
-        _ ->
-          pure unit
-      --
-      H.liftEffect Commons.enablePopover
-      pure next
+      _ ->
+        pure unit
+    navigate $ Route.Infrared (Just qp)
+    H.liftEffect Commons.enablePopover
+    pure mempty
 
-    HandleEditorUpdate (Editor.TextChanged hexstr) next -> do
-      { buttonNumber } <- H.get
-      let code = hexstr
-          val = Api.DatumInfraRed {button_number: buttonNumber, code: code}
-      H.modify_ \st -> st { infraredValue = Just (Right val) }
-      pure next
+  OnClickIrdbTable code -> do
+    H.liftEffect Commons.disposePopover
+    state <- H.get
+    let irval = Api.DatumInfraRed {button_number: state.buttonNumber, code: code}
+        newTab = Just $ fromEnum TabControlPanel
+        qp = state.queryParams {tab = newTab}
+    H.modify_ _ {infraredValue = Just (Right irval), queryParams = qp}
+    navigate $ Route.Infrared (Just qp)
+    pure mempty
 
-    HandleEditorUpdate Editor.Reset next -> do
-      H.modify_ \st -> st { infraredValue = Nothing }
-      pure next
+  OnValueChangeButtonNumber text -> do
+    case Int.fromString text of
+      Nothing -> pure unit
+      Just n -> H.modify_ \st -> st { buttonNumber = n }
+    pure mempty
 
-    OnClickIRCodeDownload next -> do
-      url <- getApiBaseURL
-      millisec <- getApiTimeout
-      { buttonNumber } <- H.get
-      let accessor = Api.getApiV1InfraRed {baseurl: url, buttonNumber: buttonNumber}
-      response <- accessToBackend millisec accessor
-      H.modify_ \st -> st {infraredValue = Just response}
-      pure next
+  OnValueChangeManufacturer text -> do
+    H.liftEffect Commons.disposePopover
+    state <- H.get
+    let maybeManuf = either
+                      (const Nothing)
+                      (\x -> Just (unwrap x).manufacturers)
+                      =<< state.irdbManufacturers
+        maybeIndex = Array.elemIndex text =<< maybeManuf
+        newQry = state.queryParams
+                  { manuf = maybeIndex <|> initialQueryParams.manuf
+                  , page = Just 1
+                  }
+    newState <- H.modify _{queryParams = newQry}
+    case newState.irdbManufacturers of
+      Just (Right x) -> do
+        irdb <- getIrdb newState.queryParams x
+        H.modify_ \st -> st {irdb = Just irdb}
 
-    OnClickIRCodeUpload next -> do
-      url <- getApiBaseURL
-      millisec <- getApiTimeout
-      state <- H.get
-      case state.infraredValue of
-        Just (Right (Api.DatumInfraRed d)) -> do
-          let newD = Api.DatumInfraRed {button_number: state.buttonNumber, code: d.code}
-              accessor = Api.postApiV1InfraRed {baseurl: url, datum: newD}
-          response <- accessToBackend millisec accessor
-          H.liftEffect $ logShow response
-          pure next
+      _ ->
+        pure unit
+    navigate $ Route.Infrared (Just newQry)
+    H.liftEffect Commons.enablePopover
+    pure mempty
 
-        _ ->
-          pure next
+  OnValueChangeLimits text -> do
+    H.liftEffect Commons.disposePopover
+    state <- H.get
+    let maybeLimits = Int.fromString text
+        newQry = state.queryParams
+                  { limits = maybeLimits <|> initialQueryParams.limits
+                  , page = Just 1
+                  }
+    newState <- H.modify _{queryParams = newQry}
+    case newState.irdbManufacturers of
+      Just (Right x) -> do
+        irdb <- getIrdb newState.queryParams x
+        H.modify_ \st -> st {irdb = Just irdb}
 
-    OnClickIRCodeTransmit next -> do
-      url <- getApiBaseURL
-      millisec <- getApiTimeout
-      state <- H.get
-      case state.infraredValue of
-        Just (Right ircode) -> do
-          let accessor = Api.postApiV1TransIR {baseurl: url, datum: ircode}
-          response <- accessToBackend millisec accessor
-          H.liftEffect $ logShow response
-          pure next
+      _ ->
+        pure unit
+    navigate $ Route.Infrared (Just newQry)
+    H.liftEffect Commons.enablePopover
+    pure mempty
 
-        _ ->
-          pure next
+  HandleEditorUpdate (Editor.TextChanged hexstr) -> do
+    { buttonNumber } <- H.get
+    let code = hexstr
+        val = Api.DatumInfraRed {button_number: buttonNumber, code: code}
+    H.modify_ \st -> st { infraredValue = Just (Right val) }
+    pure mempty
 
-    OnClickIrdbPagination page next -> do
-      H.liftEffect Commons.disposePopover
-      state <- H.get
-      let qp = state.queryParams {page = Just page}
-      newState <- H.modify _ {queryParams = qp}
-      case newState.irdbManufacturers of
-        Just (Right x) -> do
-          irdb <- getIrdb newState.queryParams x
-          H.modify_ \st -> st {irdb = Just irdb}
+  HandleEditorUpdate Editor.Reset -> do
+    H.modify_ \st -> st { infraredValue = Nothing }
+    pure mempty
 
-        _ ->
-          pure unit
-      navigate $ Route.Infrared (Just qp)
-      H.liftEffect Commons.enablePopover
-      pure next
 
-    OnClickIrdbTable code next -> do
-      H.liftEffect Commons.disposePopover
-      state <- H.get
-      let irval = Api.DatumInfraRed {button_number: state.buttonNumber, code: code}
-          newTab = Just $ fromEnum TabControlPanel
-          qp = state.queryParams {tab = newTab}
-      H.modify_ _ {infraredValue = Just (Right irval), queryParams = qp}
-      navigate $ Route.Infrared (Just qp)
-      pure next
-
-    OnValueChangeButtonNumber text next -> do
-      case Int.fromString text of
-        Nothing -> pure unit
-        Just n -> H.modify_ \st -> st { buttonNumber = n }
-      pure next
-
-    OnValueChangeManufacturer text next -> do
-      H.liftEffect Commons.disposePopover
-      state <- H.get
-      let maybeManuf = either
-                        (const Nothing)
-                        (\x -> Just (unwrap x).manufacturers)
-                        =<< state.irdbManufacturers
-          maybeIndex = Array.elemIndex text =<< maybeManuf
-          newQry = state.queryParams
-                    { manuf = maybeIndex <|> initialQueryParams.manuf
-                    , page = Just 1
-                    }
-      newState <- H.modify _{queryParams = newQry}
-      case newState.irdbManufacturers of
-        Just (Right x) -> do
-          irdb <- getIrdb newState.queryParams x
-          H.modify_ \st -> st {irdb = Just irdb}
-
-        _ ->
-          pure unit
-      navigate $ Route.Infrared (Just newQry)
-      H.liftEffect Commons.enablePopover
-      pure next
-
-    OnValueChangeLimits text next -> do
-      H.liftEffect Commons.disposePopover
-      state <- H.get
-      let maybeLimits = Int.fromString text
-          newQry = state.queryParams
-                    { limits = maybeLimits <|> initialQueryParams.limits
-                    , page = Just 1
-                    }
-      newState <- H.modify _{queryParams = newQry}
-      case newState.irdbManufacturers of
-        Just (Right x) -> do
-          irdb <- getIrdb newState.queryParams x
-          H.modify_ \st -> st {irdb = Just irdb}
-
-        _ ->
-          pure unit
-      navigate $ Route.Infrared (Just newQry)
-      H.liftEffect Commons.enablePopover
-      pure next
+-- |
+---handleQuery :: forall i o m a. MonadAff m => Query a -> H.HalogenM State Action i o m (Maybe a)
+---handleQuery = case _ of
+---  HandleEditorUpdate (Editor.TextChanged hexstr) a -> do
+---    { buttonNumber } <- H.get
+---    let code = hexstr
+---        val = Api.DatumInfraRed {button_number: buttonNumber, code: code}
+---    H.modify_ \st -> st { infraredValue = Just (Right val) }
+---    pure (Just a)
+---
+---  HandleEditorUpdate Editor.Reset a -> do
+---    H.modify_ \st -> st { infraredValue = Nothing }
+---    pure (Just a)
 
 -- |
 getIrdb
@@ -370,42 +426,20 @@ accessToBackend
   :: forall a m
    . MonadAff m
   => Milliseconds
-  -> Aff (AX.Response (Either String a))
+  -> Aff (Either String (AX.Response a))
   -> m (Either String a)
 accessToBackend millisec accessor =
   H.liftAff $ sequential
-    $ parallel (response accessor)
+    $ parallel (response <$> accessor)
   <|> parallel timeout
   where
 
-  response f = _.body <$> f
+  response :: Either String (AX.Response a) -> Either String a
+  response = Bifunctor.rmap (_.body)
   timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
 
---| render
-render
-  :: forall m
-   . MonadAff m
-  => State
-  -> H.ParentHTML Query ChildQuery ChildSlot m
-render state =
-  HH.div
-    [ HP.id_ "wrapper"
-    ]
-    [ Commons.navbar NavigateTo (Route.Infrared Nothing)
-    , HH.main
-      [ HP.class_ HB.container
-      ]
-      [ renderTab state
-      , case toEnum =<< state.queryParams.tab of
-          Nothing               -> renderControlPanel state
-          Just TabControlPanel  -> renderControlPanel state
-          Just TabIrdbTable     -> renderIrdbTable state
-      ]
-    , Commons.footer
-    ]
-
 -- |
-renderTab :: forall g p m. MonadAff m => State -> H.ParentHTML Query g p m
+renderTab :: forall m. MonadAff m => State -> H.ComponentHTML Action ChildSlots m
 renderTab state =
   HH.ul
     [ HP.classes
@@ -444,14 +478,14 @@ renderTab state =
       ]
       [ HH.a
         [ HP.classes $ [HB.navLink] <> appendix
-        , HE.onClick $ HE.input_ (NavigateTo $ Route.Infrared $ Just qp)
+        , HE.onClick (\_ -> Just $ NavigateTo $ Route.Infrared $ Just qp)
         ]
         [ HH.text caption
         ]
       ]
 
 -- |
-renderControlPanel :: forall m. MonadAff m => State -> H.ParentHTML Query ChildQuery ChildSlot m
+renderControlPanel :: forall m. MonadAff m => State -> H.ComponentHTML Action ChildSlots m
 renderControlPanel state =
   HH.div_
     [ HH.div
@@ -462,7 +496,7 @@ renderControlPanel state =
         [ HH.label_ [ HH.text "Button Number" ]
         , HH.select
           [ HP.classes [ HB.m3, HB.formControl ]
-          , HE.onValueChange $ HE.input OnValueChangeButtonNumber
+          , HE.onValueChange (Just <<< OnValueChangeButtonNumber)
           ]
           $ map (HH.option_ <<< Array.singleton <<< HH.text <<< Int.toStringAs Int.decimal)
           $ 1..10
@@ -478,7 +512,7 @@ renderControlPanel state =
     ]
 
 -- |
-renderIrdbTable :: forall g p m. MonadAff m => State -> H.ParentHTML Query g p m
+renderIrdbTable :: forall s m. MonadAff m => State -> H.ComponentHTML Action s m
 renderIrdbTable state =
   case state.irdbManufacturers of
     Nothing ->
@@ -530,7 +564,7 @@ renderIrdbTable state =
         ]
         [ HH.select
           [ HP.classes [ HB.formControl ]
-          , HE.onValueChange $ HE.input OnValueChangeLimits
+          , HE.onValueChange (Just <<< OnValueChangeLimits)
           ]
           [ item 10
           , item 25
@@ -560,7 +594,7 @@ renderIrdbTable state =
         ]
         [ HH.select
           [ HP.classes [ HB.formControl ]
-          , HE.onValueChange $ HE.input OnValueChangeManufacturer
+          , HE.onValueChange (Just <<< OnValueChangeManufacturer)
           ]
           $ Array.zipWith item (0 .. Array.length x.manufacturers) x.manufacturers
         ]
@@ -573,7 +607,7 @@ renderIrdbTable state =
           _                             -> HH.option [] [HH.text name]
 
 -- |
-infraredTimingTable :: forall p i. Baseband -> H.HTML p i
+infraredTimingTable :: forall p i. Baseband -> HH.HTML p i
 infraredTimingTable (Baseband pulses) =
   HH.div [HP.class_ HB.row] $ map col pulses
   where
@@ -611,7 +645,7 @@ infraredTimingTable (Baseband pulses) =
     String.codePointFromChar $ fromMaybe '?' $ fromCharCode 0x00a0
 
 -- |
-infraredBitpatterns :: forall p i. Tuple InfraredLeader (Array Bit) -> Array (H.HTML p i)
+infraredBitpatterns :: forall p i. Tuple InfraredLeader (Array Bit) -> Array (HH.HTML p i)
 infraredBitpatterns (Tuple leader vs) =
   case leader of
     LeaderAeha _     ->
@@ -649,7 +683,7 @@ infraredBitpatterns (Tuple leader vs) =
       $ map (HH.text <<< show) xs
 
 -- |
-infraredCodeFrame :: forall p i. State -> InfraredCodeFrame -> Array (H.HTML p i)
+infraredCodeFrame :: forall p i. State -> InfraredCodeFrame -> Array (HH.HTML p i)
 infraredCodeFrame state input =
   case toEnum =<< state.queryParams.bitorder of
     Nothing                 -> leastSignificantBitFirst input
@@ -768,7 +802,7 @@ infraredCodeFrame state input =
       [ HH.text $ showHex x, HH.text " " ]
 
 -- |
-infraredRemoteControlCode :: forall p i. IrRemoteControlCode -> Array (H.HTML p i)
+infraredRemoteControlCode :: forall p i. IrRemoteControlCode -> Array (HH.HTML p i)
 infraredRemoteControlCode = case _ of
   IrRemoteUnknown formats ->
     [ HH.text "Unknown IR remote Code"
@@ -842,7 +876,7 @@ showHex v =
       | otherwise -> str
  
 -- |
-irDownloadButton :: forall g p m. H.ParentHTML Query g p m
+irDownloadButton :: forall s m. H.ComponentHTML Action s m
 irDownloadButton =
   HH.button
     [ HP.classes
@@ -850,7 +884,7 @@ irDownloadButton =
       , HB.btnOutlineSuccess
       , HB.justifyContentCenter
       ]
-    , HE.onClick $ HE.input_ OnClickIRCodeDownload
+    , HE.onClick (\_ -> Just OnClickIRCodeDownload)
     , style do
       margin (px 2.0) (px 2.0) (px 2.0) (px 2.0)
       width (rem 8.0)
@@ -858,7 +892,7 @@ irDownloadButton =
     [ HH.text "Download" ]
 
 -- |
-irUploadButton :: forall g p m. Boolean -> H.ParentHTML Query g p m
+irUploadButton :: forall s m. Boolean -> H.ComponentHTML Action s m
 irUploadButton isActive =
   HH.button
     [ HP.classes
@@ -866,7 +900,7 @@ irUploadButton isActive =
       , HB.btnOutlineDanger
       , HB.justifyContentCenter
       ]
-    , HE.onClick $ HE.input_ OnClickIRCodeUpload
+    , HE.onClick (\_ -> Just OnClickIRCodeUpload)
     , style do
       margin (px 2.0) (px 2.0) (px 2.0) (px 2.0)
       width (rem 8.0)
@@ -880,7 +914,7 @@ irUploadButton isActive =
     false -> HP.attr (HC.AttrName "disabled") "disabled"
 
 -- |
-irTransmitButton :: forall g p m. Boolean -> H.ParentHTML Query g p m
+irTransmitButton :: forall s m. Boolean -> H.ComponentHTML Action s m
 irTransmitButton isActive =
   HH.button
     [ HP.classes
@@ -888,7 +922,7 @@ irTransmitButton isActive =
       , HB.btnOutlinePrimary
       , HB.justifyContentCenter
       ]
-    , HE.onClick $ HE.input_ OnClickIRCodeTransmit
+    , HE.onClick (\_ -> Just OnClickIRCodeTransmit)
     , style do
       margin (px 2.0) (px 2.0) (px 2.0) (px 2.0)
       width (rem 8.0)
@@ -902,24 +936,24 @@ irTransmitButton isActive =
     HP.attr (HC.AttrName "disabled") "disabled"
 
 -- |
-renderInfraredRemoconCode :: forall m. MonadAff m => State -> H.ParentHTML Query ChildQuery ChildSlot m
+renderInfraredRemoconCode :: forall m. MonadAff m => State -> H.ComponentHTML Action ChildSlots m
 renderInfraredRemoconCode state =
   HH.div
     [ HP.class_ HB.formGroup ]
     $ case state.infraredValue of
       Nothing ->
         [ HH.h3_ [ HH.text "Edit codes" ]
-        , HH.slot unit Editor.component "" (HE.input HandleEditorUpdate)
+        , HH.slot _infraredCodeEditor unit Editor.component "" (Just <<< HandleEditorUpdate)
         ]
 
       Just (Left _) ->
         [ HH.h3_ [ HH.text "Edit codes" ]
-        , HH.slot unit Editor.component "" (HE.input HandleEditorUpdate)
+        , HH.slot _infraredCodeEditor unit Editor.component "" (Just <<< HandleEditorUpdate)
         ]
 
       Just (Right (Api.DatumInfraRed ir)) ->
         [ HH.h3_ [ HH.text "Edit codes" ]
-        , HH.slot unit Editor.component ir.code (HE.input HandleEditorUpdate)
+        , HH.slot _infraredCodeEditor unit Editor.component ir.code (Just <<< HandleEditorUpdate)
         , display ir
         ]
     where
@@ -977,7 +1011,7 @@ renderInfraredRemoconCode state =
         ]
 
 -- |
-renderBitOrderTab :: forall g p m. MonadAff m => State -> H.ParentHTML Query g p m
+renderBitOrderTab :: forall s m. MonadAff m => State -> H.ComponentHTML Action s m
 renderBitOrderTab state =
   HH.ul
     [ HP.classes
@@ -1020,14 +1054,14 @@ renderBitOrderTab state =
       ]
       [ HH.a
         [ HP.classes $ [HB.navLink] <> appendix
-        , HE.onClick $ HE.input_ (NavigateTo $ Route.Infrared $ Just qp)
+        , HE.onClick (\_ -> Just $ NavigateTo $ Route.Infrared $ Just qp)
         ]
         [ HH.text caption
         ]
       ]
  
 -- |
-irdbPagination :: forall g p m. Api.RespGetIrdb -> H.ParentHTML Query g p m
+irdbPagination :: forall s m. Api.RespGetIrdb -> H.ComponentHTML Action s m
 irdbPagination (Api.RespGetIrdb irdb) =
   HH.nav
     [ HP.attr (HC.AttrName "area-label") "Pagination"
@@ -1044,7 +1078,7 @@ irdbPagination (Api.RespGetIrdb irdb) =
     [ HP.classes $ classes number ]
     [ HH.a
       [ HP.class_ HB.pageLink
-      , HE.onClick $ HE.input_ (OnClickIrdbPagination number)
+      , HE.onClick (\_ -> Just $ OnClickIrdbPagination number)
       ]
       $ text number
     ]
@@ -1064,7 +1098,7 @@ irdbPagination (Api.RespGetIrdb irdb) =
       [ HH.text $ Int.toStringAs Int.decimal n ]
 
 -- |
-irdbTable :: forall g p m. Api.RespGetIrdb -> H.ParentHTML Query g p m
+irdbTable :: forall s m. Api.RespGetIrdb -> H.ComponentHTML Action s m
 irdbTable (Api.RespGetIrdb irdb) =
   HH.p_
     [ HH.table
@@ -1088,10 +1122,10 @@ irdbTable (Api.RespGetIrdb irdb) =
     HH.tbody_ $ map tableRow values
 
   tableRow (Api.DatumIrdb val) =
-    let clk = HE.onClick $ HE.input_ (OnClickIrdbTable val.code)
+    let clk = HE.onClick (\_ -> Just $ OnClickIrdbTable val.code)
     in
     HH.tr_
-      [ HH.th [HE.onClick $ HE.input_ (OnClickIrdbTable val.code)] [HH.text $ Int.toStringAs Int.decimal val.id]
+      [ HH.th [HE.onClick (\_ -> Just $ OnClickIrdbTable val.code)] [HH.text $ Int.toStringAs Int.decimal val.id]
       , HH.td [clk] [HH.text val.manuf]
       , HH.td [clk] [HH.text val.prod]
       , HH.td [clk] [HH.text val.key]

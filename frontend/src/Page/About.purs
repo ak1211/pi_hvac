@@ -39,8 +39,12 @@ type State =
   }
 
 data Query a
-  = Initialize a
-  | NavigateTo Route a
+  = ThisIsNone a
+
+data Action
+  = Initialize
+  | Finalize
+  | NavigateTo Route
 
 -- | child component
 component
@@ -49,31 +53,25 @@ component
   => Navigate m
   => H.Component HH.HTML Query Unit Void m
 component =
-  H.lifecycleComponent
-    { initialState: const initialState
+  H.mkComponent
+    { initialState: initialState
     , render
-    , eval
-    , initializer: Just (H.action Initialize)
-    , finalizer: Nothing
-    , receiver: const Nothing
-    }
-  where
-
-  initialState =
-    { session: "About"
+    , eval: H.mkEval $ H.defaultEval
+      { handleAction = handleAction
+      , handleQuery = handleQuery
+      , initialize = Just Initialize
+      , finalize = Just Finalize
+      }
     }
 
-  eval :: Query ~> H.ComponentDSL State Query Void m
-  eval = case _ of
-    Initialize next -> do
-      pure next
+-- |
+initialState :: forall i. i -> State
+initialState _ =
+  { session: "About"
+  }
 
-    NavigateTo route next -> do
-      navigate route
-      pure next
-
-
-render :: State -> H.ComponentHTML Query
+-- |
+render :: forall m. State -> H.ComponentHTML Action () m
 render state =
   HH.div
       [ HP.id_ "wrapper"
@@ -86,7 +84,35 @@ render state =
     , Commons.footer
     ]
 
-document :: forall p i. Array (H.HTML p i)
+-- |
+handleAction
+  :: forall output m
+   . MonadAff m
+  => Navigate m
+  => Action
+  -> H.HalogenM State Action () output m Unit
+handleAction = case _ of
+  Initialize -> do
+    pure mempty
+  Finalize -> do
+    pure mempty
+  NavigateTo route -> do
+    navigate route
+    pure mempty
+
+-- |
+handleQuery
+  :: forall action slots output m a
+   . MonadAff m
+  => Navigate m
+  => Query a
+  -> H.HalogenM State action slots output m (Maybe a)
+handleQuery = case _ of
+  ThisIsNone a -> do
+    pure (Just a)
+
+-- |
+document :: forall p i. Array (HH.HTML p i)
 document =
   [ HH.h2 [ HP.class_ HB.h2 ] [ HH.text "About this application" ]
   , HH.p

@@ -21,16 +21,14 @@ import Prelude
 
 import Api as Api
 import AppM (class HasApiAccessible, class Navigate, runAppM)
-import Data.Either.Nested (Either5)
-import Data.Functor.Coproduct.Nested (Coproduct5)
 import Data.Maybe (Maybe(..))
 import Data.Time.Duration (Milliseconds(..))
+import Data.Symbol (SProxy(..))
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff, forkAff)
 import Effect.Aff.Class (class MonadAff)
 import Halogen as H
 import Halogen.Aff as HA
-import Halogen.Component.ChildPath as ChildPath
 import Halogen.HTML as HH
 import Halogen.VDom.Driver (runUI)
 import Page.About as PgAbout
@@ -46,8 +44,19 @@ import Web.HTML (window)
 import Web.HTML.Location (origin)
 import Web.HTML.Window (location)
 
-type ChildQuery = Coproduct5 PgHome.Query PgPlotdata.Query PgInfrared.Query PgSettings.Query PgAbout.Query
-type ChildSlot = Either5 Unit Unit Unit Unit Unit
+type ChildSlots =
+  ( pgHome      :: H.Slot PgHome.Query Void Unit
+  , pgPlotdata  :: H.Slot PgPlotdata.Query Void Unit
+  , pgInfrared  :: H.Slot PgInfrared.Query Void Unit
+  , pgSettings  :: H.Slot PgSettings.Query Void Unit
+  , pgAbout     :: H.Slot PgAbout.Query Void Unit
+  )
+
+_pgHome     = SProxy :: SProxy "pgHome"
+_pgPlotdata = SProxy :: SProxy "pgPlotdata"
+_pgInfrared = SProxy :: SProxy "pgInfrared"
+_pgSettings = SProxy :: SProxy "pgSettings"
+_pgAbout    = SProxy :: SProxy "pgAbout"
 
 type State =
   { route :: Route
@@ -63,43 +72,49 @@ rootComponent
   => Navigate m
   => HasApiAccessible m
   => H.Component HH.HTML Query Unit Void m
-rootComponent = H.parentComponent
-  { initialState: const init
-  , render
-  , eval
-  , receiver: const Nothing
-  }
-  where
-
-  init =
-    { route: Route.Home
+rootComponent =
+  H.mkComponent
+    { initialState: initialState
+    , render
+    , eval: H.mkEval $ H.defaultEval
+      { handleQuery = handleQuery
+      }
     }
 
-  render :: State -> H.ParentHTML Query ChildQuery ChildSlot m
-  render state = case state.route of
+-- |
+initialState :: forall i. i -> State
+initialState _ =
+  { route: Route.Home
+  }
+
+-- |
+render
+  :: forall m
+   . MonadAff m
+  => Navigate m
+  => HasApiAccessible m
+  => State
+  -> H.ComponentHTML Unit ChildSlots m
+render state = case state.route of
     Route.Home ->
-      HH.slot' ChildPath.cp1 unit PgHome.component unit absurd
-
+      HH.slot _pgHome unit PgHome.component unit absurd
     Route.Plotdata _ ->
-      HH.slot' ChildPath.cp2 unit PgPlotdata.component state.route absurd
-      
+      HH.slot _pgPlotdata unit PgPlotdata.component state.route absurd
     Route.Infrared _ ->
-      HH.slot' ChildPath.cp3 unit PgInfrared.component state.route absurd
-
+      HH.slot _pgInfrared unit PgInfrared.component state.route absurd
     Route.Settings ->
-      HH.slot' ChildPath.cp4 unit PgSettings.component unit absurd
-
+      HH.slot _pgSettings unit PgSettings.component unit absurd
     Route.About ->
-      HH.slot' ChildPath.cp5 unit PgAbout.component unit absurd
+      HH.slot _pgAbout unit PgAbout.component unit absurd
 
-  eval :: Query ~> H.ParentDSL State Query ChildQuery ChildSlot Void m
-  eval = case _ of
-
-    Goto newRoute next -> do
-      { route } <- H.get
-      when (route /= newRoute) do
-        H.modify_ \state -> state { route = newRoute }
-      pure next
+-- |
+handleQuery :: forall action slots output m a. Query a -> H.HalogenM State action slots output m (Maybe a)
+handleQuery = case _ of
+  Goto newRoute a -> do
+    { route } <- H.get
+    when (route /= newRoute) do
+      H.modify_ \state -> state { route = newRoute }
+    pure (Just a)
 
 -- | entry point
 main :: Effect Unit
@@ -125,5 +140,5 @@ routeSignal hio interface =
   where
 
   pathChanged _ newRoute = do
-    void $ launchAff $ hio.query $ H.action $ Goto newRoute
+    void $ launchAff $ hio.query $ H.tell (Goto newRoute)
     pure unit

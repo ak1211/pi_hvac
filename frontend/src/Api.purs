@@ -156,13 +156,18 @@ type ParamGetMeasurements =
 type RespGetMeasurements = Array MeasEnvironment
 
 -- | HTTPメソッドgetをエンドポイント(/api/v1/measurements)に送った結果を得る
-getApiV1Measurements :: ParamGetMeasurements -> Aff (AX.Response (Either String RespGetMeasurements))
+getApiV1Measurements :: ParamGetMeasurements -> Aff (Either String (AX.Response RespGetMeasurements))
 getApiV1Measurements param =
-  AX.get ResponseFormat.string url
-  <#> \res -> case res.body of
-        Left err -> res {body = Left $ AX.printResponseFormatError err}
-        Right ok -> res {body = Bifunctor.rmap pickupData $ decoder ok}
+  resp <$> AX.get ResponseFormat.string url
   where
+
+  resp = case _ of
+    Right ok -> do
+      newBody <- decoder ok.body
+      Right $ ok {body = pickupData newBody}
+
+    Left err ->
+      Left $ AX.printError err
 
   url =
     (unwrap param.baseurl) <> "/api/v1/measurements" <> opts
@@ -200,13 +205,18 @@ instance showRespGetI2cDevices            :: Show RespGetI2cDevices where
   show = genericShow
 
 -- | HTTPメソッドgetをエンドポイント(/api/v1/i2c-devices)に送った結果を得る
-getApiV1I2cDevices :: ParamGetI2cDevices -> Aff (AX.Response (Either String RespGetI2cDevices))
+getApiV1I2cDevices :: ParamGetI2cDevices -> Aff (Either String (AX.Response RespGetI2cDevices))
 getApiV1I2cDevices param =
-  AX.get ResponseFormat.string url
-  <#> \res -> case res.body of
-        Left err -> res {body = Left $ AX.printResponseFormatError err}
-        Right ok -> res {body = decoder ok}
+  resp <$> AX.get ResponseFormat.string url
   where
+
+  resp = case _ of
+    Right ok -> do
+      newBody <- decoder ok.body
+      Right $ ok {body = newBody}
+
+    Left err ->
+      Left $ AX.printError err
 
   url =
     (unwrap param.baseurl) <> "/api/v1/i2c-devices" <> opts
@@ -252,13 +262,18 @@ type ParamGetInfraRed =
 type RespGetInfraRed = DatumInfraRed
 
 -- | HTTPメソッドgetをエンドポイント(/api/v1/infra-red)に送った結果を得る
-getApiV1InfraRed :: ParamGetInfraRed -> Aff (AX.Response (Either String RespGetInfraRed))
+getApiV1InfraRed :: ParamGetInfraRed -> Aff (Either String (AX.Response RespGetInfraRed))
 getApiV1InfraRed param =
-  AX.get ResponseFormat.string url
-  <#> \res -> case res.body of
-        Left err -> res {body = Left $ AX.printResponseFormatError err}
-        Right ok -> res {body = decoder ok}
+  resp <$> AX.get ResponseFormat.string url
   where
+
+  resp = case _ of
+    Right ok -> do
+      newBody <- decoder ok.body
+      Right $ ok {body = newBody}
+
+    Left err ->
+      Left $ AX.printError err
 
   url =
     String.joinWith ""
@@ -277,12 +292,9 @@ type ParamPostInfraRed =
 type RespPostInfraRed = String
 
 -- | HTTPメソッドpostをエンドポイント(/api/v1/infra-red)に送った結果を得る
-postApiV1InfraRed :: ParamPostInfraRed -> Aff (AX.Response (Either String RespPostInfraRed))
+postApiV1InfraRed :: ParamPostInfraRed -> Aff (Either String (AX.Response RespPostInfraRed))
 postApiV1InfraRed param =
-  AX.request request
-  <#> \res -> case res.body of
-        Left err -> res {body = Left $ AX.printResponseFormatError err}
-        Right ok -> res {body = Right ok}
+  Bifunctor.lmap AX.printError <$> AX.request request
   where
 
   request = AX.defaultRequest
@@ -307,12 +319,9 @@ type ParamPostTransIR =
 type RespPostTransIR = String
 
 -- | HTTPメソッドpostをエンドポイント(/api/v1/trans-ir)に送った結果を得る
-postApiV1TransIR :: ParamPostTransIR-> Aff (AX.Response (Either String RespPostTransIR))
+postApiV1TransIR :: ParamPostTransIR-> Aff (Either String (AX.Response RespPostTransIR))
 postApiV1TransIR param =
-  AX.request request
-  <#> \res -> case res.body of
-        Left err -> res {body = Left $ AX.printResponseFormatError err}
-        Right ok -> res {body = Right ok}
+  Bifunctor.lmap AX.printError <$> AX.request request
   where
 
   request = AX.defaultRequest
@@ -377,13 +386,18 @@ instance showRespGetIrdb            :: Show RespGetIrdb where
   show = genericShow
 
 -- | HTTPメソッドgetをエンドポイント(/api/v1/irdb)に送った結果を得る
-getApiV1Irdb :: ParamGetIrdb -> Aff (AX.Response (Either String RespGetIrdb))
+getApiV1Irdb :: ParamGetIrdb -> Aff (Either String (AX.Response RespGetIrdb))
 getApiV1Irdb param =
-  AX.get ResponseFormat.string url
-  <#> \res -> case res.body of
-        Left err -> res {body = Left $ AX.printResponseFormatError err}
-        Right ok -> res {body = decoder ok}
+  resp <$> AX.get ResponseFormat.string url
   where
+
+  resp = case _ of
+    Right ok -> do
+      newBody <- decoder ok.body
+      Right $ ok {body = newBody}
+
+    Left err ->
+      Left $ AX.printError err
 
   url =
     (unwrap param.baseurl) <> "/api/v1/irdb" <> opts
@@ -425,13 +439,18 @@ instance decodeRespGetIrdbManufacturers         :: Decode RespGetIrdbManufacture
 -- | HTTPメソッドgetをエンドポイント(/api/v1/irdb/manufacturers)に送った結果を得る
 getApiV1IrdbManufacturers
   :: ParamGetIrdbManufacturers
-  -> Aff (AX.Response (Either String RespGetIrdbManufacturers))
+  -> Aff (Either String (AX.Response RespGetIrdbManufacturers))
 getApiV1IrdbManufacturers param =
-  AX.get ResponseFormat.string url
-  <#> \res -> case res.body of
-        Left err -> res {body = Left $ AX.printResponseFormatError err}
-        Right ok -> res {body = decoder ok}
+  resp <$> AX.get ResponseFormat.string url
   where
+
+  resp = case _ of
+    Right ok -> do
+      newBody <- decoder ok.body
+      Right $ ok {body = newBody}
+
+    Left err ->
+      Left $ AX.printError err
 
   url =
     (unwrap param.baseurl) <> "/api/v1/irdb-manufacturers"

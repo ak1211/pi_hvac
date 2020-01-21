@@ -80,7 +80,7 @@ instance navigateAppM :: Navigate AppM where
     when (nextPathQuery /= currentPathQuery) do
       liftEffect $ psInterface.pushState locState.state nextPathQuery
 
-instance navigateHalogenM :: Navigate m => Navigate (H.HalogenM s f g p o m) where
+instance navigateHalogenM :: Navigate m => Navigate (H.HalogenM state action slots output m) where
   navigate = H.lift <<< navigate
 
 -- | HasApiAccessible
@@ -94,7 +94,7 @@ instance hasApiAccessibleAppM :: HasApiAccessible AppM where
 
 instance hasApiAccessibleHalogenM
   :: HasApiAccessible m
-  => HasApiAccessible (H.HalogenM s f g p o m)
+  => HasApiAccessible (H.HalogenM state action slots outout m)
   where
 
   getApiBaseURL = H.lift getApiBaseURL

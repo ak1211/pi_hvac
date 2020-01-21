@@ -1,6 +1,6 @@
 {
   "name": "frontend",
-  "set": "psc-0.12.3",
+  "set": "psc-0.13.5",
   "source": "https://github.com/purescript/package-sets.git",
   "depends": [
     "affjax",

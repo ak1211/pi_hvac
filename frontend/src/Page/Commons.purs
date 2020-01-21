@@ -70,7 +70,7 @@ disposePopover :: Effect Unit
 disposePopover = disposePopoverJs
 
 -- | page navbar
-navbar :: forall p f. (Route -> HQ.Action f) -> Route -> H.HTML p f
+navbar :: forall p f. (Route -> f) -> Route -> HH.HTML p f
 navbar navigateAction current =
   HH.nav
     [ HP.classes
@@ -113,18 +113,6 @@ navbar navigateAction current =
         , navItem Route.About
         ] 
       ]
-    -- navbar right side settings button
-    {-}
-    , HH.button
-      [ HP.classes
-        [ HB.btn
-        , HB.btnOutlineWarning
-        , HB.justifyContentEnd
-        ]
-      , HE.onClick $ HE.input_ $ navigateAction Route.Settings
-      ]
-      [ icon "fas fa-wrench" ]
-      -}
     ]
   where
 
@@ -145,7 +133,7 @@ navbar navigateAction current =
             ]
             else
             [ HP.classes [ HB.btn, HB.navLink ]
-            , HE.onClick $ HE.input_ $ navigateAction route
+            , HE.onClick (\_ -> Just $ navigateAction route)
             ]
           )
           [ HH.text $ Route.routeToString route
@@ -153,14 +141,14 @@ navbar navigateAction current =
         ]
 
 -- | icon font
-icon :: forall p i. String -> H.HTML p i
+icon :: forall p i. String -> HH.HTML p i
 icon iconName =
   HH.span
     [ HP.class_ $ HC.ClassName "icon" ]
     [ HH.i [ HP.class_ $ HC.ClassName iconName ] [] ]
 
 --- | page footer
-footer :: forall p i. H.HTML p i
+footer :: forall p i. HH.HTML p i
 footer =
   HH.footer
     [ HP.classes [ HB.bgLight, HB.py2 ]
@@ -186,7 +174,7 @@ getContext2dById id_ = do
     maybeC2d elem = Just <$> Canvas.getContext2D elem
 
 -- |
-toast :: forall p i. Array (H.HTML p i) -> H.HTML p i
+toast :: forall p i. Array (HH.HTML p i) -> HH.HTML p i
 toast xs =
   HH.div
     [ HP.attr (HC.AttrName "aria-live") "polite"
@@ -195,7 +183,7 @@ toast xs =
     xs
 
 -- |
-toastItem :: forall p i. String -> String -> String -> H.HTML p i
+toastItem :: forall p i. String -> String -> String -> HH.HTML p i
 toastItem head subhead text =
   HH.div
     [ HP.classes [ HC.ClassName "toast", HB.bgInfo, HB.mxAuto ]
@@ -225,7 +213,7 @@ toastItem head subhead text =
     ]
 
 -- |
-snackbarItem :: forall p i. String -> H.HTML p i
+snackbarItem :: forall p i. String -> HH.HTML p i
 snackbarItem text =
   HH.div
     [ HP.classes [ HC.ClassName "toast", HB.bgInfo, HB.mxAuto ]

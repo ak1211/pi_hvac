@@ -28,7 +28,6 @@ import Foreign.ChartJs (LineChartInstance, ChartDatasets, LineChartOptions, draw
 import Graphics.Canvas (Context2D)
 import Halogen as H
 import Halogen.HTML as HH
-import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Page.Commons as Commons
 import Prelude
@@ -41,8 +40,10 @@ type State =
   }
 
 data Query a
-  = Initialize a
-  | HandleInput Input a
+  = HandleInput Input a
+
+data Action
+  = Initialize
 
 -- |
 type Input =
@@ -54,45 +55,57 @@ type Input =
 -- | chartjs component
 component :: forall m. MonadAff m => H.Component HH.HTML Query Input Void m
 component =
-  H.lifecycleComponent
+  H.mkComponent
     { initialState: initialState
     , render
-    , eval
-    , initializer: Just $ H.action Initialize
-    , finalizer: Nothing
-    , receiver: HE.input HandleInput
-    }
-  where
-
-  initialState input =
-    { canvasId: input.canvasId
-    , datasets: input.datasets
-    , options: input.options
-    , maybeLineChart: Nothing
+    , eval: H.mkEval $ H.defaultEval
+      { handleAction = handleAction
+      , handleQuery = handleQuery
+      , initialize = Just Initialize
+      , receive = const Nothing
+      }
     }
 
-  render state =
-    HH.canvas [ HP.id_ state.canvasId ]
+-- |
+initialState :: Input -> State
+initialState input =
+  { canvasId: input.canvasId
+  , datasets: input.datasets
+  , options: input.options
+  , maybeLineChart: Nothing
+  }
 
-  eval :: Query ~> H.ComponentDSL State Query Void m
-  eval = case _ of
-    Initialize next -> do
+-- |
+render :: forall i m. State -> H.ComponentHTML Action i m
+render state =
+  HH.canvas [ HP.id_ state.canvasId ]
+
+-- |
+handleAction
+  :: forall i o m
+   . MonadAff m
+  => Action
+  -> H.HalogenM State Action i o m Unit
+handleAction = case _ of
+    Initialize -> do
       state <- H.get
       maybeChart <- H.liftEffect $ newChart state.canvasId state.datasets state.options
       H.put $ state { maybeLineChart = maybeChart }
-      pure next
+      pure mempty
 
-    HandleInput input next -> do
-      state <- H.get
-      H.liftEffect $ maybe (pure unit) destroyLineChart state.maybeLineChart
-      maybeChart <- H.liftEffect $ newChart input.canvasId input.datasets input.options
-      let newState = state  { canvasId = input.canvasId
-                            , datasets = input.datasets
-                            , options = input.options
-                            , maybeLineChart = maybeChart
-                            } 
-      H.put newState
-      pure next
+handleQuery :: forall i o m a. MonadAff m => Query a -> H.HalogenM State Action i o m (Maybe a)
+handleQuery = case _ of
+  HandleInput input a -> do
+    state <- H.get
+    H.liftEffect $ maybe (pure unit) destroyLineChart state.maybeLineChart
+    maybeChart <- H.liftEffect $ newChart input.canvasId input.datasets input.options
+    let newState = state  { canvasId = input.canvasId
+                          , datasets = input.datasets
+                          , options = input.options
+                          , maybeLineChart = maybeChart
+                          } 
+    H.put newState
+    pure (Just a)
 
 -- |
 newChart :: String -> ChartDatasets -> LineChartOptions -> Effect (Maybe LineChartInstance)

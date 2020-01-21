@@ -59,9 +59,11 @@ type State =
   }
 
 data Query a
-  = NavigateTo Route a
-  | Initialize a
-  | OnClickI2CDetect a
+
+data Action
+  = NavigateTo Route
+  | Initialize
+  | OnClickI2CDetect
 
 -- | child component
 component
@@ -71,47 +73,24 @@ component
   => HasApiAccessible m
   => H.Component HH.HTML Query Unit Void m
 component =
-  H.lifecycleComponent
-    { initialState: const initialState
+  H.mkComponent
+    { initialState: initialState
     , render
-    , eval
-    , initializer: Just (H.action Initialize)
-    , finalizer: Nothing
-    , receiver: const Nothing
-    }
-  where
-
-  initialState =
-    { urlApiV1IRCSV: ""
-    , detectedAddresses: Nothing
+    , eval: H.mkEval $ H.defaultEval
+      { handleAction = handleAction
+      , initialize = Just Initialize
+      }
     }
 
-  eval :: Query ~> H.ComponentDSL State Query Void m
-  eval = case _ of
-    NavigateTo route next -> do
-      navigate route
-      pure next
+-- |
+initialState :: forall i. i -> State
+initialState _ =
+  { urlApiV1IRCSV: ""
+  , detectedAddresses: Nothing
+  }
 
-    Initialize next -> do
-      url <- getApiBaseURL
-      H.modify_ _{ urlApiV1IRCSV = Api.urlApiV1Ircsv url }
-      pure next
-
-    OnClickI2CDetect next -> do
-      url <- getApiBaseURL
-      millisec <- getApiTimeout
-      val <- H.liftAff $
-              let param = {baseurl: url, busnumber: Just 1}
-                  request = Api.getApiV1I2cDevices param
-                  timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
-                  response r = Bifunctor.rmap (\(Api.RespGetI2cDevices ds) -> ds.data) r.body
-              in
-              sequential $ parallel (response <$> request) <|> parallel timeout
-      H.modify_ \st -> st { detectedAddresses = Just val }
-      pure next
-
-
-render :: State -> H.ComponentHTML Query
+-- |
+render :: forall m. State -> H.ComponentHTML Action () m
 render state =
   HH.div
       [ HP.id_ "wrapper"
@@ -129,7 +108,39 @@ render state =
     ]
 
 -- |
-i2cDetectButton :: forall p f. HQ.Action f -> H.HTML p f
+handleAction
+  :: forall output m
+   . MonadAff m
+  => Navigate m
+  => HasApiAccessible m
+  => Action
+  -> H.HalogenM State Action () output m Unit
+handleAction = case _ of
+    NavigateTo route -> do
+      navigate route
+      pure mempty
+
+    Initialize -> do
+      url <- getApiBaseURL
+      H.modify_ _{ urlApiV1IRCSV = Api.urlApiV1Ircsv url }
+      pure mempty
+
+    OnClickI2CDetect -> do
+      url <- getApiBaseURL
+      millisec <- getApiTimeout
+      val <- H.liftAff $
+              let param = {baseurl: url, busnumber: Just 1}
+                  request = Api.getApiV1I2cDevices param
+                  timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
+                  response = Bifunctor.rmap (\x -> i2cdevices x.body)
+                  i2cdevices (Api.RespGetI2cDevices x) = x.data
+              in
+              sequential $ parallel (response <$> request) <|> parallel timeout
+      H.modify_ \st -> st { detectedAddresses = Just val }
+      pure mempty
+
+-- |
+i2cDetectButton :: forall p f. f -> HH.HTML p f
 i2cDetectButton action =
   HH.button
     [ HP.classes
@@ -137,19 +148,19 @@ i2cDetectButton action =
       , HB.btnOutlineSuccess
       , HB.justifyContentCenter
       ]
-    , HE.onClick $ HE.input_ action
+    , HE.onClick (\_ -> Just action)
     , style do
       marginLeft (px 31.0)
     ]
     [ Commons.icon "fas fa-search" ]
 
 -- |
-i2c :: forall p i. H.HTML p i
+i2c :: forall p i. HH.HTML p i
 i2c =
   HH.span_ [ HH.text "I", HH.sup_ [ HH.text "2"], HH.text "C" ]
 
 -- |
-i2cDevices :: forall p i. Maybe DetectedAddresses -> H.HTML p i
+i2cDevices :: forall p i. Maybe DetectedAddresses -> HH.HTML p i
 i2cDevices = case _ of
   Nothing ->
     HH.p
@@ -202,13 +213,14 @@ i2cDevices = case _ of
     f n = Tuple n (toHexS n)
 
 -- |
-uploadCsvFile :: forall p i. State -> H.HTML p i
+uploadCsvFile :: forall p i. State -> HH.HTML p i
 uploadCsvFile state =
   HH.form
     [ HP.method POST
     , HP.action $ state.urlApiV1IRCSV
     , HP.enctype $ MediaType "multipart/form-data"
     ]
+    {-}
     [ HH.div
       [ HP.classes [ HB.formGroup ] ]
       [ HH.label_
@@ -220,7 +232,8 @@ uploadCsvFile state =
         , HP.name "ircsv"
         ]
       ]
-    , HH.div
+      -}
+    [ HH.div
       [ HP.classes [ HB.formGroup ] ]
       [ HH.input
         [ HP.classes [ HB.btn, HB.btnPrimary ]
@@ -231,7 +244,7 @@ uploadCsvFile state =
     ]
 
 -- |
-tableHeading :: forall p i. Array Int -> H.HTML p i
+tableHeading :: forall p i. Array Int -> HH.HTML p i
 tableHeading range =
   HH.thead_ [ HH.tr_ $ hd : tl ]
   where
@@ -242,12 +255,12 @@ tableHeading range =
     f = HH.th_ <<< Array.singleton <<< HH.text <<< toHexS
 
 -- |
-tableBody :: forall p i. Array Int -> Array (Array String) -> H.HTML p i
+tableBody :: forall p i. Array Int -> Array (Array String) -> HH.HTML p i
 tableBody range array2D =
   HH.tbody_ $ Array.zipWith tableRow range array2D
 
 -- |
-tableRow :: forall p i. Int -> Array String -> H.HTML p i
+tableRow :: forall p i. Int -> Array String -> HH.HTML p i
 tableRow index columns =
   HH.tr_  $ hd : tl
   where
