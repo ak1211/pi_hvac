@@ -16,7 +16,7 @@
 -}
 
 module Components.InfraredCodeEditor
-  ( EditingForm
+  ( IRCodeEditForm
   , InputInfraredCode(..)
   , Output(..)
   , Query
@@ -25,12 +25,12 @@ module Components.InfraredCodeEditor
 
 import Prelude
 
-import Effect.Class.Console (logShow)
+import Effect.Class.Console (log, logShow)
 import Data.Bifunctor as Bifunctor
 import Data.Const (Const(..))
 import Data.Either (Either(..), either)
 import Data.Int as Int
-import Data.Newtype (class Newtype)
+import Data.Newtype (class Newtype, unwrap)
 import Data.Maybe (Maybe(..))
 import Data.String as String
 import Data.Symbol (SProxy(..))
@@ -63,7 +63,7 @@ data Query a
 -- |
 data Action
   = HandleInput InputInfraredCode
-  | HandleEditingForm EditingFormInfraredCodeText
+  | HandleEditingForm InfraredCodeText
   | OnClickReset
   | OnClickSeparate32bits
 
@@ -118,11 +118,16 @@ handleAction = case _ of
     text <- H.get
     when (text /= inputText) do
       H.modify_ (const inputText)
----      void $ H.query Formless._formless $ Just $ Formless.setAll {infraredCodeInputText: inputText} 
+---      void $ H.query Formless._formless $ Just $ Formless.setAll {irCodeText: inputText} 
     pure mempty
 
-  HandleEditingForm infraredtext -> do
-    logShow ("EditingForm" :: String)
+  HandleEditingForm infraredCodeText -> do
+    logShow ("IRCodeEditForm---" :: String)
+    let hexstr = unwrap infraredCodeText.irCodeText
+    log hexstr
+    logShow ("---IRCodeEditForm" :: String)
+    H.put hexstr
+    H.raise $ TextChanged hexstr
     pure mempty
 
   OnClickReset -> do
@@ -134,14 +139,14 @@ handleAction = case _ of
 
   OnClickSeparate32bits -> do
     text <- H.get
----     void $ H.query unit $ Formless.setAll_ {infraredCodeInputText: formatTo32bits text} 
+---     void $ H.query unit $ Formless.setAll_ {irCodeText: formatTo32bits text} 
     pure mempty
 
 ---  HandleInput input -> do
 ---    {text} <- H.get
 ---    when (text /= input) do
 ---      H.modify_ \st -> st {text = input}
-------      void $ H.query unit $ Formless.setAll_ {infraredCodeInputText: input} 
+------      void $ H.query unit $ Formless.setAll_ {irCodeText: input} 
 ---    pure mempty
 
 ---  where
@@ -156,9 +161,9 @@ handleAction = case _ of
 ---      pure next
 ---
 ---    Formless (Formless.Submitted formOutputs) next -> do
----      let irForm :: EditingFormInfraredCodeText
+---      let irForm :: InfraredCodeText
 ---          irForm = Formless.unwrapOutputFields formOutputs
----          hexstr = toBinaries irForm.infraredCodeInputText
+---          hexstr = toBinaries irForm.irCodeText
 ---      H.modify_ _ {text = hexstr}
 ---      H.raise $ TextChanged hexstr
 ---      pure next
@@ -177,14 +182,14 @@ handleAction = case _ of
 ---
 ---    OnClickSeparate32bits next -> do
 ---      {text} <- H.get
----      void $ H.query unit $ Formless.setAll_ {infraredCodeInputText: formatTo32bits text} 
+---      void $ H.query unit $ Formless.setAll_ {irCodeText: formatTo32bits text} 
 ---      pure next
 ---
 ---    HandleInput input next -> do
 ---      {text} <- H.get
 ---      when (text /= input) do
 ---        H.modify_ \st -> st {text = input}
----        void $ H.query unit $ Formless.setAll_ {infraredCodeInputText: input} 
+---        void $ H.query unit $ Formless.setAll_ {irCodeText: input} 
 ---      pure next
 
 -- |
@@ -194,7 +199,7 @@ handleAction = case _ of
 ---    text <- H.get
 ---    when (text /= inputText) do
 ---      H.modify_ (const inputText)
----      void $ H.query Formless._formless $ Just $ Formless.setAll {infraredCodeInputText: inputText} 
+---      void $ H.query Formless._formless $ Just $ Formless.setAll {irCodeText: inputText} 
 ---    pure (Just a)
 
 -- |
@@ -260,14 +265,13 @@ resetButton action isActive =
 --
 -- Formless
 --
-type EditingFormInfraredCodeText = { | EditingFormRow Formless.OutputType }
+type InfraredCodeText = { | IRCodeEditFormRow Formless.OutputType }
 
-newtype EditingForm r f = EditingForm (r (EditingFormRow f))
+newtype IRCodeEditForm r f = IRCodeEditForm (r (IRCodeEditFormRow f))
+derive instance newtypeIRCodeEditForm' :: Newtype (IRCodeEditForm r f) _
 
-derive instance newtypeEditingForm' :: Newtype (EditingForm r f) _
-
-type EditingFormRow f =
-  ( infraredCodeInputText :: f FieldError String InputInfraredCode
+type IRCodeEditFormRow f =
+  ( irCodeText :: f FieldError String InputInfraredCode
   )
 
 data FieldError
@@ -275,13 +279,13 @@ data FieldError
   | InvalidInfraredCodeText ParseError
 
 -- |
-formComponent :: forall m. MonadAff m => Formless.Component EditingForm (Const Void) () String EditingFormInfraredCodeText m
+formComponent :: forall m. MonadAff m => Formless.Component IRCodeEditForm (Const Void) () String InfraredCodeText m
 formComponent =
   Formless.component
     initialState
     $ Formless.defaultSpec
       { render = renderFormless
-      , handleEvent = Formless.raiseResult
+      , handleEvent = handleEvent
       }
   where
   -- |
@@ -290,9 +294,9 @@ formComponent =
     , initialInputs: Just $ initialInputs input
     }
   -- |
-  validators :: EditingForm Record (Formless.Validation EditingForm m)
+  validators :: IRCodeEditForm Record (Formless.Validation IRCodeEditForm m)
   validators =
-    EditingForm {infraredCodeInputText: validateInfraredCode}
+    IRCodeEditForm {irCodeText: validateInfraredCode}
   -- |
   validateInfraredCode :: forall form. Validation form m FieldError String InputInfraredCode
   validateInfraredCode =
@@ -303,12 +307,11 @@ formComponent =
       in
       Bifunctor.bimap InvalidInfraredCodeText ok $ runParser input infraredCodeTextParser
   -- |
-  initialInputs :: String -> EditingForm Record Formless.InputField
+  initialInputs :: String -> IRCodeEditForm Record Formless.InputField
   initialInputs str =
-    Formless.wrapInputFields {infraredCodeInputText: str}
-
+    Formless.wrapInputFields {irCodeText: str}
   -- |
-  ---renderFormless :: Formless.State EditingForm m -> Formless.HTML' EditingForm Aff
+  ---renderFormless :: Formless.State IRCodeEditForm m -> Formless.HTML' IRCodeEditForm Aff
   renderFormless state =
     HH.div
       [ HP.class_ HB.formGroup
@@ -320,9 +323,9 @@ formComponent =
       , help $ Formless.getResult _infraredCodeInputText state.form
       ]
     where
-
-    _infraredCodeInputText = SProxy :: SProxy "infraredCodeInputText"
-
+    -- |
+    _infraredCodeInputText = SProxy :: SProxy "irCodeText"
+    -- |
     textarea =
       HH.textarea
         [ HP.classes [ HB.formControl, HB.textMonospace ]
@@ -332,7 +335,7 @@ formComponent =
         , HE.onValueInput (Just <<< Formless.setValidate _infraredCodeInputText)
         , HE.onValueChange (\_ -> Just Formless.submit)
         ]
-
+    -- |
     help = case _ of
       NotValidated                        -> initial
       Validating                          -> good "validating..."
@@ -340,13 +343,13 @@ formComponent =
       Error (InvalidInfraredCodeText err) -> bad err
       Success baseband                    -> good "good"
       where
-
+      -- |
       initial =
         good "write a infrared codes"
-
+      -- |
       good str =
         HH.p [] [ HH.text str ]
-
+      -- |
       bad err =
         let (Position p) = parseErrorPosition err
             line = Int.toStringAs Int.decimal p.line
@@ -358,3 +361,9 @@ formComponent =
           [ HH.span [ HP.class_ HB.textDanger ] [ HH.text msg ]
           , HH.text (" at " <> pos)
           ]
+  -- |
+  handleEvent = case _ of
+    Formless.Submitted outputs -> do
+      log "submitted"
+      H.raise (Formless.unwrapOutputFields outputs)
+    Formless.Changed formState -> pure mempty

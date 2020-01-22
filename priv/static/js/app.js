@@ -26296,7 +26296,7 @@ var InvalidInfraredCodeText = (function () {
     };
     return InvalidInfraredCodeText;
 })();
-var EditingForm = function (x) {
+var IRCodeEditForm = function (x) {
     return x;
 };
 var HandleInput = (function () {
@@ -26369,9 +26369,9 @@ var resetButton = function (action) {
 var newtypeInputInfraredCode = new Data_Newtype.Newtype(function (n) {
     return n;
 }, InputInfraredCode);
-var newtypeEditingForm$prime = new Data_Newtype.Newtype(function (n) {
+var newtypeIRCodeEditForm$prime = new Data_Newtype.Newtype(function (n) {
     return n;
-}, EditingForm);
+}, IRCodeEditForm);
 var handleAction = function (dictMonadAff) {
     return function (v) {
         if (v instanceof HandleInput) {
@@ -26384,7 +26384,7 @@ var handleAction = function (dictMonadAff) {
             });
         };
         if (v instanceof HandleEditingForm) {
-            return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Effect_Class_Console.logShow(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()))(Data_Show.showString)("EditingForm"))(function () {
+            return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Effect_Class_Console.logShow(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()))(Data_Show.showString)("IRCodeEditForm"))(function () {
                 return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Monoid.mempty(Data_Monoid.monoidUnit));
             });
         };
@@ -26426,7 +26426,7 @@ var formComponent = function (dictMonadAff) {
         return Formless_Validation.hoistFnE_((dictMonadAff.MonadEffect0()).Monad0())(go);
     })();
     var validators = {
-        infraredCodeInputText: validateInfraredCode
+        codeText: validateInfraredCode
     };
     var renderFormless = function (state) {
         var help = (function () {
@@ -26458,29 +26458,29 @@ var formComponent = function (dictMonadAff) {
                 if (v instanceof Formless_Data_FormFieldResult.Success) {
                     return good("good");
                 };
-                throw new Error("Failed pattern match at Components.InfraredCodeEditor (line 336, column 12 - line 342, column 7): " + [ v.constructor.name ]);
+                throw new Error("Failed pattern match at Components.InfraredCodeEditor (line 335, column 12 - line 341, column 7): " + [ v.constructor.name ]);
             };
         })();
         var textarea = Halogen_HTML_Elements.textarea([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.formControl, Halogen_Themes_Bootstrap4.textMonospace ]), Halogen_HTML_Properties.rows(5), Halogen_HTML_Properties.placeholder("Write an on-off pair count (32-bit little endianness) hexadecimal number or json made with 'pigpio irrp.py' file or Click download button."), Halogen_HTML_Properties.value(Formless_Retrieve.getInput(new Data_Symbol.IsSymbol(function () {
-            return "infraredCodeInputText";
-        }))(newtypeEditingForm$prime)()(Data_Symbol.SProxy.value)(state.form)), Halogen_HTML_Events.onValueInput(function ($38) {
+            return "codeText";
+        }))(newtypeIRCodeEditForm$prime)()(Data_Symbol.SProxy.value)(state.form)), Halogen_HTML_Events.onValueInput(function ($38) {
             return Data_Maybe.Just.create(Formless_Action.setValidate(new Data_Symbol.IsSymbol(function () {
-                return "infraredCodeInputText";
-            }))(newtypeEditingForm$prime)()(Data_Symbol.SProxy.value)($38));
+                return "codeText";
+            }))(newtypeIRCodeEditForm$prime)()(Data_Symbol.SProxy.value)($38));
         }), Halogen_HTML_Events.onValueChange(function (v) {
             return new Data_Maybe.Just(Formless_Action.submit);
         }) ]);
         return Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.formGroup), Halogen_HTML_Events.onKeyUp(function (v) {
             return new Data_Maybe.Just(Formless_Action.submit);
         }) ])([ Halogen_HTML_Elements.label_([ Halogen_HTML_Core.text("on-off counts (count is based on 38kHz carrier)") ]), textarea, help(Formless_Retrieve.getResult(new Data_Symbol.IsSymbol(function () {
-            return "infraredCodeInputText";
-        }))(newtypeEditingForm$prime)()(Data_Symbol.SProxy.value)(state.form)) ]);
+            return "codeText";
+        }))(newtypeIRCodeEditForm$prime)()(Data_Symbol.SProxy.value)(state.form)) ]);
     };
     var initialInputs = function (str) {
-        return Formless_Transform_Record.wrapInputFields(newtypeEditingForm$prime)(Heterogeneous_Mapping.hmapRecord()(Heterogeneous_Mapping.mapRecordWithIndexCons(new Data_Symbol.IsSymbol(function () {
-            return "infraredCodeInputText";
+        return Formless_Transform_Record.wrapInputFields(newtypeIRCodeEditForm$prime)(Heterogeneous_Mapping.hmapRecord()(Heterogeneous_Mapping.mapRecordWithIndexCons(new Data_Symbol.IsSymbol(function () {
+            return "codeText";
         }))(Heterogeneous_Mapping.constMapping(Formless_Transform_Record.wrapField(Formless_Types_Form.newtypeInputField)))(Heterogeneous_Mapping.mapRecordWithIndexNil)()()))({
-            infraredCodeInputText: str
+            codeText: str
         });
     };
     var initialState = function (input) {
@@ -26490,33 +26490,33 @@ var formComponent = function (dictMonadAff) {
         };
     };
     return Formless_Component.component(dictMonadAff)()()(Data_Eq.eqRowCons(Data_Eq.eqRowNil)()(new Data_Symbol.IsSymbol(function () {
-        return "infraredCodeInputText";
+        return "codeText";
     }))(Formless_Types_Form.eqInputField(Data_Eq.eqString)))(Formless_Internal_Transform.inputFieldsToFormFieldsCons(new Data_Symbol.IsSymbol(function () {
-        return "infraredCodeInputText";
+        return "codeText";
     }))()(Formless_Internal_Transform.inputFieldsToFormFieldsNil)(Formless_Internal_Transform.row1Cons()()))(Formless_Internal_Transform.inputFieldsToInputCons(new Data_Symbol.IsSymbol(function () {
-        return "infraredCodeInputText";
+        return "codeText";
     }))()(Formless_Internal_Transform.inputFieldsToInputNil)(Formless_Internal_Transform.row1Cons()()))(Formless_Internal_Transform.consCountErrors(new Data_Symbol.IsSymbol(function () {
-        return "infraredCodeInputText";
+        return "codeText";
     }))()(Formless_Internal_Transform.nilCountErrors))(Formless_Internal_Transform.consAllTouched(new Data_Symbol.IsSymbol(function () {
-        return "infraredCodeInputText";
+        return "codeText";
     }))()(Formless_Internal_Transform.nilAllTouched))(Formless_Internal_Transform.setFormFieldsTouchedCons(new Data_Symbol.IsSymbol(function () {
-        return "infraredCodeInputText";
+        return "codeText";
     }))()(Formless_Internal_Transform.setFormFieldsTouchedNil)(Formless_Internal_Transform.row1Cons()()))(Formless_Internal_Transform.replaceFormFieldInputsTouchedCons(new Data_Symbol.IsSymbol(function () {
-        return "infraredCodeInputText";
+        return "codeText";
     }))(Formless_Types_Form.newtypeInputField)(Formless_Types_Form.newtypeFormField)()()(Formless_Internal_Transform.row1Cons()())(Formless_Internal_Transform.replaceFormFieldInputsTouchedNil))(Formless_Internal_Transform.modifyAllCons(new Data_Symbol.IsSymbol(function () {
-        return "infraredCodeInputText";
+        return "codeText";
     }))(Formless_Types_Form.newtypeInputFunction)(Formless_Types_Form.newtypeFormField)()()(Formless_Internal_Transform.row1Cons()())(Formless_Internal_Transform.modifyAllNil))(Formless_Internal_Transform.applyToValidationCons(new Data_Symbol.IsSymbol(function () {
-        return "infraredCodeInputText";
-    }))((dictMonadAff.MonadEffect0()).Monad0())()(newtypeEditingForm$prime)()(Formless_Internal_Transform.row1Cons()())(Formless_Internal_Transform.applyToValidationNil((dictMonadAff.MonadEffect0()).Monad0())))(Formless_Internal_Transform.formFieldsToMaybeOutputCons(new Data_Symbol.IsSymbol(function () {
-        return "infraredCodeInputText";
+        return "codeText";
+    }))((dictMonadAff.MonadEffect0()).Monad0())()(newtypeIRCodeEditForm$prime)()(Formless_Internal_Transform.row1Cons()())(Formless_Internal_Transform.applyToValidationNil((dictMonadAff.MonadEffect0()).Monad0())))(Formless_Internal_Transform.formFieldsToMaybeOutputCons(new Data_Symbol.IsSymbol(function () {
+        return "codeText";
     }))()(Formless_Internal_Transform.formFieldsToMaybeOutputNil)(Formless_Internal_Transform.row1Cons()()))(Formless_Transform_Row.mkInputFieldsFromRowCons(new Data_Symbol.IsSymbol(function () {
-        return "infraredCodeInputText";
-    }))(Formless_Class_Initial.initialString)()(Formless_Transform_Row.mkInputFieldsFromRowNil)(Formless_Internal_Transform.row1Cons()()))(newtypeEditingForm$prime)(newtypeEditingForm$prime)(newtypeEditingForm$prime)(newtypeEditingForm$prime)(newtypeEditingForm$prime)(newtypeEditingForm$prime)(newtypeEditingForm$prime)(newtypeEditingForm$prime)()()()()()()()()()(initialState)({
+        return "codeText";
+    }))(Formless_Class_Initial.initialString)()(Formless_Transform_Row.mkInputFieldsFromRowNil)(Formless_Internal_Transform.row1Cons()()))(newtypeIRCodeEditForm$prime)(newtypeIRCodeEditForm$prime)(newtypeIRCodeEditForm$prime)(newtypeIRCodeEditForm$prime)(newtypeIRCodeEditForm$prime)(newtypeIRCodeEditForm$prime)(newtypeIRCodeEditForm$prime)(newtypeIRCodeEditForm$prime)()()()()()()()()()(initialState)({
         render: renderFormless,
         handleAction: Formless_Component.defaultSpec.handleAction,
         handleQuery: Formless_Component.defaultSpec.handleQuery,
-        handleEvent: Formless_Component.raiseResult(newtypeEditingForm$prime)(Heterogeneous_Mapping.hmapRecord()(Heterogeneous_Mapping.mapRecordWithIndexCons(new Data_Symbol.IsSymbol(function () {
-            return "infraredCodeInputText";
+        handleEvent: Formless_Component.raiseResult(newtypeIRCodeEditForm$prime)(Heterogeneous_Mapping.hmapRecord()(Heterogeneous_Mapping.mapRecordWithIndexCons(new Data_Symbol.IsSymbol(function () {
+            return "codeText";
         }))(Heterogeneous_Mapping.constMapping(Formless_Transform_Record.unwrapField(Formless_Types_Form.newtypeOutputField)))(Heterogeneous_Mapping.mapRecordWithIndexNil)()())),
         receive: Formless_Component.defaultSpec.receive,
         initialize: Formless_Component.defaultSpec.initialize,

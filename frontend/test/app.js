@@ -26222,6 +26222,7 @@ module.exports = {
 var Control_Applicative = require("../Control.Applicative/index.js");
 var Control_Bind = require("../Control.Bind/index.js");
 var Control_Monad_State_Class = require("../Control.Monad.State.Class/index.js");
+var Data_Bifunctor = require("../Data.Bifunctor/index.js");
 var Data_Either = require("../Data.Either/index.js");
 var Data_Eq = require("../Data.Eq/index.js");
 var Data_Function = require("../Data.Function/index.js");
@@ -26286,16 +26287,16 @@ var EmptyField = (function () {
     EmptyField.value = new EmptyField();
     return EmptyField;
 })();
-var InvalidInfraredCode = (function () {
-    function InvalidInfraredCode(value0) {
+var InvalidInfraredCodeText = (function () {
+    function InvalidInfraredCodeText(value0) {
         this.value0 = value0;
     };
-    InvalidInfraredCode.create = function (value0) {
-        return new InvalidInfraredCode(value0);
+    InvalidInfraredCodeText.create = function (value0) {
+        return new InvalidInfraredCodeText(value0);
     };
-    return InvalidInfraredCode;
+    return InvalidInfraredCodeText;
 })();
-var InputForm = function (x) {
+var IRCodeEditForm = function (x) {
     return x;
 };
 var HandleInput = (function () {
@@ -26307,14 +26308,14 @@ var HandleInput = (function () {
     };
     return HandleInput;
 })();
-var HandleInputForm = (function () {
-    function HandleInputForm(value0) {
+var HandleEditingForm = (function () {
+    function HandleEditingForm(value0) {
         this.value0 = value0;
     };
-    HandleInputForm.create = function (value0) {
-        return new HandleInputForm(value0);
+    HandleEditingForm.create = function (value0) {
+        return new HandleEditingForm(value0);
     };
-    return HandleInputForm;
+    return HandleEditingForm;
 })();
 var OnClickReset = (function () {
     function OnClickReset() {
@@ -26330,8 +26331,8 @@ var OnClickSeparate32bits = (function () {
     OnClickSeparate32bits.value = new OnClickSeparate32bits();
     return OnClickSeparate32bits;
 })();
-var toBinaries = function ($37) {
-    return Data_String_Common.joinWith("")(Utils.lines(Utils.removeAllSpaces(Data_String_Common.toUpper($37))));
+var toBinaries = function ($40) {
+    return Data_String_Common.joinWith("")(Utils.lines(Utils.removeAllSpaces(Data_String_Common.toUpper($40))));
 };
 var separate32bitsButton = function (action) {
     return function (isActive) {
@@ -26342,7 +26343,7 @@ var separate32bitsButton = function (action) {
             if (!v) {
                 return Halogen_HTML_Properties.attr("disabled")("disabled");
             };
-            throw new Error("Failed pattern match at Components.InfraredCodeEditor (line 235, column 14 - line 239, column 1): " + [ v.constructor.name ]);
+            throw new Error("Failed pattern match at Components.InfraredCodeEditor (line 241, column 14 - line 245, column 1): " + [ v.constructor.name ]);
         };
         return Halogen_HTML_Elements.button([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.m1, Halogen_Themes_Bootstrap4.btn, Halogen_Themes_Bootstrap4.btnLight, Halogen_Themes_Bootstrap4.justifyContentCenter ]), Halogen_HTML_Events.onClick(function (v) {
             return new Data_Maybe.Just(action);
@@ -26358,7 +26359,7 @@ var resetButton = function (action) {
             if (!v) {
                 return Halogen_HTML_Properties.attr("disabled")("disabled");
             };
-            throw new Error("Failed pattern match at Components.InfraredCodeEditor (line 255, column 14 - line 259, column 1): " + [ v.constructor.name ]);
+            throw new Error("Failed pattern match at Components.InfraredCodeEditor (line 261, column 14 - line 265, column 1): " + [ v.constructor.name ]);
         };
         return Halogen_HTML_Elements.button([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.m1, Halogen_Themes_Bootstrap4.btn, Halogen_Themes_Bootstrap4.btnLight, Halogen_Themes_Bootstrap4.justifyContentCenter ]), Halogen_HTML_Events.onClick(function (v) {
             return new Data_Maybe.Just(action);
@@ -26368,9 +26369,9 @@ var resetButton = function (action) {
 var newtypeInputInfraredCode = new Data_Newtype.Newtype(function (n) {
     return n;
 }, InputInfraredCode);
-var newtypeInputForm$prime = new Data_Newtype.Newtype(function (n) {
+var newtypeIRCodeEditForm$prime = new Data_Newtype.Newtype(function (n) {
     return n;
-}, InputForm);
+}, IRCodeEditForm);
 var handleAction = function (dictMonadAff) {
     return function (v) {
         if (v instanceof HandleInput) {
@@ -26382,13 +26383,26 @@ var handleAction = function (dictMonadAff) {
                 });
             });
         };
-        if (v instanceof HandleInputForm) {
-            return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Monoid.mempty(Data_Monoid.monoidUnit));
+        if (v instanceof HandleEditingForm) {
+            return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Effect_Class_Console.logShow(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()))(Data_Show.showString)("IRCodeEditForm---"))(function () {
+                var hexstr = Data_Newtype.unwrap(newtypeInputInfraredCode)(v.value0.irCodeText);
+                return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Effect_Class_Console.log(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()))(hexstr))(function () {
+                    return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Effect_Class_Console.logShow(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()))(Data_Show.showString)("---IRCodeEditForm"))(function () {
+                        return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.put(Halogen_Query_HalogenM.monadStateHalogenM)(hexstr))(function () {
+                            return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Halogen_Query_HalogenM.raise(new TextChanged(hexstr)))(function () {
+                                return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Monoid.mempty(Data_Monoid.monoidUnit));
+                            });
+                        });
+                    });
+                });
+            });
         };
         if (v instanceof OnClickReset) {
-            return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.put(Halogen_Query_HalogenM.monadStateHalogenM)(""))(function () {
-                return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Halogen_Query_HalogenM.raise(Reset.value))(function () {
-                    return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Monoid.mempty(Data_Monoid.monoidUnit));
+            return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Effect_Class_Console.logShow(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()))(Data_Show.showString)("Reset"))(function () {
+                return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Control_Monad_State_Class.put(Halogen_Query_HalogenM.monadStateHalogenM)(""))(function () {
+                    return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Halogen_Query_HalogenM.raise(Reset.value))(function () {
+                        return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Monoid.mempty(Data_Monoid.monoidUnit));
+                    });
                 });
             });
         };
@@ -26397,7 +26411,7 @@ var handleAction = function (dictMonadAff) {
                 return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Monoid.mempty(Data_Monoid.monoidUnit));
             });
         };
-        throw new Error("Failed pattern match at Components.InfraredCodeEditor (line 114, column 16 - line 137, column 16): " + [ v.constructor.name ]);
+        throw new Error("Failed pattern match at Components.InfraredCodeEditor (line 115, column 16 - line 143, column 16): " + [ v.constructor.name ]);
     };
 };
 var formatTo32bits = (function () {
@@ -26408,25 +26422,20 @@ var formatTo32bits = (function () {
         var strArrArr = Data_Functor.map(Data_Functor.functorArray)(Data_String_CodePoints.fromCodePointArray)(arrarr);
         return Data_String_Common.joinWith(" ")(strArrArr);
     };
-    return function ($38) {
-        return Utils.unlines(Data_Functor.map(Data_Functor.functorArray)(go)(Utils.lines($38)));
+    return function ($41) {
+        return Utils.unlines(Data_Functor.map(Data_Functor.functorArray)(go)(Utils.lines($41)));
     };
 })();
 var formComponent = function (dictMonadAff) {
     var validateInfraredCode = (function () {
         var go = function (input) {
-            var success = function (v) {
-                return new Data_Either.Right(input);
-            };
-            var failure = function (x) {
-                return new Data_Either.Left(new InvalidInfraredCode(x));
-            };
-            return Data_Either.either(failure)(success)(Text_Parsing_Parser.runParser(input)(InfraredRemote_Code.infraredHexStringParser));
+            var ok = Data_Function["const"](input);
+            return Data_Bifunctor.bimap(Data_Either.bifunctorEither)(InvalidInfraredCodeText.create)(ok)(Text_Parsing_Parser.runParser(input)(InfraredRemote_Code.infraredCodeTextParser));
         };
         return Formless_Validation.hoistFnE_((dictMonadAff.MonadEffect0()).Monad0())(go);
     })();
     var validators = {
-        infraredCodeInputText: validateInfraredCode
+        irCodeText: validateInfraredCode
     };
     var renderFormless = function (state) {
         var help = (function () {
@@ -26452,35 +26461,35 @@ var formComponent = function (dictMonadAff) {
                 if (v instanceof Formless_Data_FormFieldResult["Error"] && v.value0 instanceof EmptyField) {
                     return initial;
                 };
-                if (v instanceof Formless_Data_FormFieldResult["Error"] && v.value0 instanceof InvalidInfraredCode) {
+                if (v instanceof Formless_Data_FormFieldResult["Error"] && v.value0 instanceof InvalidInfraredCodeText) {
                     return bad(v.value0.value0);
                 };
                 if (v instanceof Formless_Data_FormFieldResult.Success) {
                     return good("good");
                 };
-                throw new Error("Failed pattern match at Components.InfraredCodeEditor (line 337, column 12 - line 343, column 7): " + [ v.constructor.name ]);
+                throw new Error("Failed pattern match at Components.InfraredCodeEditor (line 339, column 12 - line 345, column 7): " + [ v.constructor.name ]);
             };
         })();
         var textarea = Halogen_HTML_Elements.textarea([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.formControl, Halogen_Themes_Bootstrap4.textMonospace ]), Halogen_HTML_Properties.rows(5), Halogen_HTML_Properties.placeholder("Write an on-off pair count (32-bit little endianness) hexadecimal number or json made with 'pigpio irrp.py' file or Click download button."), Halogen_HTML_Properties.value(Formless_Retrieve.getInput(new Data_Symbol.IsSymbol(function () {
-            return "infraredCodeInputText";
-        }))(newtypeInputForm$prime)()(Data_Symbol.SProxy.value)(state.form)), Halogen_HTML_Events.onValueInput(function ($39) {
+            return "irCodeText";
+        }))(newtypeIRCodeEditForm$prime)()(Data_Symbol.SProxy.value)(state.form)), Halogen_HTML_Events.onValueInput(function ($42) {
             return Data_Maybe.Just.create(Formless_Action.setValidate(new Data_Symbol.IsSymbol(function () {
-                return "infraredCodeInputText";
-            }))(newtypeInputForm$prime)()(Data_Symbol.SProxy.value)($39));
+                return "irCodeText";
+            }))(newtypeIRCodeEditForm$prime)()(Data_Symbol.SProxy.value)($42));
         }), Halogen_HTML_Events.onValueChange(function (v) {
             return new Data_Maybe.Just(Formless_Action.submit);
         }) ]);
         return Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.formGroup), Halogen_HTML_Events.onKeyUp(function (v) {
             return new Data_Maybe.Just(Formless_Action.submit);
         }) ])([ Halogen_HTML_Elements.label_([ Halogen_HTML_Core.text("on-off counts (count is based on 38kHz carrier)") ]), textarea, help(Formless_Retrieve.getResult(new Data_Symbol.IsSymbol(function () {
-            return "infraredCodeInputText";
-        }))(newtypeInputForm$prime)()(Data_Symbol.SProxy.value)(state.form)) ]);
+            return "irCodeText";
+        }))(newtypeIRCodeEditForm$prime)()(Data_Symbol.SProxy.value)(state.form)) ]);
     };
     var initialInputs = function (str) {
-        return Formless_Transform_Record.wrapInputFields(newtypeInputForm$prime)(Heterogeneous_Mapping.hmapRecord()(Heterogeneous_Mapping.mapRecordWithIndexCons(new Data_Symbol.IsSymbol(function () {
-            return "infraredCodeInputText";
+        return Formless_Transform_Record.wrapInputFields(newtypeIRCodeEditForm$prime)(Heterogeneous_Mapping.hmapRecord()(Heterogeneous_Mapping.mapRecordWithIndexCons(new Data_Symbol.IsSymbol(function () {
+            return "irCodeText";
         }))(Heterogeneous_Mapping.constMapping(Formless_Transform_Record.wrapField(Formless_Types_Form.newtypeInputField)))(Heterogeneous_Mapping.mapRecordWithIndexNil)()()))({
-            infraredCodeInputText: str
+            irCodeText: str
         });
     };
     var initialState = function (input) {
@@ -26489,35 +26498,46 @@ var formComponent = function (dictMonadAff) {
             initialInputs: Data_Maybe.Just.create(initialInputs(input))
         };
     };
+    var handleEvent = function (v) {
+        if (v instanceof Formless_Types_Component.Submitted) {
+            return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Effect_Class_Console.log(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()))("submitted"))(function () {
+                return Halogen_Query_HalogenM.raise(Formless_Transform_Record.unwrapOutputFields(newtypeIRCodeEditForm$prime)(Heterogeneous_Mapping.hmapRecord()(Heterogeneous_Mapping.mapRecordWithIndexCons(new Data_Symbol.IsSymbol(function () {
+                    return "irCodeText";
+                }))(Heterogeneous_Mapping.constMapping(Formless_Transform_Record.unwrapField(Formless_Types_Form.newtypeOutputField)))(Heterogeneous_Mapping.mapRecordWithIndexNil)()()))(v.value0));
+            });
+        };
+        if (v instanceof Formless_Types_Component.Changed) {
+            return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Monoid.mempty(Data_Monoid.monoidUnit));
+        };
+        throw new Error("Failed pattern match at Components.InfraredCodeEditor (line 365, column 17 - line 369, column 40): " + [ v.constructor.name ]);
+    };
     return Formless_Component.component(dictMonadAff)()()(Data_Eq.eqRowCons(Data_Eq.eqRowNil)()(new Data_Symbol.IsSymbol(function () {
-        return "infraredCodeInputText";
+        return "irCodeText";
     }))(Formless_Types_Form.eqInputField(Data_Eq.eqString)))(Formless_Internal_Transform.inputFieldsToFormFieldsCons(new Data_Symbol.IsSymbol(function () {
-        return "infraredCodeInputText";
+        return "irCodeText";
     }))()(Formless_Internal_Transform.inputFieldsToFormFieldsNil)(Formless_Internal_Transform.row1Cons()()))(Formless_Internal_Transform.inputFieldsToInputCons(new Data_Symbol.IsSymbol(function () {
-        return "infraredCodeInputText";
+        return "irCodeText";
     }))()(Formless_Internal_Transform.inputFieldsToInputNil)(Formless_Internal_Transform.row1Cons()()))(Formless_Internal_Transform.consCountErrors(new Data_Symbol.IsSymbol(function () {
-        return "infraredCodeInputText";
+        return "irCodeText";
     }))()(Formless_Internal_Transform.nilCountErrors))(Formless_Internal_Transform.consAllTouched(new Data_Symbol.IsSymbol(function () {
-        return "infraredCodeInputText";
+        return "irCodeText";
     }))()(Formless_Internal_Transform.nilAllTouched))(Formless_Internal_Transform.setFormFieldsTouchedCons(new Data_Symbol.IsSymbol(function () {
-        return "infraredCodeInputText";
+        return "irCodeText";
     }))()(Formless_Internal_Transform.setFormFieldsTouchedNil)(Formless_Internal_Transform.row1Cons()()))(Formless_Internal_Transform.replaceFormFieldInputsTouchedCons(new Data_Symbol.IsSymbol(function () {
-        return "infraredCodeInputText";
+        return "irCodeText";
     }))(Formless_Types_Form.newtypeInputField)(Formless_Types_Form.newtypeFormField)()()(Formless_Internal_Transform.row1Cons()())(Formless_Internal_Transform.replaceFormFieldInputsTouchedNil))(Formless_Internal_Transform.modifyAllCons(new Data_Symbol.IsSymbol(function () {
-        return "infraredCodeInputText";
+        return "irCodeText";
     }))(Formless_Types_Form.newtypeInputFunction)(Formless_Types_Form.newtypeFormField)()()(Formless_Internal_Transform.row1Cons()())(Formless_Internal_Transform.modifyAllNil))(Formless_Internal_Transform.applyToValidationCons(new Data_Symbol.IsSymbol(function () {
-        return "infraredCodeInputText";
-    }))((dictMonadAff.MonadEffect0()).Monad0())()(newtypeInputForm$prime)()(Formless_Internal_Transform.row1Cons()())(Formless_Internal_Transform.applyToValidationNil((dictMonadAff.MonadEffect0()).Monad0())))(Formless_Internal_Transform.formFieldsToMaybeOutputCons(new Data_Symbol.IsSymbol(function () {
-        return "infraredCodeInputText";
+        return "irCodeText";
+    }))((dictMonadAff.MonadEffect0()).Monad0())()(newtypeIRCodeEditForm$prime)()(Formless_Internal_Transform.row1Cons()())(Formless_Internal_Transform.applyToValidationNil((dictMonadAff.MonadEffect0()).Monad0())))(Formless_Internal_Transform.formFieldsToMaybeOutputCons(new Data_Symbol.IsSymbol(function () {
+        return "irCodeText";
     }))()(Formless_Internal_Transform.formFieldsToMaybeOutputNil)(Formless_Internal_Transform.row1Cons()()))(Formless_Transform_Row.mkInputFieldsFromRowCons(new Data_Symbol.IsSymbol(function () {
-        return "infraredCodeInputText";
-    }))(Formless_Class_Initial.initialString)()(Formless_Transform_Row.mkInputFieldsFromRowNil)(Formless_Internal_Transform.row1Cons()()))(newtypeInputForm$prime)(newtypeInputForm$prime)(newtypeInputForm$prime)(newtypeInputForm$prime)(newtypeInputForm$prime)(newtypeInputForm$prime)(newtypeInputForm$prime)(newtypeInputForm$prime)()()()()()()()()()(initialState)({
+        return "irCodeText";
+    }))(Formless_Class_Initial.initialString)()(Formless_Transform_Row.mkInputFieldsFromRowNil)(Formless_Internal_Transform.row1Cons()()))(newtypeIRCodeEditForm$prime)(newtypeIRCodeEditForm$prime)(newtypeIRCodeEditForm$prime)(newtypeIRCodeEditForm$prime)(newtypeIRCodeEditForm$prime)(newtypeIRCodeEditForm$prime)(newtypeIRCodeEditForm$prime)(newtypeIRCodeEditForm$prime)()()()()()()()()()(initialState)({
         render: renderFormless,
         handleAction: Formless_Component.defaultSpec.handleAction,
         handleQuery: Formless_Component.defaultSpec.handleQuery,
-        handleEvent: Formless_Component.raiseResult(newtypeInputForm$prime)(Heterogeneous_Mapping.hmapRecord()(Heterogeneous_Mapping.mapRecordWithIndexCons(new Data_Symbol.IsSymbol(function () {
-            return "infraredCodeInputText";
-        }))(Heterogeneous_Mapping.constMapping(Formless_Transform_Record.unwrapField(Formless_Types_Form.newtypeOutputField)))(Heterogeneous_Mapping.mapRecordWithIndexNil)()())),
+        handleEvent: handleEvent,
         receive: Formless_Component.defaultSpec.receive,
         initialize: Formless_Component.defaultSpec.initialize,
         finalize: Formless_Component.defaultSpec.finalize
@@ -26527,8 +26547,8 @@ var render = function (dictMonadAff) {
     return function (state) {
         return Halogen_HTML_Elements.div_([ resetButton(OnClickReset.value)(true), separate32bitsButton(OnClickSeparate32bits.value)(true), Halogen_HTML.slot()(new Data_Symbol.IsSymbol(function () {
             return "formless";
-        }))(Data_Ord.ordUnit)(Formless_Types_Component["_formless"])(Data_Unit.unit)(formComponent(dictMonadAff))(state)(function ($40) {
-            return Data_Maybe.Just.create(HandleInputForm.create($40));
+        }))(Data_Ord.ordUnit)(Formless_Types_Component["_formless"])(Data_Unit.unit)(formComponent(dictMonadAff))(state)(function ($43) {
+            return Data_Maybe.Just.create(HandleEditingForm.create($43));
         }) ]);
     };
 };
@@ -26540,8 +26560,8 @@ var component = function (dictMonadAff) {
         "eval": Halogen_Component.mkEval({
             handleAction: handleAction(dictMonadAff),
             handleQuery: Halogen_Component.defaultEval.handleQuery,
-            receive: function ($41) {
-                return Data_Maybe.Just.create(HandleInput.create($41));
+            receive: function ($44) {
+                return Data_Maybe.Just.create(HandleInput.create($44));
             },
             initialize: Halogen_Component.defaultEval.initialize,
             finalize: Halogen_Component.defaultEval.finalize
@@ -26557,7 +26577,7 @@ module.exports = {
     eqInputInfraredCode: eqInputInfraredCode
 };
 
-},{"../Control.Applicative/index.js":29,"../Control.Bind/index.js":35,"../Control.Monad.State.Class/index.js":58,"../Data.Either/index.js":129,"../Data.Eq/index.js":133,"../Data.Function/index.js":149,"../Data.Functor/index.js":156,"../Data.Int/index.js":168,"../Data.Maybe/index.js":197,"../Data.Monoid/index.js":206,"../Data.Newtype/index.js":207,"../Data.Ord/index.js":214,"../Data.Show/index.js":235,"../Data.String.CodePoints/index.js":237,"../Data.String.Common/index.js":241,"../Data.Symbol/index.js":250,"../Data.Unit/index.js":266,"../Effect.Class.Console/index.js":278,"../Formless.Action/index.js":314,"../Formless.Class.Initial/index.js":315,"../Formless.Component/index.js":316,"../Formless.Data.FormFieldResult/index.js":317,"../Formless.Internal.Transform/index.js":320,"../Formless.Retrieve/index.js":321,"../Formless.Transform.Record/index.js":322,"../Formless.Transform.Row/index.js":323,"../Formless.Types.Component/index.js":324,"../Formless.Types.Form/index.js":325,"../Formless.Validation/index.js":326,"../Halogen.Component/index.js":337,"../Halogen.HTML.Core/index.js":341,"../Halogen.HTML.Elements/index.js":342,"../Halogen.HTML.Events/index.js":343,"../Halogen.HTML.Properties/index.js":344,"../Halogen.HTML/index.js":345,"../Halogen.Query.HalogenM/index.js":348,"../Halogen.Themes.Bootstrap4/index.js":352,"../Heterogeneous.Mapping/index.js":361,"../InfraredRemote.Code/index.js":362,"../Text.Parsing.Parser/index.js":399,"../Utils/index.js":408}],26:[function(require,module,exports){
+},{"../Control.Applicative/index.js":29,"../Control.Bind/index.js":35,"../Control.Monad.State.Class/index.js":58,"../Data.Bifunctor/index.js":105,"../Data.Either/index.js":129,"../Data.Eq/index.js":133,"../Data.Function/index.js":149,"../Data.Functor/index.js":156,"../Data.Int/index.js":168,"../Data.Maybe/index.js":197,"../Data.Monoid/index.js":206,"../Data.Newtype/index.js":207,"../Data.Ord/index.js":214,"../Data.Show/index.js":235,"../Data.String.CodePoints/index.js":237,"../Data.String.Common/index.js":241,"../Data.Symbol/index.js":250,"../Data.Unit/index.js":266,"../Effect.Class.Console/index.js":278,"../Formless.Action/index.js":314,"../Formless.Class.Initial/index.js":315,"../Formless.Component/index.js":316,"../Formless.Data.FormFieldResult/index.js":317,"../Formless.Internal.Transform/index.js":320,"../Formless.Retrieve/index.js":321,"../Formless.Transform.Record/index.js":322,"../Formless.Transform.Row/index.js":323,"../Formless.Types.Component/index.js":324,"../Formless.Types.Form/index.js":325,"../Formless.Validation/index.js":326,"../Halogen.Component/index.js":337,"../Halogen.HTML.Core/index.js":341,"../Halogen.HTML.Elements/index.js":342,"../Halogen.HTML.Events/index.js":343,"../Halogen.HTML.Properties/index.js":344,"../Halogen.HTML/index.js":345,"../Halogen.Query.HalogenM/index.js":348,"../Halogen.Themes.Bootstrap4/index.js":352,"../Heterogeneous.Mapping/index.js":361,"../InfraredRemote.Code/index.js":362,"../Text.Parsing.Parser/index.js":399,"../Utils/index.js":408}],26:[function(require,module,exports){
 // Generated by purs version 0.12.5
 "use strict";
 var Data_Functor = require("../Data.Functor/index.js");
@@ -99582,7 +99602,7 @@ var formatOnOffPair = (function () {
         });
     });
 })();
-var infraredHexStringParser = Control_Alt.alt(Text_Parsing_Parser.altParserT(Data_Identity.monadIdentity))(formatOnOffPair)(formatPigpioIrrp);
+var infraredCodeTextParser = Control_Alt.alt(Text_Parsing_Parser.altParserT(Data_Identity.monadIdentity))(formatOnOffPair)(formatPigpioIrrp);
 var eucideanRingCount = Data_EuclideanRing.euclideanRingInt;
 var eqIrRemoteControlCode = new Data_Eq.Eq(function (x) {
     return function (y) {
@@ -99821,7 +99841,7 @@ module.exports = {
     decodePhase3: decodePhase3,
     decodePhase4: decodePhase4,
     fromMilliseconds: fromMilliseconds,
-    infraredHexStringParser: infraredHexStringParser,
+    infraredCodeTextParser: infraredCodeTextParser,
     toMilliseconds: toMilliseconds,
     toInfraredHexString: toInfraredHexString,
     toIrCodeFrames: toIrCodeFrames,
@@ -103136,7 +103156,7 @@ var HandleEditorUpdate = (function () {
     return HandleEditorUpdate;
 })();
 var toBaseband = function (inp) {
-    return Data_Bifunctor.lmap(Data_Either.bifunctorEither)(Text_Parsing_Parser.parseErrorMessage)(Text_Parsing_Parser.runParser(inp)(InfraredRemote_Code.infraredHexStringParser));
+    return Data_Bifunctor.lmap(Data_Either.bifunctorEither)(Text_Parsing_Parser.parseErrorMessage)(Text_Parsing_Parser.runParser(inp)(InfraredRemote_Code.infraredCodeTextParser));
 };
 var showHex = function (v) {
     var str = Data_Int.toStringAs(Data_Int.hexadecimal)(v);
@@ -104128,7 +104148,7 @@ var _infraredCodeEditor = Data_Symbol.SProxy.value;
 var renderInfraredRemoconCode = function (dictMonadAff) {
     return function (state) {
         var display = function (ir) {
-            var baseband = Data_Bifunctor.lmap(Data_Either.bifunctorEither)(Text_Parsing_Parser.parseErrorMessage)(Text_Parsing_Parser.runParser(ir.code)(InfraredRemote_Code.infraredHexStringParser));
+            var baseband = Data_Bifunctor.lmap(Data_Either.bifunctorEither)(Text_Parsing_Parser.parseErrorMessage)(Text_Parsing_Parser.runParser(ir.code)(InfraredRemote_Code.infraredCodeTextParser));
             var bitPatterns = Control_Bind.bindFlipped(Data_Either.bindEither)(function ($343) {
                 return Data_Traversable.traverse(Data_Traversable.traversableArray)(Data_Either.applicativeEither)(InfraredRemote_Code.decodePhase2)(InfraredRemote_Code.decodePhase1($343));
             })(baseband);
