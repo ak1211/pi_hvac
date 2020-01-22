@@ -26,6 +26,7 @@ import Affjax as AX
 import Api as Api
 import AppM (class HasApiAccessible, class Navigate, getApiBaseURL, getApiTimeout, navigate)
 import CSS (em, margin, marginBottom, marginTop, minHeight, padding, px, rem, width)
+import Components.InfraredCodeEditor (InputInfraredCode(..))
 import Components.InfraredCodeEditor as Editor
 import Control.Alt ((<|>))
 import Data.Array ((:), (..))
@@ -56,7 +57,7 @@ import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Themes.Bootstrap4 as HB
-import InfraredRemote.Code (Baseband(..), Bit, Count, InfraredCodeFrame(..), InfraredHexString, InfraredLeader(..), IrRemoteControlCode(..), decodePhase1, decodePhase2, decodePhase3, decodePhase4, infraredHexStringParser, toInfraredHexString, toIrRemoteControlCode, toLsbFirst, toMilliseconds, toMsbFirst)
+import InfraredRemote.Code (Baseband(..), Bit, Count, InfraredCodeFrame(..), InfraredHexString, InfraredLeader(..), IrRemoteControlCode(..), decodePhase1, decodePhase2, decodePhase3, decodePhase4, infraredCodeTextParser, toInfraredHexString, toIrRemoteControlCode, toLsbFirst, toMilliseconds, toMsbFirst)
 import InfraredRemote.HitachiHvac (HitachiHvac(..))
 import InfraredRemote.MitsubishiElectricHvac (MitsubishiElectricHvac(..))
 import InfraredRemote.MitsubishiElectricHvac as Me
@@ -943,23 +944,23 @@ renderInfraredRemoconCode state =
     $ case state.infraredValue of
       Nothing ->
         [ HH.h3_ [ HH.text "Edit codes" ]
-        , HH.slot _infraredCodeEditor unit Editor.component "" (Just <<< HandleEditorUpdate)
+        , HH.slot _infraredCodeEditor unit Editor.component (InputInfraredCode "") (Just <<< HandleEditorUpdate)
         ]
 
       Just (Left _) ->
         [ HH.h3_ [ HH.text "Edit codes" ]
-        , HH.slot _infraredCodeEditor unit Editor.component "" (Just <<< HandleEditorUpdate)
+        , HH.slot _infraredCodeEditor unit Editor.component (InputInfraredCode "") (Just <<< HandleEditorUpdate)
         ]
 
       Just (Right (Api.DatumInfraRed ir)) ->
         [ HH.h3_ [ HH.text "Edit codes" ]
-        , HH.slot _infraredCodeEditor unit Editor.component ir.code (Just <<< HandleEditorUpdate)
+        , HH.slot _infraredCodeEditor unit Editor.component (InputInfraredCode ir.code) (Just <<< HandleEditorUpdate)
         , display ir
         ]
     where
 
     display ir =
-      let baseband      = Bifunctor.lmap parseErrorMessage (runParser ir.code infraredHexStringParser)
+      let baseband      = Bifunctor.lmap parseErrorMessage (runParser ir.code infraredCodeTextParser)
           bitPatterns   = (traverse decodePhase2 <<< decodePhase1) =<< baseband
           irframes      = traverse decodePhase3 =<< bitPatterns
           irRemoteCode  = Bifunctor.rmap decodePhase4 irframes
@@ -1142,9 +1143,9 @@ irdbTable (Api.RespGetIrdb irdb) =
         ]
       ]
 
-toBaseband :: InfraredHexString -> Either String Baseband
+toBaseband :: String -> Either String Baseband
 toBaseband inp =
-  Bifunctor.lmap parseErrorMessage (runParser inp infraredHexStringParser)
+  Bifunctor.lmap parseErrorMessage (runParser inp infraredCodeTextParser)
 
 -- |
 popoverContents :: InfraredHexString -> String

@@ -28,7 +28,7 @@ module InfraredRemote.Code
   , decodePhase3
   , decodePhase4
   , fromMilliseconds
-  , infraredHexStringParser
+  , infraredCodeTextParser
   , toMilliseconds
   , toInfraredHexString
   , toIrCodeFrames
@@ -108,12 +108,12 @@ toInfraredHexString (Baseband pulses) =
         | otherwise = Int.toStringAs Int.hexadecimal x
 
 -- |
-infraredHexStringParser:: Parser InfraredHexString Baseband
-infraredHexStringParser =
+infraredCodeTextParser:: Parser String Baseband
+infraredCodeTextParser =
   formatOnOffPair <|> formatPigpioIrrp 
 
 --| 
-formatPigpioIrrp :: Parser InfraredHexString Baseband
+formatPigpioIrrp :: Parser String Baseband
 formatPigpioIrrp = do
   Tuple _ times <- (skipSpaces *> jsonObject)
   eof
@@ -141,7 +141,7 @@ formatPigpioIrrp = do
         Just {on: fromMilliseconds a, off: fromMilliseconds b}
       pulse _ = Nothing
 
-  jsonObject :: Parser InfraredHexString (Tuple String (Array Int))
+  jsonObject :: Parser String (Tuple String (Array Int))
   jsonObject = do
     void $ char '{'
     vs <- Array.many (skipSpaces *> hashmap <* sepalator)
@@ -151,7 +151,7 @@ formatPigpioIrrp = do
     --
     maybe (fail "Empty content.") pure $ Array.head vs
 
-  hashmap :: Parser InfraredHexString (Tuple String (Array Int))
+  hashmap :: Parser String (Tuple String (Array Int))
   hashmap = do
     k <- key
     skipSpaces
@@ -160,11 +160,11 @@ formatPigpioIrrp = do
     values <- jsonArray
     pure $ Tuple (fromCharArray k) values
     where
-      key :: Parser InfraredHexString (Array Char)
+      key :: Parser String (Array Char)
       key =
         between (string "\"") (string "\"") (Array.some $ noneOf ['\"'])
 
-  jsonArray :: Parser InfraredHexString (Array Int)
+  jsonArray :: Parser String (Array Int)
   jsonArray = do
     void $ char '['
     vs <- Array.some (skipSpaces *> number <* sepalator)
@@ -177,28 +177,28 @@ formatPigpioIrrp = do
           Nothing -> fail "value is must be numeric."
           Just x -> pure x
 
-  sepalator :: Parser InfraredHexString Unit
+  sepalator :: Parser String Unit
   sepalator = do
     skipSpaces
     try (void $ char ',') <|> pure unit
 
 
 --| 
-formatOnOffPair :: Parser InfraredHexString Baseband
+formatOnOffPair :: Parser String Baseband
 formatOnOffPair = do
   xs <- Array.some (pulse <* skipSpaces)
   eof
   pure (Baseband xs)
   where
 
-  pulse :: Parser InfraredHexString Pulse
+  pulse :: Parser String Pulse
   pulse = do
     -- 入力値はon -> offの順番
     ton <- valueOf32Bit <?> "on-counts"
     toff <- valueOf32Bit <?> "off-counts"
     pure {on: Count ton, off: Count toff}
 
-  valueOf32Bit :: Parser InfraredHexString Int
+  valueOf32Bit :: Parser String Int
   valueOf32Bit = do
     -- 入力値はLower -> Higherの順番
     lower <- hexd16bit <?> "lower-pair hex digit"

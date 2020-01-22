@@ -16,18 +16,19 @@
 -}
 
 module Components.InfraredCodeEditor
-  where
----  ( IRInputForm
----  , Input
----  , Output(..)
----  , Query
----  , component
----  ) where
+  ( EditingForm
+  , InputInfraredCode(..)
+  , Output(..)
+  , Query
+  , component
+  ) where
 
 import Prelude
 
+import Effect.Class.Console (logShow)
+import Data.Bifunctor as Bifunctor
 import Data.Const (Const(..))
-import Data.Either (Either(..))
+import Data.Either (Either(..), either)
 import Data.Int as Int
 import Data.Newtype (class Newtype)
 import Data.Maybe (Maybe(..))
@@ -44,53 +45,48 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Query as HQ
 import Halogen.Themes.Bootstrap4 as HB
-import InfraredRemote.Code (InfraredHexString, infraredHexStringParser)
+import InfraredRemote.Code (infraredCodeTextParser)
 import Text.Parsing.Parser (ParseError, parseErrorMessage, parseErrorPosition, runParser)
 import Text.Parsing.Parser.Pos (Position(..))
 import Utils as Utils
 
+
 -- |
-type State =
-  { text        :: String
-  , formErrors  :: Int
-  , formDirty   :: Boolean
-  }
+newtype InputInfraredCode = InputInfraredCode String
+derive instance newtypeInputInfraredCode    :: Newtype InputInfraredCode _
+derive newtype instance eqInputInfraredCode :: Eq InputInfraredCode
 
 -- |
 data Query a
-  = HandleInput Input a
+---  = HandleInput InputInfraredCode a
 
 -- |
 data Action
----  = HandleFormless (Formless.Message' IRInputForm) a
-  = HandleIRInputForm InfraredInput
+  = HandleInput InputInfraredCode
+  | HandleEditingForm EditingFormInfraredCodeText
   | OnClickReset
   | OnClickSeparate32bits
-
--- |
-type Input = String
 
 -- |
 data Output
   = TextChanged String
   | Reset
 
----type ChildQuery m = Formless.Query' IRInputForm m
-type ChildQuery = Unit
-type ChildSlots = Unit
+type State = String
 
--- | component
+-- |
 component
   :: forall m
    . MonadAff m
-  => H.Component HH.HTML Query Input Output m
+  => H.Component HH.HTML Query InputInfraredCode Output m
 component =
   H.mkComponent
-    { initialState: initialState
+    { initialState: const ""
     , render
     , eval: H.mkEval $ H.defaultEval
       { handleAction = handleAction
----      , handleEvent = handleEvent
+---      , handleQuery = handleQuery
+      , receive = Just <<< HandleInput  
       }
     }
 
@@ -102,32 +98,13 @@ component =
 ---    }
 
 -- |
-initialState :: forall i. i -> State
-initialState _ = 
-  { text: ""
-  , formErrors: 0
-  , formDirty: false
-  }
-
--- |
 ---render :: forall m. MonadAff m => State -> H.ComponentHTML Action () m
 render state =
----  let ini = { initialInputs: initialInputs state.text
----            , validators
----            , render: renderFormless
----            }
----  in
   HH.div_
----    [ resetButton OnClickReset state.formDirty
----    , separate32bitsButton OnClickSeparate32bits state.formDirty
-    ---, HH.slot unit Formless.component ini (HE.input Formless)
-    [ HH.slot Formless._formless unit formComponent state.text (Just <<< HandleIRInputForm)
+    [ resetButton OnClickReset true
+    , separate32bitsButton OnClickSeparate32bits true
+    , HH.slot Formless._formless unit formComponent state (Just <<< HandleEditingForm)
     ]
-
--- |
----handleEvent = case _ of
----  Formless.Submitted outputs -> H.raise (Formless.unwrapOutputFields outputs)
----  Formless.Changed formState -> pure mempty --- logShow $ delete (SProxy :: _ "form") formState
 
 -- |
 handleAction
@@ -136,25 +113,35 @@ handleAction
   => Action
   -> H.HalogenM State Action i Output m Unit
 handleAction = case _ of
-  HandleIRInputForm infraredtext ->
+  HandleInput (InputInfraredCode inputText) -> do
+    logShow ("Input" :: String)
+    text <- H.get
+    when (text /= inputText) do
+      H.modify_ (const inputText)
+---      void $ H.query Formless._formless $ Just $ Formless.setAll {infraredCodeInputText: inputText} 
+    pure mempty
+
+  HandleEditingForm infraredtext -> do
+    logShow ("EditingForm" :: String)
     pure mempty
 
   OnClickReset -> do
+    logShow ("Reset" :: String)
 ---    eval Formless.resetAll
----    H.put initialState
+    H.put ""
     H.raise Reset
     pure mempty
 
   OnClickSeparate32bits -> do
-    {text} <- H.get
----     void $ H.query unit $ Formless.setAll_ {ircode: formatTo32bits text} 
+    text <- H.get
+---     void $ H.query unit $ Formless.setAll_ {infraredCodeInputText: formatTo32bits text} 
     pure mempty
 
 ---  HandleInput input -> do
 ---    {text} <- H.get
 ---    when (text /= input) do
 ---      H.modify_ \st -> st {text = input}
-------      void $ H.query unit $ Formless.setAll_ {ircode: input} 
+------      void $ H.query unit $ Formless.setAll_ {infraredCodeInputText: input} 
 ---    pure mempty
 
 ---  where
@@ -169,9 +156,9 @@ handleAction = case _ of
 ---      pure next
 ---
 ---    Formless (Formless.Submitted formOutputs) next -> do
----      let irForm :: InfraredInput
+---      let irForm :: EditingFormInfraredCodeText
 ---          irForm = Formless.unwrapOutputFields formOutputs
----          hexstr = toBinaries irForm.ircode
+---          hexstr = toBinaries irForm.infraredCodeInputText
 ---      H.modify_ _ {text = hexstr}
 ---      H.raise $ TextChanged hexstr
 ---      pure next
@@ -190,15 +177,25 @@ handleAction = case _ of
 ---
 ---    OnClickSeparate32bits next -> do
 ---      {text} <- H.get
----      void $ H.query unit $ Formless.setAll_ {ircode: formatTo32bits text} 
+---      void $ H.query unit $ Formless.setAll_ {infraredCodeInputText: formatTo32bits text} 
 ---      pure next
 ---
 ---    HandleInput input next -> do
 ---      {text} <- H.get
 ---      when (text /= input) do
 ---        H.modify_ \st -> st {text = input}
----        void $ H.query unit $ Formless.setAll_ {ircode: input} 
+---        void $ H.query unit $ Formless.setAll_ {infraredCodeInputText: input} 
 ---      pure next
+
+-- |
+---handleQuery :: forall m a. Query a -> H.HalogenM State Action () Output m (Maybe a)
+---handleQuery = case _ of
+---  HandleInput (InputInfraredCode inputText) a -> do
+---    text <- H.get
+---    when (text /= inputText) do
+---      H.modify_ (const inputText)
+---      void $ H.query Formless._formless $ Just $ Formless.setAll {infraredCodeInputText: inputText} 
+---    pure (Just a)
 
 -- |
 toBinaries :: String -> String
@@ -263,81 +260,85 @@ resetButton action isActive =
 --
 -- Formless
 --
-type InfraredInput = {ircode :: InfraredHexString}
+type EditingFormInfraredCodeText = { | EditingFormRow Formless.OutputType }
+
+newtype EditingForm r f = EditingForm (r (EditingFormRow f))
+
+derive instance newtypeEditingForm' :: Newtype (EditingForm r f) _
+
+type EditingFormRow f =
+  ( infraredCodeInputText :: f FieldError String InputInfraredCode
+  )
 
 data FieldError
   = EmptyField
-  | InvalidInfraredCode ParseError
-
-newtype IRInputForm r f = IRInputForm (r
-  ( ircode :: f FieldError String String
-  ))
-
-derive instance newtypeIRInputForm :: Newtype (IRInputForm r f) _
+  | InvalidInfraredCodeText ParseError
 
 -- |
-initialInputs :: String -> IRInputForm Record Formless.InputField
-initialInputs str =
-  Formless.wrapInputFields {ircode: str}
-
--- |
-formComponent :: forall m. MonadAff m => Formless.Component IRInputForm (Const Void) () String InfraredInput m
+formComponent :: forall m. MonadAff m => Formless.Component EditingForm (Const Void) () String EditingFormInfraredCodeText m
 formComponent =
   Formless.component
-    (\in_ -> { validators: validators, initialInputs: Just $ initialInputs in_})
+    initialState
     $ Formless.defaultSpec
       { render = renderFormless
       , handleEvent = Formless.raiseResult
       }
   where
-
   -- |
-  validators :: IRInputForm Record (Formless.Validation IRInputForm m)
+  initialState input =
+    { validators: validators
+    , initialInputs: Just $ initialInputs input
+    }
+  -- |
+  validators :: EditingForm Record (Formless.Validation EditingForm m)
   validators =
-    IRInputForm {ircode: validateInfraredCode}
-
+    EditingForm {infraredCodeInputText: validateInfraredCode}
   -- |
-  validateInfraredCode :: forall form. Validation form m FieldError String String
+  validateInfraredCode :: forall form. Validation form m FieldError String InputInfraredCode
   validateInfraredCode =
     Formless.hoistFnE_ go
     where
-
-    go str = case runParser str infraredHexStringParser of
-      Right _ -> Right str
-      Left err -> Left (InvalidInfraredCode err)
+    go input =
+      let ok = const $ InputInfraredCode input
+      in
+      Bifunctor.bimap InvalidInfraredCodeText ok $ runParser input infraredCodeTextParser
+  -- |
+  initialInputs :: String -> EditingForm Record Formless.InputField
+  initialInputs str =
+    Formless.wrapInputFields {infraredCodeInputText: str}
 
   -- |
-  ---renderFormless :: Formless.State IRInputForm m -> Formless.HTML' IRInputForm Aff
+  ---renderFormless :: Formless.State EditingForm m -> Formless.HTML' EditingForm Aff
   renderFormless state =
     HH.div
       [ HP.class_ HB.formGroup
       , HE.onKeyUp (\_ -> Just Formless.submit)
-  --    , HE.onPaste (\_ -> Just Formless.submit)
+---      , HE.onPaste (\_ -> Just Formless.submit)
       ]
       [ HH.label_ [ HH.text "on-off counts (count is based on 38kHz carrier)" ]
       , textarea
-      , help $ Formless.getResult _ircode state.form
+      , help $ Formless.getResult _infraredCodeInputText state.form
       ]
     where
 
-    _ircode = SProxy :: SProxy "ircode"
+    _infraredCodeInputText = SProxy :: SProxy "infraredCodeInputText"
 
     textarea =
       HH.textarea
         [ HP.classes [ HB.formControl, HB.textMonospace ]
         , HP.rows 5
         , HP.placeholder "Write an on-off pair count (32-bit little endianness) hexadecimal number or json made with 'pigpio irrp.py' file or Click download button."
-        , HP.value $ Formless.getInput _ircode state.form
-        , HE.onValueInput (Just <<< Formless.setValidate _ircode)
+        , HP.value $ Formless.getInput _infraredCodeInputText state.form
+        , HE.onValueInput (Just <<< Formless.setValidate _infraredCodeInputText)
         , HE.onValueChange (\_ -> Just Formless.submit)
         ]
 
     help = case _ of
-      NotValidated                    -> initial
-      Validating                      -> good "validating..."
-      Error EmptyField                -> initial
-      Error (InvalidInfraredCode err) -> bad err
-      Success baseband                -> good "good"
+      NotValidated                        -> initial
+      Validating                          -> good "validating..."
+      Error EmptyField                    -> initial
+      Error (InvalidInfraredCodeText err) -> bad err
+      Success baseband                    -> good "good"
       where
 
       initial =
