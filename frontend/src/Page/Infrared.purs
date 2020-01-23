@@ -26,7 +26,6 @@ import Affjax as AX
 import Api as Api
 import AppM (class HasApiAccessible, class Navigate, getApiBaseURL, getApiTimeout, navigate)
 import CSS (em, margin, marginBottom, marginTop, minHeight, padding, px, rem, width)
-import Components.InfraredCodeEditor (InputInfraredCode(..))
 import Components.InfraredCodeEditor as Editor
 import Control.Alt ((<|>))
 import Data.Array ((:), (..))
@@ -944,17 +943,17 @@ renderInfraredRemoconCode state =
     $ case state.infraredValue of
       Nothing ->
         [ HH.h3_ [ HH.text "Edit codes" ]
-        , HH.slot _infraredCodeEditor unit Editor.component (InputInfraredCode "") (Just <<< HandleEditorUpdate)
+        , HH.slot _infraredCodeEditor unit Editor.component "" (Just <<< HandleEditorUpdate)
         ]
 
       Just (Left _) ->
         [ HH.h3_ [ HH.text "Edit codes" ]
-        , HH.slot _infraredCodeEditor unit Editor.component (InputInfraredCode "") (Just <<< HandleEditorUpdate)
+        , HH.slot _infraredCodeEditor unit Editor.component "" (Just <<< HandleEditorUpdate)
         ]
 
       Just (Right (Api.DatumInfraRed ir)) ->
         [ HH.h3_ [ HH.text "Edit codes" ]
-        , HH.slot _infraredCodeEditor unit Editor.component (InputInfraredCode ir.code) (Just <<< HandleEditorUpdate)
+        , HH.slot _infraredCodeEditor unit Editor.component ir.code (Just <<< HandleEditorUpdate)
         , display ir
         ]
     where
