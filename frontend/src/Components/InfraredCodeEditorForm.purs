@@ -89,12 +89,7 @@ validateInfraredCode =
     Bifunctor.bimap InvalidInfraredCodeText ok $ runParser input infraredCodeTextParser
 
 -- |
-initialInputs :: IRCodeEditForm Record Formless.InputField
-initialInputs =
-  Formless.wrapInputFields {infraredCodeText: ""}
-
--- |
-component :: forall m. MonadAff m => Formless.Component IRCodeEditForm (Const Void) () Unit Output m
+component :: forall m. MonadAff m => Formless.Component IRCodeEditForm (Const Void) () String Output m
 component =
   Formless.component
     initialState
@@ -105,9 +100,9 @@ component =
       }
   where
   -- |
-  initialState _ =
+  initialState i =
     { validators: validators
-    , initialInputs: Just initialInputs
+    , initialInputs: Just $ Formless.wrapInputFields {infraredCodeText: i}
     }
 
   -- |

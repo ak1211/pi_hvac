@@ -26317,17 +26317,12 @@ var validators = function (dictMonadAff) {
         infraredCodeText: validateInfraredCode(dictMonadAff)
     };
 };
-var toBinaries = function ($29) {
-    return Data_String_Common.joinWith("")(Utils.lines(Utils.removeAllSpaces(Data_String_Common.toUpper($29))));
+var toBinaries = function ($28) {
+    return Data_String_Common.joinWith("")(Utils.lines(Utils.removeAllSpaces(Data_String_Common.toUpper($28))));
 };
 var newtypeIRCodeEditForm$prime = new Data_Newtype.Newtype(function (n) {
     return n;
 }, IRCodeEditForm);
-var initialInputs = Formless_Transform_Record.wrapInputFields(newtypeIRCodeEditForm$prime)(Heterogeneous_Mapping.hmapRecord()(Heterogeneous_Mapping.mapRecordWithIndexCons(new Data_Symbol.IsSymbol(function () {
-    return "infraredCodeText";
-}))(Heterogeneous_Mapping.constMapping(Formless_Transform_Record.wrapField(Formless_Types_Form.newtypeInputField)))(Heterogeneous_Mapping.mapRecordWithIndexNil)()()))({
-    infraredCodeText: ""
-});
 var help = (function () {
     var good = function (str) {
         return Halogen_HTML_Elements.p([  ])([ Halogen_HTML_Core.text(str) ]);
@@ -26357,7 +26352,7 @@ var help = (function () {
         if (v instanceof Formless_Data_FormFieldResult.Success) {
             return good("good");
         };
-        throw new Error("Failed pattern match at Components.InfraredCodeEditor.Form (line 198, column 8 - line 204, column 3): " + [ v.constructor.name ]);
+        throw new Error("Failed pattern match at Components.InfraredCodeEditor.Form (line 193, column 8 - line 199, column 3): " + [ v.constructor.name ]);
     };
 })();
 var formatTo32bits = (function () {
@@ -26368,8 +26363,8 @@ var formatTo32bits = (function () {
         var strArrArr = Data_Functor.map(Data_Functor.functorArray)(Data_String_CodePoints.fromCodePointArray)(arrarr);
         return Data_String_Common.joinWith(" ")(strArrArr);
     };
-    return function ($30) {
-        return Utils.unlines(Data_Functor.map(Data_Functor.functorArray)(go)(Utils.lines($30)));
+    return function ($29) {
+        return Utils.unlines(Data_Functor.map(Data_Functor.functorArray)(go)(Utils.lines($29)));
     };
 })();
 var _infraredCodeText = Data_Symbol.SProxy.value;
@@ -26377,10 +26372,10 @@ var component = function (dictMonadAff) {
     var textarea = function (state) {
         return Halogen_HTML_Elements.textarea([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.formControl, Halogen_Themes_Bootstrap4.textMonospace ]), Halogen_HTML_Properties.rows(5), Halogen_HTML_Properties.placeholder("Write an on-off pair count (32-bit little endianness) hexadecimal number or json made with 'pigpio irrp.py' file or Click download button."), Halogen_HTML_Properties.value(Formless_Retrieve.getInput(new Data_Symbol.IsSymbol(function () {
             return "infraredCodeText";
-        }))(newtypeIRCodeEditForm$prime)()(_infraredCodeText)(state.form)), Halogen_HTML_Events.onValueInput(function ($31) {
+        }))(newtypeIRCodeEditForm$prime)()(_infraredCodeText)(state.form)), Halogen_HTML_Events.onValueInput(function ($30) {
             return Data_Maybe.Just.create(Formless_Action.setValidate(new Data_Symbol.IsSymbol(function () {
                 return "infraredCodeText";
-            }))(newtypeIRCodeEditForm$prime)()(_infraredCodeText)($31));
+            }))(newtypeIRCodeEditForm$prime)()(_infraredCodeText)($30));
         }), Halogen_HTML_Events.onValueChange(function (v) {
             return new Data_Maybe.Just(Formless_Action.submit);
         }) ]);
@@ -26414,10 +26409,14 @@ var component = function (dictMonadAff) {
             return "infraredCodeText";
         }))(newtypeIRCodeEditForm$prime)()(_infraredCodeText)(state.form)) ]) ]);
     };
-    var initialState = function (v) {
+    var initialState = function (i) {
         return {
             validators: validators(dictMonadAff),
-            initialInputs: new Data_Maybe.Just(initialInputs)
+            initialInputs: Data_Maybe.Just.create(Formless_Transform_Record.wrapInputFields(newtypeIRCodeEditForm$prime)(Heterogeneous_Mapping.hmapRecord()(Heterogeneous_Mapping.mapRecordWithIndexCons(new Data_Symbol.IsSymbol(function () {
+                return "infraredCodeText";
+            }))(Heterogeneous_Mapping.constMapping(Formless_Transform_Record.wrapField(Formless_Types_Form.newtypeInputField)))(Heterogeneous_Mapping.mapRecordWithIndexNil)()()))({
+                infraredCodeText: i
+            }))
         };
     };
     var handleEvent = function (v) {
@@ -26429,7 +26428,7 @@ var component = function (dictMonadAff) {
         if (v instanceof Formless_Types_Component.Changed) {
             return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Monoid.mempty(Data_Monoid.monoidUnit));
         };
-        throw new Error("Failed pattern match at Components.InfraredCodeEditor.Form (line 173, column 17 - line 178, column 18): " + [ v.constructor.name ]);
+        throw new Error("Failed pattern match at Components.InfraredCodeEditor.Form (line 168, column 17 - line 173, column 18): " + [ v.constructor.name ]);
     };
     var handleAction = (function () {
         var $$eval = function (act) {
@@ -26470,7 +26469,7 @@ var component = function (dictMonadAff) {
                     return "infraredCodeText";
                 }))(newtypeIRCodeEditForm$prime)()(_infraredCodeText)($$new));
             };
-            throw new Error("Failed pattern match at Components.InfraredCodeEditor.Form (line 181, column 18 - line 191, column 56): " + [ v.constructor.name ]);
+            throw new Error("Failed pattern match at Components.InfraredCodeEditor.Form (line 176, column 18 - line 186, column 56): " + [ v.constructor.name ]);
         };
     })();
     return Formless_Component.component(dictMonadAff)()()(Data_Eq.eqRowCons(Data_Eq.eqRowNil)()(new Data_Symbol.IsSymbol(function () {
@@ -26520,7 +26519,6 @@ module.exports = {
 var Components_InfraredCodeEditor_Form = require("../Components.InfraredCodeEditor.Form/index.js");
 var Control_Applicative = require("../Control.Applicative/index.js");
 var Control_Bind = require("../Control.Bind/index.js");
-var Data_Function = require("../Data.Function/index.js");
 var Data_Maybe = require("../Data.Maybe/index.js");
 var Data_Monoid = require("../Data.Monoid/index.js");
 var Data_Ord = require("../Data.Ord/index.js");
@@ -26567,11 +26565,13 @@ var HandleEditingForm = (function () {
     return HandleEditingForm;
 })();
 var render = function (dictMonadAff) {
-    return Halogen_HTML.slot()(new Data_Symbol.IsSymbol(function () {
-        return "formless";
-    }))(Data_Ord.ordUnit)(Formless_Types_Component["_formless"])(Data_Unit.unit)(Components_InfraredCodeEditor_Form.component(dictMonadAff))(Data_Unit.unit)(function ($10) {
-        return Data_Maybe.Just.create(HandleEditingForm.create($10));
-    });
+    return function (state) {
+        return Halogen_HTML.slot()(new Data_Symbol.IsSymbol(function () {
+            return "formless";
+        }))(Data_Ord.ordUnit)(Formless_Types_Component["_formless"])(Data_Unit.unit)(Components_InfraredCodeEditor_Form.component(dictMonadAff))(state)(function ($10) {
+            return Data_Maybe.Just.create(HandleEditingForm.create($10));
+        });
+    };
 };
 var handleAction = function (dictMonadAff) {
     return function (v) {
@@ -26592,13 +26592,16 @@ var handleAction = function (dictMonadAff) {
                 return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Monoid.mempty(Data_Monoid.monoidUnit));
             });
         };
-        throw new Error("Failed pattern match at Components.InfraredCodeEditor (line 75, column 16 - line 90, column 10): " + [ v.constructor.name ]);
+        throw new Error("Failed pattern match at Components.InfraredCodeEditor (line 79, column 16 - line 94, column 10): " + [ v.constructor.name ]);
     };
 };
 var component = function (dictMonadAff) {
+    var initialState = function (i) {
+        return i;
+    };
     return Halogen_Component.mkComponent({
-        initialState: Data_Function["const"](Data_Unit.unit),
-        render: Data_Function["const"](render(dictMonadAff)),
+        initialState: initialState,
+        render: render(dictMonadAff),
         "eval": Halogen_Component.mkEval({
             handleAction: handleAction(dictMonadAff),
             handleQuery: Halogen_Component.defaultEval.handleQuery,
@@ -26618,7 +26621,7 @@ module.exports = {
     component: component
 };
 
-},{"../Components.InfraredCodeEditor.Form/index.js":25,"../Control.Applicative/index.js":30,"../Control.Bind/index.js":36,"../Data.Function/index.js":150,"../Data.Maybe/index.js":198,"../Data.Monoid/index.js":207,"../Data.Ord/index.js":215,"../Data.Show/index.js":236,"../Data.Symbol/index.js":251,"../Data.Unit/index.js":267,"../Effect.Class.Console/index.js":279,"../Formless.Types.Component/index.js":325,"../Halogen.Component/index.js":338,"../Halogen.HTML/index.js":346,"../Halogen.Query.HalogenM/index.js":349}],27:[function(require,module,exports){
+},{"../Components.InfraredCodeEditor.Form/index.js":25,"../Control.Applicative/index.js":30,"../Control.Bind/index.js":36,"../Data.Maybe/index.js":198,"../Data.Monoid/index.js":207,"../Data.Ord/index.js":215,"../Data.Show/index.js":236,"../Data.Symbol/index.js":251,"../Data.Unit/index.js":267,"../Effect.Class.Console/index.js":279,"../Formless.Types.Component/index.js":325,"../Halogen.Component/index.js":338,"../Halogen.HTML/index.js":346,"../Halogen.Query.HalogenM/index.js":349}],27:[function(require,module,exports){
 // Generated by purs version 0.12.5
 "use strict";
 var Data_Functor = require("../Data.Functor/index.js");

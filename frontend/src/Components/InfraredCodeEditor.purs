@@ -49,29 +49,33 @@ data Output
 type ChildSlot =
   ( formless :: Formless.Slot Form.IRCodeEditForm (Const Void) () Form.Output Unit )
 
+type State = String
+
 -- |
 component :: forall m. MonadAff m => H.Component HH.HTML Query String Output m
 component =
   H.mkComponent
-    { initialState: const unit
-    , render: const render
+    { initialState: initialState
+    , render: render
     , eval: H.mkEval $ H.defaultEval
       { handleAction = handleAction
       , receive = Just <<< HandleInput  
       }
     }
+  where
+  initialState i = i
 
 -- |
-render :: forall m. MonadAff m => H.ComponentHTML Action ChildSlot m
-render =
-  HH.slot Formless._formless unit Form.component unit (Just <<< HandleEditingForm)
+render :: forall m. MonadAff m => State -> H.ComponentHTML Action ChildSlot m
+render state =
+  HH.slot Formless._formless unit Form.component state (Just <<< HandleEditingForm)
 
 -- |
 handleAction
   :: forall i m
    . MonadAff m
   => Action
-  -> H.HalogenM Unit Action i Output m Unit
+  -> H.HalogenM State Action i Output m Unit
 handleAction = case _ of
   HandleInput inputText -> do
     logShow ("Input" :: String)
