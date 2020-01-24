@@ -22,6 +22,7 @@ module InfraredRemote.Types
   , InfraredCodeFrame(..)
   , LsbFirst(..)
   , MsbFirst(..)
+  , fromBinaryString
   , fromBoolean
   , showBit
   , toBoolean 
@@ -31,7 +32,6 @@ module InfraredRemote.Types
   , toStringLsbFirstWithHex
   , toStringMsbFirst
   , toStringMsbFirstWithHex
-  , fromBinaryString
   ) where
 
 import Prelude

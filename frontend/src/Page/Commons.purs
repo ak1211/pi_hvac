@@ -16,17 +16,17 @@
 -}
 
 module Page.Commons
-  ( showToast
-  , enablePopover
-  , disablePopover
+  ( disablePopover
   , disposePopover
-  , navbar
+  , enablePopover
   , footer
-  , icon
   , getContext2dById
+  , icon
+  , navbar
+  , showToast
+  , snackbarItem
   , toast
   , toastItem
-  , snackbarItem
   ) where
 
 import Prelude
@@ -36,13 +36,11 @@ import Data.Array as Array
 import Data.Maybe (Maybe(..), maybe)
 import Effect (Effect)
 import Graphics.Canvas as Canvas
-import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.CSS (style)
 import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
-import Halogen.Query as HQ
 import Halogen.Themes.Bootstrap4 as HB
 import Route (Route)
 import Route as Route

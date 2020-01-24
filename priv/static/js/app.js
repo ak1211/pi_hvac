@@ -22641,12 +22641,12 @@ var navigateAppM = new Navigate(function () {
 });
 module.exports = {
     AppM: AppM,
-    Navigate: Navigate,
     HasApiAccessible: HasApiAccessible,
-    runAppM: runAppM,
-    navigate: navigate,
+    Navigate: Navigate,
     getApiBaseURL: getApiBaseURL,
     getApiTimeout: getApiTimeout,
+    navigate: navigate,
+    runAppM: runAppM,
     functorAppM: functorAppM,
     applyAppM: applyAppM,
     applicativeAppM: applicativeAppM,
@@ -26019,7 +26019,7 @@ var newChart = function (canvasId) {
                 if (v instanceof Data_Maybe.Just) {
                     return Data_Functor.map(Effect.functorEffect)(Data_Maybe.Just.create)(Foreign_ChartJs.drawLineChart(v.value0)(datasets)(options));
                 };
-                throw new Error("Failed pattern match at Component.LineChart (line 115, column 3 - line 115, column 59): " + [ v.constructor.name ]);
+                throw new Error("Failed pattern match at Component.LineChart (line 116, column 3 - line 116, column 59): " + [ v.constructor.name ]);
             };
             return Control_Bind.bindFlipped(Effect.bindEffect)(f)(Page_Commons.getContext2dById(canvasId));
         };
@@ -26230,11 +26230,9 @@ var Data_Int = require("../Data.Int/index.js");
 var Data_Maybe = require("../Data.Maybe/index.js");
 var Data_Monoid = require("../Data.Monoid/index.js");
 var Data_Newtype = require("../Data.Newtype/index.js");
-var Data_Show = require("../Data.Show/index.js");
 var Data_String_CodePoints = require("../Data.String.CodePoints/index.js");
 var Data_String_Common = require("../Data.String.Common/index.js");
 var Data_Symbol = require("../Data.Symbol/index.js");
-var Effect_Class_Console = require("../Effect.Class.Console/index.js");
 var Formless_Action = require("../Formless.Action/index.js");
 var Formless_Class_Initial = require("../Formless.Class.Initial/index.js");
 var Formless_Component = require("../Formless.Component/index.js");
@@ -26299,10 +26297,12 @@ var OnClickReset = (function () {
     return OnClickReset;
 })();
 var OnClickSeparate32bits = (function () {
-    function OnClickSeparate32bits() {
-
+    function OnClickSeparate32bits(value0) {
+        this.value0 = value0;
     };
-    OnClickSeparate32bits.value = new OnClickSeparate32bits();
+    OnClickSeparate32bits.create = function (value0) {
+        return new OnClickSeparate32bits(value0);
+    };
     return OnClickSeparate32bits;
 })();
 var validateInfraredCode = function (dictMonadAff) {
@@ -26317,8 +26317,8 @@ var validators = function (dictMonadAff) {
         infraredCodeText: validateInfraredCode(dictMonadAff)
     };
 };
-var toBinaries = function ($28) {
-    return Data_String_Common.joinWith("")(Utils.lines(Utils.removeAllSpaces(Data_String_Common.toUpper($28))));
+var toBinaries = function ($29) {
+    return Data_String_Common.joinWith("")(Utils.lines(Utils.removeAllSpaces(Data_String_Common.toUpper($29))));
 };
 var newtypeIRCodeEditForm$prime = new Data_Newtype.Newtype(function (n) {
     return n;
@@ -26357,7 +26357,7 @@ var help = (function () {
         if (v instanceof Formless_Data_FormFieldResult.Success) {
             return good("good");
         };
-        throw new Error("Failed pattern match at Components.InfraredCodeEditor.Form (line 200, column 8 - line 206, column 3): " + [ v.constructor.name ]);
+        throw new Error("Failed pattern match at Components.InfraredCodeEditor.Form (line 198, column 8 - line 204, column 3): " + [ v.constructor.name ]);
     };
 })();
 var formatTo32bits = (function () {
@@ -26368,8 +26368,8 @@ var formatTo32bits = (function () {
         var strArrArr = Data_Functor.map(Data_Functor.functorArray)(Data_String_CodePoints.fromCodePointArray)(arrarr);
         return Data_String_Common.joinWith(" ")(strArrArr);
     };
-    return function ($29) {
-        return Utils.unlines(Data_Functor.map(Data_Functor.functorArray)(go)(Utils.lines($29)));
+    return function ($30) {
+        return Utils.unlines(Data_Functor.map(Data_Functor.functorArray)(go)(Utils.lines($30)));
     };
 })();
 var _infraredCodeText = Data_Symbol.SProxy.value;
@@ -26377,23 +26377,25 @@ var component = function (dictMonadAff) {
     var textarea = function (state) {
         return Halogen_HTML_Elements.textarea([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.formControl, Halogen_Themes_Bootstrap4.textMonospace ]), Halogen_HTML_Properties.rows(5), Halogen_HTML_Properties.placeholder("Write an on-off pair count (32-bit little endianness) hexadecimal number or json made with 'pigpio irrp.py' file or Click download button."), Halogen_HTML_Properties.value(Formless_Retrieve.getInput(new Data_Symbol.IsSymbol(function () {
             return "infraredCodeText";
-        }))(newtypeIRCodeEditForm$prime)()(_infraredCodeText)(state.form)), Halogen_HTML_Events.onValueInput(function ($30) {
+        }))(newtypeIRCodeEditForm$prime)()(_infraredCodeText)(state.form)), Halogen_HTML_Events.onValueInput(function ($31) {
             return Data_Maybe.Just.create(Formless_Action.setValidate(new Data_Symbol.IsSymbol(function () {
                 return "infraredCodeText";
-            }))(newtypeIRCodeEditForm$prime)()(_infraredCodeText)($30));
+            }))(newtypeIRCodeEditForm$prime)()(_infraredCodeText)($31));
         }), Halogen_HTML_Events.onValueChange(function (v) {
             return new Data_Maybe.Just(Formless_Action.submit);
         }) ]);
     };
-    var separate32bitsButton = function (isActive) {
-        return Halogen_HTML_Elements.button([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.m1, Halogen_Themes_Bootstrap4.btn, Halogen_Themes_Bootstrap4.btnLight, Halogen_Themes_Bootstrap4.justifyContentCenter ]), Halogen_HTML_Events.onClick(function (v) {
-            return Data_Maybe.Just.create(Formless_Action.injAction(OnClickSeparate32bits.value));
-        }), (function () {
-            if (isActive) {
-                return Halogen_HTML_Properties.attr("active")("active");
-            };
-            return Halogen_HTML_Properties.attr("disabled")("disabled");
-        })() ])([ Halogen_HTML_Core.text("separate to 32bits") ]);
+    var separate32bitsButton = function (state) {
+        return function (isActive) {
+            return Halogen_HTML_Elements.button([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.m1, Halogen_Themes_Bootstrap4.btn, Halogen_Themes_Bootstrap4.btnLight, Halogen_Themes_Bootstrap4.justifyContentCenter ]), Halogen_HTML_Events.onClick(function (v) {
+                return Data_Maybe.Just.create(Formless_Action.injAction(new OnClickSeparate32bits(state)));
+            }), (function () {
+                if (isActive) {
+                    return Halogen_HTML_Properties.attr("active")("active");
+                };
+                return Halogen_HTML_Properties.attr("disabled")("disabled");
+            })() ])([ Halogen_HTML_Core.text("separate to 32bits") ]);
+        };
     };
     var resetButton = function (isActive) {
         return Halogen_HTML_Elements.button([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.m1, Halogen_Themes_Bootstrap4.btn, Halogen_Themes_Bootstrap4.btnLight, Halogen_Themes_Bootstrap4.justifyContentCenter ]), Halogen_HTML_Events.onClick(function (v) {
@@ -26406,7 +26408,7 @@ var component = function (dictMonadAff) {
         })() ])([ Halogen_HTML_Core.text("Reset") ]);
     };
     var renderFormless = function (state) {
-        return Halogen_HTML_Elements.div_([ resetButton(true), separate32bitsButton(true), Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.formGroup), Halogen_HTML_Events.onKeyUp(function (v) {
+        return Halogen_HTML_Elements.div_([ resetButton(true), separate32bitsButton(state)(true), Halogen_HTML_Elements.div([ Halogen_HTML_Properties.class_(Halogen_Themes_Bootstrap4.formGroup), Halogen_HTML_Events.onKeyUp(function (v) {
             return new Data_Maybe.Just(Formless_Action.submit);
         }) ])([ Halogen_HTML_Elements.label_([ Halogen_HTML_Core.text("on-off counts (count is based on 38kHz carrier)") ]), textarea(state), help(Formless_Retrieve.getResult(new Data_Symbol.IsSymbol(function () {
             return "infraredCodeText";
@@ -26427,7 +26429,7 @@ var component = function (dictMonadAff) {
         if (v instanceof Formless_Types_Component.Changed) {
             return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Monoid.mempty(Data_Monoid.monoidUnit));
         };
-        throw new Error("Failed pattern match at Components.InfraredCodeEditor.Form (line 176, column 17 - line 181, column 18): " + [ v.constructor.name ]);
+        throw new Error("Failed pattern match at Components.InfraredCodeEditor.Form (line 173, column 17 - line 178, column 18): " + [ v.constructor.name ]);
     };
     var handleAction = (function () {
         var $$eval = function (act) {
@@ -26455,20 +26457,20 @@ var component = function (dictMonadAff) {
         };
         return function (v) {
             if (v instanceof OnClickReset) {
-                return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Effect_Class_Console.log(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()))("-Reset"))(function () {
-                    return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Effect_Class_Console.logShow(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()))(Data_Show.showString)("--Reset"))(function () {
-                        return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)($$eval(Formless_Action.resetAll))(function () {
-                            return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)(Halogen_Query_HalogenM.raise(Reset.value))(function () {
-                                return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Monoid.mempty(Data_Monoid.monoidUnit));
-                            });
-                        });
-                    });
+                return Control_Bind.discard(Control_Bind.discardUnit)(Halogen_Query_HalogenM.bindHalogenM)($$eval(Formless_Action.resetAll))(function () {
+                    return Halogen_Query_HalogenM.raise(Reset.value);
                 });
             };
             if (v instanceof OnClickSeparate32bits) {
-                return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Monoid.mempty(Data_Monoid.monoidUnit));
+                var txt = Formless_Retrieve.getInput(new Data_Symbol.IsSymbol(function () {
+                    return "infraredCodeText";
+                }))(newtypeIRCodeEditForm$prime)()(_infraredCodeText)(v.value0.form);
+                var $$new = formatTo32bits(txt);
+                return $$eval(Formless_Action.setValidate(new Data_Symbol.IsSymbol(function () {
+                    return "infraredCodeText";
+                }))(newtypeIRCodeEditForm$prime)()(_infraredCodeText)($$new));
             };
-            throw new Error("Failed pattern match at Components.InfraredCodeEditor.Form (line 184, column 18 - line 194, column 18): " + [ v.constructor.name ]);
+            throw new Error("Failed pattern match at Components.InfraredCodeEditor.Form (line 181, column 18 - line 191, column 56): " + [ v.constructor.name ]);
         };
     })();
     return Formless_Component.component(dictMonadAff)()()(Data_Eq.eqRowCons(Data_Eq.eqRowNil)()(new Data_Symbol.IsSymbol(function () {
@@ -26512,7 +26514,7 @@ module.exports = {
     "newtypeIRCodeEditForm'": newtypeIRCodeEditForm$prime
 };
 
-},{"../Control.Applicative/index.js":30,"../Control.Bind/index.js":36,"../Data.Bifunctor/index.js":106,"../Data.Either/index.js":130,"../Data.Eq/index.js":134,"../Data.Function/index.js":150,"../Data.Functor/index.js":157,"../Data.Int/index.js":169,"../Data.Maybe/index.js":198,"../Data.Monoid/index.js":207,"../Data.Newtype/index.js":208,"../Data.Show/index.js":236,"../Data.String.CodePoints/index.js":238,"../Data.String.Common/index.js":242,"../Data.Symbol/index.js":251,"../Effect.Class.Console/index.js":279,"../Formless.Action/index.js":315,"../Formless.Class.Initial/index.js":316,"../Formless.Component/index.js":317,"../Formless.Data.FormFieldResult/index.js":318,"../Formless.Internal.Transform/index.js":321,"../Formless.Retrieve/index.js":322,"../Formless.Transform.Record/index.js":323,"../Formless.Transform.Row/index.js":324,"../Formless.Types.Component/index.js":325,"../Formless.Types.Form/index.js":326,"../Formless.Validation/index.js":327,"../Halogen.HTML.Core/index.js":342,"../Halogen.HTML.Elements/index.js":343,"../Halogen.HTML.Events/index.js":344,"../Halogen.HTML.Properties/index.js":345,"../Halogen.Query.HalogenM/index.js":349,"../Halogen.Themes.Bootstrap4/index.js":353,"../Heterogeneous.Mapping/index.js":362,"../InfraredRemote.Code/index.js":363,"../Text.Parsing.Parser/index.js":400,"../Utils/index.js":409}],26:[function(require,module,exports){
+},{"../Control.Applicative/index.js":30,"../Control.Bind/index.js":36,"../Data.Bifunctor/index.js":106,"../Data.Either/index.js":130,"../Data.Eq/index.js":134,"../Data.Function/index.js":150,"../Data.Functor/index.js":157,"../Data.Int/index.js":169,"../Data.Maybe/index.js":198,"../Data.Monoid/index.js":207,"../Data.Newtype/index.js":208,"../Data.String.CodePoints/index.js":238,"../Data.String.Common/index.js":242,"../Data.Symbol/index.js":251,"../Formless.Action/index.js":315,"../Formless.Class.Initial/index.js":316,"../Formless.Component/index.js":317,"../Formless.Data.FormFieldResult/index.js":318,"../Formless.Internal.Transform/index.js":321,"../Formless.Retrieve/index.js":322,"../Formless.Transform.Record/index.js":323,"../Formless.Transform.Row/index.js":324,"../Formless.Types.Component/index.js":325,"../Formless.Types.Form/index.js":326,"../Formless.Validation/index.js":327,"../Halogen.HTML.Core/index.js":342,"../Halogen.HTML.Elements/index.js":343,"../Halogen.HTML.Events/index.js":344,"../Halogen.HTML.Properties/index.js":345,"../Halogen.Query.HalogenM/index.js":349,"../Halogen.Themes.Bootstrap4/index.js":353,"../Heterogeneous.Mapping/index.js":362,"../InfraredRemote.Code/index.js":363,"../Text.Parsing.Parser/index.js":400,"../Utils/index.js":409}],26:[function(require,module,exports){
 // Generated by purs version 0.12.5
 "use strict";
 var Components_InfraredCodeEditor_Form = require("../Components.InfraredCodeEditor.Form/index.js");
@@ -87057,8 +87059,8 @@ var defLineChartOptions = {
 module.exports = {
     defLineChartOptionAxes: defLineChartOptionAxes,
     defLineChartOptions: defLineChartOptions,
-    drawLineChart: drawLineChart,
-    destroyLineChart: destroyLineChart
+    destroyLineChart: destroyLineChart,
+    drawLineChart: drawLineChart
 };
 
 },{"./foreign.js":298}],300:[function(require,module,exports){
@@ -99881,10 +99883,10 @@ module.exports = {
     decodePhase4: decodePhase4,
     fromMilliseconds: fromMilliseconds,
     infraredCodeTextParser: infraredCodeTextParser,
-    toMilliseconds: toMilliseconds,
     toInfraredHexString: toInfraredHexString,
     toIrCodeFrames: toIrCodeFrames,
     toIrRemoteControlCode: toIrRemoteControlCode,
+    toMilliseconds: toMilliseconds,
     eqBaseband: eqBaseband,
     showBaseband: showBaseband,
     eqCount: eqCount,
@@ -100508,7 +100510,12 @@ var decodeHitachiHvac = function (inputFrames) {
     return Data_Maybe.Nothing.value;
 };
 module.exports = {
-    decodeHitachiHvac: decodeHitachiHvac,
+    FSilent: FSilent,
+    FLow: FLow,
+    FMed: FMed,
+    FHigh: FHigh,
+    FAuto: FAuto,
+    HitachiHvac: HitachiHvac,
     MCool: MCool,
     MDryCool: MDryCool,
     MDehumidify: MDehumidify,
@@ -100517,13 +100524,8 @@ module.exports = {
     MAutoDehumidifying: MAutoDehumidifying,
     MQuickLaundry: MQuickLaundry,
     MCondensationControl: MCondensationControl,
-    FSilent: FSilent,
-    FLow: FLow,
-    FMed: FMed,
-    FHigh: FHigh,
-    FAuto: FAuto,
     Switch: Switch,
-    HitachiHvac: HitachiHvac,
+    decodeHitachiHvac: decodeHitachiHvac,
     genericMode: genericMode,
     eqMode: eqMode,
     ordMode: ordMode,
@@ -101109,8 +101111,22 @@ var decodeMitsubishiElectricHvac = (function () {
     };
 })();
 module.exports = {
-    decodeMitsubishiElectricHvac: decodeMitsubishiElectricHvac,
-    validCrc: validCrc,
+    Crc: Crc,
+    FAuto: FAuto,
+    FSlowest: FSlowest,
+    FNotch2: FNotch2,
+    FNotch3: FNotch3,
+    FNotch4: FNotch4,
+    FNotch5: FNotch5,
+    MitsubishiElectricHvac: MitsubishiElectricHvac,
+    MAuto: MAuto,
+    MDry: MDry,
+    MCool: MCool,
+    MHeat: MHeat,
+    PNormal: PNormal,
+    PBoost: PBoost,
+    PQuiet: PQuiet,
+    POther: POther,
     SAuto: SAuto,
     SHorizontal: SHorizontal,
     SNotch2: SNotch2,
@@ -101118,22 +101134,8 @@ module.exports = {
     SNotch4: SNotch4,
     SNotch5: SNotch5,
     Switch: Switch,
-    MAuto: MAuto,
-    MDry: MDry,
-    MCool: MCool,
-    MHeat: MHeat,
-    FAuto: FAuto,
-    FSlowest: FSlowest,
-    FNotch2: FNotch2,
-    FNotch3: FNotch3,
-    FNotch4: FNotch4,
-    FNotch5: FNotch5,
-    Crc: Crc,
-    PNormal: PNormal,
-    PBoost: PBoost,
-    PQuiet: PQuiet,
-    POther: POther,
-    MitsubishiElectricHvac: MitsubishiElectricHvac,
+    decodeMitsubishiElectricHvac: decodeMitsubishiElectricHvac,
+    validCrc: validCrc,
     genericMode: genericMode,
     eqMode: eqMode,
     showMode: showMode,
@@ -101818,8 +101820,23 @@ var decodePanasonicHvac = (function () {
     };
 })();
 module.exports = {
-    decodePanasonicHvac: decodePanasonicHvac,
-    validCrc: validCrc,
+    Crc: Crc,
+    FAuto: FAuto,
+    FSlowest: FSlowest,
+    FNotch2: FNotch2,
+    FNotch3: FNotch3,
+    FNotch4: FNotch4,
+    FNotch5: FNotch5,
+    MAuto: MAuto,
+    MFan: MFan,
+    MDry: MDry,
+    MCool: MCool,
+    MHeat: MHeat,
+    PanasonicHvac: PanasonicHvac,
+    PNormal: PNormal,
+    PBoost: PBoost,
+    PQuiet: PQuiet,
+    POther: POther,
     SAuto: SAuto,
     SHorizontal: SHorizontal,
     SNotch2: SNotch2,
@@ -101827,23 +101844,8 @@ module.exports = {
     SNotch4: SNotch4,
     SNotch5: SNotch5,
     Switch: Switch,
-    MAuto: MAuto,
-    MFan: MFan,
-    MDry: MDry,
-    MCool: MCool,
-    MHeat: MHeat,
-    FAuto: FAuto,
-    FSlowest: FSlowest,
-    FNotch2: FNotch2,
-    FNotch3: FNotch3,
-    FNotch4: FNotch4,
-    FNotch5: FNotch5,
-    Crc: Crc,
-    PNormal: PNormal,
-    PBoost: PBoost,
-    PQuiet: PQuiet,
-    POther: POther,
-    PanasonicHvac: PanasonicHvac,
+    decodePanasonicHvac: decodePanasonicHvac,
+    validCrc: validCrc,
     genericMode: genericMode,
     eqMode: eqMode,
     showMode: showMode,
@@ -102152,6 +102154,7 @@ module.exports = {
     FormatSIRC: FormatSIRC,
     LsbFirst: LsbFirst,
     MsbFirst: MsbFirst,
+    fromBinaryString: fromBinaryString,
     fromBoolean: fromBoolean,
     showBit: showBit,
     toBoolean: toBoolean,
@@ -102161,7 +102164,6 @@ module.exports = {
     toStringLsbFirstWithHex: toStringLsbFirstWithHex,
     toStringMsbFirst: toStringMsbFirst,
     toStringMsbFirstWithHex: toStringMsbFirstWithHex,
-    fromBinaryString: fromBinaryString,
     eqBit: eqBit,
     "showBit'": showBit$prime,
     newtypeLsbFirst: newtypeLsbFirst,
@@ -102657,17 +102659,17 @@ var enablePopover = $foreign.enablePopoverJs;
 var disposePopover = $foreign.disposePopoverJs;
 var disablePopover = $foreign.disablePopoverJs;
 module.exports = {
-    showToast: showToast,
-    enablePopover: enablePopover,
     disablePopover: disablePopover,
     disposePopover: disposePopover,
-    navbar: navbar,
+    enablePopover: enablePopover,
     footer: footer,
-    icon: icon,
     getContext2dById: getContext2dById,
+    icon: icon,
+    navbar: navbar,
+    showToast: showToast,
+    snackbarItem: snackbarItem,
     toast: toast,
-    toastItem: toastItem,
-    snackbarItem: snackbarItem
+    toastItem: toastItem
 };
 
 },{"../CSS.Geometry/index.js":15,"../CSS.Size/index.js":19,"../Control.Applicative/index.js":30,"../Control.Bind/index.js":36,"../DOM.HTML.Indexed.ButtonType/index.js":73,"../Data.Array/index.js":99,"../Data.Eq/index.js":134,"../Data.Functor/index.js":157,"../Data.Maybe/index.js":198,"../Effect/index.js":295,"../Graphics.Canvas/index.js":333,"../Halogen.HTML.CSS/index.js":341,"../Halogen.HTML.Core/index.js":342,"../Halogen.HTML.Elements/index.js":343,"../Halogen.HTML.Events/index.js":344,"../Halogen.HTML.Properties/index.js":345,"../Halogen.Themes.Bootstrap4/index.js":353,"../Route/index.js":389,"./foreign.js":372}],374:[function(require,module,exports){
@@ -102750,7 +102752,7 @@ var updateButton = function (action) {
             if (!v) {
                 return Halogen_HTML_Properties.attr("disabled")("disabled");
             };
-            throw new Error("Failed pattern match at Page.Home (line 207, column 14 - line 211, column 1): " + [ v.constructor.name ]);
+            throw new Error("Failed pattern match at Page.Home (line 206, column 14 - line 210, column 1): " + [ v.constructor.name ]);
         };
         return Halogen_HTML_Elements.button([ Halogen_HTML_Properties.ref(updateButtonLabel), Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.m1, Halogen_Themes_Bootstrap4.btn, Halogen_Themes_Bootstrap4.btnLight, Halogen_Themes_Bootstrap4.justifyContentCenter ]), Halogen_HTML_Events.onClick(function (v) {
             return new Data_Maybe.Just(action);
@@ -102808,7 +102810,7 @@ var msgLastUpdatedAt = function (nowTime) {
         if (v1 instanceof Data_Maybe.Just) {
             return Page_Commons.snackbarItem(Data_String_Common.joinWith(" ")([ "Measured at", v1.value0.time + ",", Data_Int.toStringAs(Data_Int.decimal)(boundedMinute), "mins ago." ]));
         };
-        throw new Error("Failed pattern match at Page.Home (line 248, column 3 - line 258, column 8): " + [ v1.constructor.name ]);
+        throw new Error("Failed pattern match at Page.Home (line 247, column 3 - line 257, column 8): " + [ v1.constructor.name ]);
     };
 };
 var msgFailToAccess = function (reason) {
@@ -102864,7 +102866,7 @@ var latestValue = function (state) {
             msg: msgLastUpdatedAt(state.nowTime)(v.measured_at)
         };
     };
-    throw new Error("Failed pattern match at Page.Home (line 216, column 21 - line 238, column 6): " + [ state.measValues.constructor.name ]);
+    throw new Error("Failed pattern match at Page.Home (line 215, column 21 - line 237, column 6): " + [ state.measValues.constructor.name ]);
 };
 var handleAction = function (dictMonadAff) {
     return function (dictNavigate) {
@@ -102899,7 +102901,7 @@ var handleAction = function (dictMonadAff) {
                                         if (v2 instanceof Data_Maybe.Just) {
                                             return Data_Functor["void"](Halogen_Query_HalogenM.functorHalogenM)(Effect_Class.liftEffect(Halogen_Query_HalogenM.monadEffectHalogenM(dictMonadAff.MonadEffect0()))(Effect_Timer.setTimeout(60)(timerHandler(v2.value0))));
                                         };
-                                        throw new Error("Failed pattern match at Page.Home (line 159, column 7 - line 163, column 72): " + [ v2.constructor.name ]);
+                                        throw new Error("Failed pattern match at Page.Home (line 158, column 7 - line 162, column 72): " + [ v2.constructor.name ]);
                                     })())(function () {
                                         return Control_Applicative.pure(Halogen_Query_HalogenM.applicativeHalogenM)(Data_Monoid.mempty(Data_Monoid.monoidUnit));
                                     });
@@ -102947,7 +102949,7 @@ var handleAction = function (dictMonadAff) {
                         });
                     });
                 };
-                throw new Error("Failed pattern match at Page.Home (line 149, column 16 - line 180, column 18): " + [ v.constructor.name ]);
+                throw new Error("Failed pattern match at Page.Home (line 148, column 16 - line 179, column 18): " + [ v.constructor.name ]);
             };
         };
     };
@@ -104768,7 +104770,7 @@ var i2cDevices = (function () {
         if (Data_Boolean.otherwise) {
             return " ";
         };
-        throw new Error("Failed pattern match at Page.Settings (line 204, column 3 - line 204, column 30): " + [ addr.constructor.name ]);
+        throw new Error("Failed pattern match at Page.Settings (line 203, column 3 - line 203, column 30): " + [ addr.constructor.name ]);
     };
     var addressTableRangeRowHeading = Data_Functor.map(Data_Functor.functorArray)(function (v) {
         return v * 16 | 0;
@@ -104791,7 +104793,7 @@ var i2cDevices = (function () {
         if (v instanceof Data_Maybe.Just && v.value0 instanceof Data_Either.Right) {
             return Halogen_HTML_Elements.p([  ])([ Halogen_HTML_Elements.table([ Halogen_HTML_Properties.classes([ Halogen_Themes_Bootstrap4.table, Halogen_Themes_Bootstrap4.tableHover ]) ])([ Halogen_HTML_Elements.caption_([ Halogen_HTML_Core.text("Hexadecimal addresses") ]), tableHeading(addressTableRangeHeading), tableBody(addressTableRangeRowHeading)(Utils.toArrayArray(16)(detectedDevAddresses(v.value0.value0))) ]) ]);
         };
-        throw new Error("Failed pattern match at Page.Settings (line 164, column 14 - line 185, column 8): " + [ v.constructor.name ]);
+        throw new Error("Failed pattern match at Page.Settings (line 163, column 14 - line 184, column 8): " + [ v.constructor.name ]);
     };
 })();
 var i2cDetectButton = function (action) {
@@ -104862,7 +104864,7 @@ var handleAction = function (dictMonadAff) {
                         });
                     });
                 };
-                throw new Error("Failed pattern match at Page.Settings (line 118, column 16 - line 140, column 18): " + [ v.constructor.name ]);
+                throw new Error("Failed pattern match at Page.Settings (line 117, column 16 - line 139, column 18): " + [ v.constructor.name ]);
             };
         };
     };

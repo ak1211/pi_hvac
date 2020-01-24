@@ -28,7 +28,6 @@ import CSS (marginTop, marginBottom, px)
 import Component.RadialGauge as RadialGauge
 import Control.Alt ((<|>))
 import Data.Array.NonEmpty as NEA
-import Data.Bifunctor as Bifunctor
 import Data.DateTime.Instant (fromDateTime, unInstant)
 import Data.Either (Either(..), either)
 import Data.Foldable (minimum)

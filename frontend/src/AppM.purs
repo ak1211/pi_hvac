@@ -18,13 +18,15 @@
 module AppM
   ( Env(..)
   , AppM(..)
-  , class Navigate
   , class HasApiAccessible
-  , runAppM
-  , navigate
+  , class Navigate
   , getApiBaseURL
   , getApiTimeout
+  , navigate
+  , runAppM
   ) where
+
+import Prelude
 
 import Api as Api
 import Control.Monad.Reader (ask, asks, runReaderT)
@@ -35,7 +37,6 @@ import Effect.Aff (Aff)
 import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect, liftEffect)
 import Halogen as H
-import Prelude
 import Route (Route)
 import Route as Route
 import Routing.PushState (PushStateInterface)

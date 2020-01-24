@@ -16,11 +16,11 @@
 -}
 
 module InfraredRemote.HitachiHvac
-  ( decodeHitachiHvac
-  , Mode(..)
-  , Fan(..)
-  , Switch(..)
+  ( Fan(..)
   , HitachiHvac(..)
+  , Mode(..)
+  , Switch(..)
+  , decodeHitachiHvac
   ) where
 
 import Prelude

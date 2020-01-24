@@ -24,13 +24,14 @@ module Foreign.ChartJs
   , LineChartOptions
   , defLineChartOptionAxes
   , defLineChartOptions
-  , drawLineChart
   , destroyLineChart
+  , drawLineChart
   ) where
+
+import Prelude
 
 import Effect (Effect)
 import Graphics.Canvas (Context2D)
-import Prelude
 
 -- | chart data set
 type ChartDatasets =

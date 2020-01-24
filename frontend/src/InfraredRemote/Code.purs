@@ -20,19 +20,19 @@ module InfraredRemote.Code
   , Count(..)
   , InfraredHexString
   , InfraredLeader(..)
+  , IrRemoteControlCode(..)
   , ProcessError
   , Pulse
-  , IrRemoteControlCode(..)
   , decodePhase1
   , decodePhase2
   , decodePhase3
   , decodePhase4
   , fromMilliseconds
   , infraredCodeTextParser
-  , toMilliseconds
   , toInfraredHexString
   , toIrCodeFrames
   , toIrRemoteControlCode
+  , toMilliseconds
   , module InfraredRemote.Types
   ) where
 

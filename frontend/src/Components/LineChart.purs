@@ -21,6 +21,8 @@ module Component.LineChart
   , component
   ) where
 
+import Prelude
+
 import Data.Maybe (Maybe(..), maybe)
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
@@ -30,7 +32,6 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Page.Commons as Commons
-import Prelude
 
 type State =
   { canvasId :: String

@@ -23,9 +23,10 @@ module Foreign.CanvasGauges
   , redrawRadialGauge
   ) where
 
+import Prelude
+
 import Effect (Effect)
 import Web.HTML (HTMLElement)
-import Prelude
 
 -- | radial gauge option
 type RadialGaugeOptions =

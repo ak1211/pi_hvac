@@ -22,8 +22,8 @@ import Prelude
 import Api as Api
 import AppM (class HasApiAccessible, class Navigate, runAppM)
 import Data.Maybe (Maybe(..))
-import Data.Time.Duration (Milliseconds(..))
 import Data.Symbol (SProxy(..))
+import Data.Time.Duration (Milliseconds(..))
 import Effect (Effect)
 import Effect.Aff (Aff, launchAff, forkAff)
 import Effect.Aff.Class (class MonadAff)

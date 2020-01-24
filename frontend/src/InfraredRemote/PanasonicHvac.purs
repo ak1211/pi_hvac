@@ -16,15 +16,15 @@
 -}
 
 module InfraredRemote.PanasonicHvac
-  ( decodePanasonicHvac
-  , validCrc
+  ( Crc(..)
+  , Fan(..)
+  , Mode(..)
+  , PanasonicHvac(..)
+  , Profile(..)
   , Swing(..)
   , Switch(..)
-  , Mode(..)
-  , Fan(..)
-  , Crc(..)
-  , Profile(..)
-  , PanasonicHvac(..)
+  , decodePanasonicHvac
+  , validCrc
   ) where
 
 import Prelude

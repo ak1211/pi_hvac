@@ -44,7 +44,6 @@ import Halogen.HTML.CSS (style)
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties (FormMethod(..), InputType(..))
 import Halogen.HTML.Properties as HP
-import Halogen.Query as HQ
 import Halogen.Themes.Bootstrap4 as HB
 import Page.Commons as Commons
 import Route (Route)

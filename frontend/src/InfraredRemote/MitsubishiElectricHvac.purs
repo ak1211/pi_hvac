@@ -16,15 +16,15 @@
 -}
 
 module InfraredRemote.MitsubishiElectricHvac
-  ( decodeMitsubishiElectricHvac
-  , validCrc
+  ( Crc(..)
+  , Fan(..)
+  , MitsubishiElectricHvac(..)
+  , Mode(..)
+  , Profile(..)
   , Swing(..)
   , Switch(..)
-  , Mode(..)
-  , Fan(..)
-  , Crc(..)
-  , Profile(..)
-  , MitsubishiElectricHvac(..)
+  , decodeMitsubishiElectricHvac
+  , validCrc
   ) where
 
 import Prelude

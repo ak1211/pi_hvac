@@ -25,10 +25,10 @@ module Components.InfraredCodeEditor
 import Prelude
 
 import Components.InfraredCodeEditor.Form as Form
-import Effect.Class.Console (logShow)
 import Data.Const (Const)
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
+import Effect.Class.Console (logShow)
 import Formless as Formless
 import Halogen as H
 import Halogen.HTML as HH
