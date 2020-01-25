@@ -52,6 +52,7 @@ import Utils as Utils
 data Action
   = OnClickReset
   | OnClickSeparate32bits (Formless.PublicState IRCodeEditForm ())
+  | HandleInput String
 
 -- |
 data Output
@@ -97,6 +98,7 @@ component =
       { render = renderFormless
       , handleEvent = handleEvent
       , handleAction = handleAction
+      , receive = Just <<< HandleInput
       }
   where
   -- |
@@ -183,6 +185,9 @@ component =
         txt = Formless.getInput _infraredCodeText state.form
         new = formatTo32bits txt
       in
+      eval $ Formless.setValidate _infraredCodeText new
+
+    HandleInput new ->
       eval $ Formless.setValidate _infraredCodeText new
 
     where
