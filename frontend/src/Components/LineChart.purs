@@ -41,10 +41,10 @@ type State =
   }
 
 data Query a
-  = HandleInput Input a
 
 data Action
   = Initialize
+  | HandleInput Input
 
 -- |
 type Input =
@@ -61,9 +61,8 @@ component =
     , render
     , eval: H.mkEval $ H.defaultEval
       { handleAction = handleAction
-      , handleQuery = handleQuery
       , initialize = Just Initialize
-      , receive = const Nothing
+      , receive = Just <<< HandleInput
       }
     }
 
@@ -88,15 +87,12 @@ handleAction
   => Action
   -> H.HalogenM State Action i o m Unit
 handleAction = case _ of
-    Initialize -> do
-      state <- H.get
-      maybeChart <- H.liftEffect $ newChart state.canvasId state.datasets state.options
-      H.put $ state { maybeLineChart = maybeChart }
-      pure mempty
+  Initialize -> do
+    state <- H.get
+    maybeChart <- H.liftEffect $ newChart state.canvasId state.datasets state.options
+    H.put $ state { maybeLineChart = maybeChart }
 
-handleQuery :: forall i o m a. MonadAff m => Query a -> H.HalogenM State Action i o m (Maybe a)
-handleQuery = case _ of
-  HandleInput input a -> do
+  HandleInput input -> do
     state <- H.get
     H.liftEffect $ maybe (pure unit) destroyLineChart state.maybeLineChart
     maybeChart <- H.liftEffect $ newChart input.canvasId input.datasets input.options
@@ -106,7 +102,6 @@ handleQuery = case _ of
                           , maybeLineChart = maybeChart
                           } 
     H.put newState
-    pure (Just a)
 
 -- |
 newChart :: String -> ChartDatasets -> LineChartOptions -> Effect (Maybe LineChartInstance)

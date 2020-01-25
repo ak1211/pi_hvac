@@ -55,15 +55,13 @@ type State = String
 component :: forall m. MonadAff m => H.Component HH.HTML Query String Output m
 component =
   H.mkComponent
-    { initialState: initialState
+    { initialState: identity
     , render: render
     , eval: H.mkEval $ H.defaultEval
       { handleAction = handleAction
       , receive = Just <<< HandleInput  
       }
     }
-  where
-  initialState i = i
 
 -- |
 render :: forall m. MonadAff m => State -> H.ComponentHTML Action ChildSlot m
@@ -77,18 +75,11 @@ handleAction
   => Action
   -> H.HalogenM State Action i Output m Unit
 handleAction = case _ of
-  HandleInput inputText -> do
-    logShow ("Input" :: String)
-    pure mempty
+  HandleInput inputText ->
+    H.put inputText
 
-  HandleEditingForm (Form.Text t) -> do
-    logShow ("IRCodeEditForm---" :: String)
----    let hexstr = unwrap infraredCodeText.irCodeText
----    log hexstr
----    logShow ("---IRCodeEditForm" :: String)
+  HandleEditingForm (Form.Text t) ->
     H.raise $ TextChanged t.infraredCodeText
-    pure mempty
 
-  HandleEditingForm Form.Reset -> do
+  HandleEditingForm Form.Reset ->
     H.raise Reset
-    pure mempty

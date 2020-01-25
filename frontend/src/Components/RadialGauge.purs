@@ -37,10 +37,10 @@ type State =
   }
 
 data Query a
-  = HandleInput Input a
 
 data Action
   = Initialize
+  | HandleInput Input
 
 -- |
 type Input =
@@ -56,9 +56,8 @@ component =
     , render
     , eval: H.mkEval $ H.defaultEval
       { handleAction = handleAction
-      , handleQuery = handleQuery
       , initialize = Just Initialize
-      , receive = const Nothing
+      , receive = Just <<< HandleInput
       }
     }
 
@@ -82,21 +81,18 @@ handleAction
   => Action
   -> H.HalogenM State Action i o m Unit
 handleAction = case _ of
-    Initialize -> do
-      state <- H.get
-      maybeElem <- H.getHTMLElementRef state.refLabel
-      case maybeElem of
-        Nothing ->
-          pure mempty
+  Initialize -> do
+    state <- H.get
+    maybeElem <- H.getHTMLElementRef state.refLabel
+    case maybeElem of
+      Nothing ->
+        pure mempty
 
-        Just elem -> do
-          gauge <- H.liftEffect $ drawRadialGauge elem state.options
-          H.modify_ \st -> st {gaugeInstance = Just gauge}
-          pure mempty
+      Just elem -> do
+        gauge <- H.liftEffect $ drawRadialGauge elem state.options
+        H.modify_ \st -> st {gaugeInstance = Just gauge}
 
-handleQuery :: forall i o m a. MonadAff m => Query a -> H.HalogenM State Action i o m (Maybe a)
-handleQuery = case _ of
-  HandleInput input a -> do
+  HandleInput input -> do
     {gaugeInstance} <- H.get
     case gaugeInstance of
       Nothing ->
@@ -107,4 +103,3 @@ handleQuery = case _ of
     H.modify_ \st -> st { refLabel = input.refLabel
                         , options = input.options
                         }
-    pure (Just a)
