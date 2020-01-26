@@ -112,12 +112,9 @@ component =
   where
   -- |
   initialState i =
-    let
-      ini = fromMaybe "" i
-    in
-      { validators: validators
-      , initialInputs: Just $ Formless.wrapInputFields { infraredCodeText: ini }
-      }
+    { validators: validators
+    , initialInputs: (\x -> Formless.wrapInputFields { infraredCodeText: x }) <$> i
+    }
 
   -- |
   renderFormless state =
