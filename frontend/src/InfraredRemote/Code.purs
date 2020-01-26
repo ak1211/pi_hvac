@@ -415,14 +415,17 @@ toIrRemoteControlCode = Bifunctor.rmap decodePhase4 <<< toIrCodeFrames
 -- | 各機種の赤外線信号にする
 decodePhase4 :: Array InfraredCodeFrame -> IrRemoteControlCode
 decodePhase4 x =
-  pana x <|> melco x <|> hitachi x
-    # fromMaybe (IrRemoteUnknown x)
+  fromMaybe (IrRemoteUnknown x)
+    ( pana x
+        <|> melco x
+        <|> hitachi x
+    )
   where
-  pana = map IrRemotePanasonicHvac <<< decodePanasonicHvac
+  pana = liftA1 IrRemotePanasonicHvac <<< decodePanasonicHvac
 
-  melco = map IrRemoteMitsubishiElectricHvac <<< decodeMitsubishiElectricHvac
+  melco = liftA1 IrRemoteMitsubishiElectricHvac <<< decodeMitsubishiElectricHvac
 
-  hitachi = map IrRemoteHitachiHvac <<< decodeHitachiHvac
+  hitachi = liftA1 IrRemoteHitachiHvac <<< decodeHitachiHvac
 
 -- |
 type DecodeMonad e a
