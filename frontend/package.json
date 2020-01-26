@@ -18,8 +18,7 @@
   "devDependencies": {},
   "scripts": {
     "dev": "spago build --watch & parcel index.html",
-    "b_ild": "spago bundle --main Main --to ../priv/static/js/app.js",
-    "build": "spago bundle-app --main Main --to ../priv/static/js/app.js",
+    "build": "spago build & parcel build output/app.js -d ../priv/static/js/",
     "test": "spago test"
   },
   "repository": {
