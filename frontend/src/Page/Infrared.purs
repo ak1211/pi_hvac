@@ -14,14 +14,12 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -}
-
 module Page.Infrared
   ( Query
   , component
   ) where
 
 import Prelude
-
 import Affjax as AX
 import Api as Api
 import AppM (class HasApiAccessible, class Navigate, getApiBaseURL, getApiTimeout, navigate)
@@ -69,54 +67,71 @@ import Text.Parsing.Parser (parseErrorMessage, runParser)
 import Utils (toArrayArray)
 
 -- |
-data SelectedTab = TabControlPanel | TabIrdbTable
+data SelectedTab
+  = TabControlPanel
+  | TabIrdbTable
+
 derive instance genericSelectedTab :: Generic SelectedTab _
+
 derive instance eqSelectedTab :: Eq SelectedTab
+
 derive instance ordSelectedTab :: Ord SelectedTab
+
 instance enumSelectedTab :: Enum SelectedTab where
   succ = genericSucc
   pred = genericPred
+
 instance boundedSelectedTab :: Bounded SelectedTab where
   top = genericTop
   bottom = genericBottom
+
 instance boundedEnumSelectedTab :: BoundedEnum SelectedTab where
   cardinality = genericCardinality
   toEnum = genericToEnum
   fromEnum = genericFromEnum
 
 -- |
-data SelectedBitOrder = LeastSignBitFirst | MostSignBitFirst | BothBitOrder
+data SelectedBitOrder
+  = LeastSignBitFirst
+  | MostSignBitFirst
+  | BothBitOrder
+
 derive instance genericSelectedBitOrder :: Generic SelectedBitOrder _
+
 derive instance eqSelectedBitOrder :: Eq SelectedBitOrder
+
 derive instance ordSelectedBitOrder :: Ord SelectedBitOrder
+
 instance enumSelectedBitOrder :: Enum SelectedBitOrder where
   succ = genericSucc
   pred = genericPred
+
 instance boundedSelectedBitOrder :: Bounded SelectedBitOrder where
   top = genericTop
   bottom = genericBottom
+
 instance boundedEnumSelectedBitOrder :: BoundedEnum SelectedBitOrder where
   cardinality = genericCardinality
   toEnum = genericToEnum
   fromEnum = genericFromEnum
 
 -- |
-type State =
-  { queryParams       :: Route.InfraredQueryParams
-  , infraredValue     :: Maybe (Either String Api.DatumInfraRed)
-  , irdb              :: Maybe (Either String Api.RespGetIrdb)
-  , irdbManufacturers :: Maybe (Either String Api.RespGetIrdbManufacturers)
-  , buttonNumber      :: Int
-  }
+type State
+  = { queryParams :: Route.InfraredQueryParams
+    , infraredValue :: Maybe (Either String Api.DatumInfraRed)
+    , irdb :: Maybe (Either String Api.RespGetIrdb)
+    , irdbManufacturers :: Maybe (Either String Api.RespGetIrdbManufacturers)
+    , buttonNumber :: Int
+    }
 
 -- |
 data Query a
----  = HandleEditorUpdate Editor.Output
 
+-- |
 data Action
   = NavigateTo Route
   | Initialize
-  | ChangedRoute Route
+  | HandleInput Input
   | OnClickIRCodeDownload
   | OnClickIRCodeUpload
   | OnClickIRCodeTransmit
@@ -127,28 +142,35 @@ data Action
   | OnValueChangeLimits String
   | HandleEditorUpdate Editor.Output
 
-type ChildSlots =
-  ( infraredCodeEditor :: H.Slot Editor.Query Editor.Output Unit
-  )
- 
+-- |
+type Input
+  = Route
+
+-- |
+type ChildSlots
+  = ( infraredCodeEditor :: H.Slot Editor.Query Editor.Output Unit
+    )
+
 _infraredCodeEditor = SProxy :: SProxy "infraredCodeEditor"
 
 -- | component
-component
-  :: forall m
-   . MonadAff m
-  => Navigate m
-  => HasApiAccessible m
-  => H.Component HH.HTML Query Route Void m
+component ::
+  forall m.
+  MonadAff m =>
+  Navigate m =>
+  HasApiAccessible m =>
+  H.Component HH.HTML Query Input Void m
 component =
   H.mkComponent
     { initialState: initialState
     , render
-    , eval: H.mkEval $ H.defaultEval
-      { handleAction = handleAction
-      , initialize = Just Initialize
-      , receive = Just <<< ChangedRoute
-      }
+    , eval:
+      H.mkEval
+        $ H.defaultEval
+            { handleAction = handleAction
+            , initialize = Just Initialize
+            , receive = Just <<< HandleInput
+            }
     }
 
 -- |
@@ -162,279 +184,242 @@ initialQueryParams =
   }
 
 -- |
-initialState :: Route -> State
+initialState :: Input -> State
 initialState route =
-  let st =  { queryParams: _
-            , infraredValue: Nothing
-            , irdb: Nothing
-            , irdbManufacturers: Nothing
-            , buttonNumber: 1
-            }
+  let
+    st =
+      { queryParams: _
+      , infraredValue: Nothing
+      , irdb: Nothing
+      , irdbManufacturers: Nothing
+      , buttonNumber: 1
+      }
   in
-  case route of
-    Route.Infrared (Just a) ->
-      st  { tab: a.tab <|> initialQueryParams.tab
+    case route of
+      Route.Infrared (Just a) ->
+        st
+          { tab: a.tab <|> initialQueryParams.tab
           , manuf: a.manuf <|> initialQueryParams.manuf
           , limits: a.limits <|> initialQueryParams.limits
           , page: a.page <|> initialQueryParams.page
           , bitorder: a.page <|> initialQueryParams.bitorder
           }
-
-    _ ->
-      st initialQueryParams
+      _ -> st initialQueryParams
 
 --| render
-render
-  :: forall m
-   . MonadAff m
-  => State
-  -> H.ComponentHTML Action ChildSlots m
+render ::
+  forall m.
+  MonadAff m =>
+  State ->
+  H.ComponentHTML Action ChildSlots m
 render state =
   HH.div
     [ HP.id_ "wrapper"
     ]
     [ Commons.navbar NavigateTo (Route.Infrared Nothing)
     , HH.main
-      [ HP.class_ HB.container
-      ]
-      [ renderTab state
-      , case toEnum =<< state.queryParams.tab of
-          Nothing               -> renderControlPanel state
-          Just TabControlPanel  -> renderControlPanel state
-          Just TabIrdbTable     -> renderIrdbTable state
-      ]
+        [ HP.class_ HB.container
+        ]
+        [ renderTab state
+        , case toEnum =<< state.queryParams.tab of
+            Nothing -> renderControlPanel state
+            Just TabControlPanel -> renderControlPanel state
+            Just TabIrdbTable -> renderIrdbTable state
+        ]
     , Commons.footer
     ]
 
 -- |
---  eval :: Query ~> H.ParentDSL State Query ChildQuery ChildSlot Void m
-handleAction
-  :: forall i o m
-   . MonadAff m
-  => Navigate m
-  => HasApiAccessible m
-  => Action
-  -> H.HalogenM State Action i o m Unit
+handleAction ::
+  forall i o m.
+  MonadAff m =>
+  Navigate m =>
+  HasApiAccessible m =>
+  Action ->
+  H.HalogenM State Action i o m Unit
 handleAction = case _ of
   NavigateTo route -> do
     H.liftEffect Commons.disposePopover
     navigate route
-    pure mempty
-
   Initialize -> do
-    {queryParams} <- H.get
-    let newRoute = Route.Infrared (Just queryParams)
-    void $ handleAction (ChangedRoute newRoute)
-    pure mempty
-
-  ChangedRoute route -> do
+    { queryParams } <- H.get
+    let
+      newRoute = Route.Infrared (Just queryParams)
+    handleAction (HandleInput newRoute)
+  HandleInput route -> do
     H.liftEffect Commons.disposePopover
     --
     state <- case route of
-              Route.Infrared Nothing ->
-                H.modify _{queryParams = initialQueryParams}
-
-              Route.Infrared (Just qry) ->
-                H.modify _{queryParams = qry}
-
-              _ ->
-                H.get
+      Route.Infrared Nothing -> H.modify _ { queryParams = initialQueryParams }
+      Route.Infrared (Just qry) -> H.modify _ { queryParams = qry }
+      _ -> H.get
     --
     case toEnum =<< state.queryParams.tab of
       Just TabIrdbTable -> do
         url <- getApiBaseURL
         millisec <- getApiTimeout
-        let accessor = Api.getApiV1IrdbManufacturers {baseurl: url}
+        let
+          accessor = Api.getApiV1IrdbManufacturers { baseurl: url }
         response <- accessToBackend millisec accessor
-        H.put state {irdbManufacturers = Just response}
+        H.put state { irdbManufacturers = Just response }
         case response of
-          Left _ ->
-            pure unit
-
+          Left _ -> pure unit
           Right x -> do
             irdb <- getIrdb state.queryParams x
-            H.modify_ \st -> st {irdb = Just irdb}
-
-      _ ->
-        pure unit
+            H.modify_ \st -> st { irdb = Just irdb }
+      _ -> pure unit
     --
     H.liftEffect Commons.enablePopover
-    pure mempty
-
   OnClickIRCodeDownload -> do
     url <- getApiBaseURL
     millisec <- getApiTimeout
     { buttonNumber } <- H.get
-    let accessor = Api.getApiV1InfraRed {baseurl: url, buttonNumber: buttonNumber}
+    let
+      accessor = Api.getApiV1InfraRed { baseurl: url, buttonNumber: buttonNumber }
     response <- accessToBackend millisec accessor
-    H.modify_ \st -> st {infraredValue = Just response}
-    pure mempty
-
+    H.modify_ \st -> st { infraredValue = Just response }
   OnClickIRCodeUpload -> do
     url <- getApiBaseURL
     millisec <- getApiTimeout
     state <- H.get
     case state.infraredValue of
       Just (Right (Api.DatumInfraRed d)) -> do
-        let newD = Api.DatumInfraRed {button_number: state.buttonNumber, code: d.code}
-            accessor = Api.postApiV1InfraRed {baseurl: url, datum: newD}
+        let
+          newD = Api.DatumInfraRed { button_number: state.buttonNumber, code: d.code }
+
+          accessor = Api.postApiV1InfraRed { baseurl: url, datum: newD }
         response <- accessToBackend millisec accessor
         H.liftEffect $ logShow response
-        pure mempty
-
-      _ ->
-        pure mempty
-
+      _ -> pure mempty
   OnClickIRCodeTransmit -> do
     url <- getApiBaseURL
     millisec <- getApiTimeout
     state <- H.get
     case state.infraredValue of
       Just (Right ircode) -> do
-        let accessor = Api.postApiV1TransIR {baseurl: url, datum: ircode}
+        let
+          accessor = Api.postApiV1TransIR { baseurl: url, datum: ircode }
         response <- accessToBackend millisec accessor
         H.liftEffect $ logShow response
-        pure mempty
-
-      _ ->
-        pure mempty
-
+      _ -> pure mempty
   OnClickIrdbPagination page -> do
     H.liftEffect Commons.disposePopover
     state <- H.get
-    let qp = state.queryParams {page = Just page}
-    newState <- H.modify _ {queryParams = qp}
+    let
+      qp = state.queryParams { page = Just page }
+    newState <- H.modify _ { queryParams = qp }
     case newState.irdbManufacturers of
       Just (Right x) -> do
         irdb <- getIrdb newState.queryParams x
-        H.modify_ \st -> st {irdb = Just irdb}
-
-      _ ->
-        pure unit
+        H.modify_ \st -> st { irdb = Just irdb }
+      _ -> pure mempty
     navigate $ Route.Infrared (Just qp)
     H.liftEffect Commons.enablePopover
-    pure mempty
-
   OnClickIrdbTable code -> do
     H.liftEffect Commons.disposePopover
     state <- H.get
-    let irval = Api.DatumInfraRed {button_number: state.buttonNumber, code: code}
-        newTab = Just $ fromEnum TabControlPanel
-        qp = state.queryParams {tab = newTab}
-    H.modify_ _ {infraredValue = Just (Right irval), queryParams = qp}
-    navigate $ Route.Infrared (Just qp)
-    pure mempty
+    let
+      irval = Api.DatumInfraRed { button_number: state.buttonNumber, code: code }
 
+      newTab = Just $ fromEnum TabControlPanel
+
+      qp = state.queryParams { tab = newTab }
+    H.modify_ _ { infraredValue = Just (Right irval), queryParams = qp }
+    navigate $ Route.Infrared (Just qp)
   OnValueChangeButtonNumber text -> do
     case Int.fromString text of
-      Nothing -> pure unit
+      Nothing -> pure mempty
       Just n -> H.modify_ \st -> st { buttonNumber = n }
-    pure mempty
-
   OnValueChangeManufacturer text -> do
     H.liftEffect Commons.disposePopover
     state <- H.get
-    let maybeManuf = either
-                      (const Nothing)
-                      (\x -> Just (unwrap x).manufacturers)
-                      =<< state.irdbManufacturers
-        maybeIndex = Array.elemIndex text =<< maybeManuf
-        newQry = state.queryParams
-                  { manuf = maybeIndex <|> initialQueryParams.manuf
-                  , page = Just 1
-                  }
-    newState <- H.modify _{queryParams = newQry}
+    let
+      maybeManuf =
+        either
+          (const Nothing)
+          (\x -> Just (unwrap x).manufacturers)
+          =<< state.irdbManufacturers
+
+      maybeIndex = Array.elemIndex text =<< maybeManuf
+
+      newQry =
+        state.queryParams
+          { manuf = maybeIndex <|> initialQueryParams.manuf
+          , page = Just 1
+          }
+    newState <- H.modify _ { queryParams = newQry }
     case newState.irdbManufacturers of
       Just (Right x) -> do
         irdb <- getIrdb newState.queryParams x
-        H.modify_ \st -> st {irdb = Just irdb}
-
-      _ ->
-        pure unit
+        H.modify_ \st -> st { irdb = Just irdb }
+      _ -> pure unit
     navigate $ Route.Infrared (Just newQry)
     H.liftEffect Commons.enablePopover
-    pure mempty
-
   OnValueChangeLimits text -> do
     H.liftEffect Commons.disposePopover
     state <- H.get
-    let maybeLimits = Int.fromString text
-        newQry = state.queryParams
-                  { limits = maybeLimits <|> initialQueryParams.limits
-                  , page = Just 1
-                  }
-    newState <- H.modify _{queryParams = newQry}
+    let
+      maybeLimits = Int.fromString text
+
+      newQry =
+        state.queryParams
+          { limits = maybeLimits <|> initialQueryParams.limits
+          , page = Just 1
+          }
+    newState <- H.modify _ { queryParams = newQry }
     case newState.irdbManufacturers of
       Just (Right x) -> do
         irdb <- getIrdb newState.queryParams x
-        H.modify_ \st -> st {irdb = Just irdb}
-
-      _ ->
-        pure unit
+        H.modify_ \st -> st { irdb = Just irdb }
+      _ -> pure unit
     navigate $ Route.Infrared (Just newQry)
     H.liftEffect Commons.enablePopover
-    pure mempty
-
   HandleEditorUpdate (Editor.TextChanged hexstr) -> do
     { buttonNumber } <- H.get
-    let code = hexstr
-        val = Api.DatumInfraRed {button_number: buttonNumber, code: code}
-    H.modify_ \st -> st { infraredValue = Just (Right val) }
-    pure mempty
+    let
+      code = hexstr
 
+      val = Api.DatumInfraRed { button_number: buttonNumber, code: code }
+    H.modify_ \st -> st { infraredValue = Just (Right val) }
   HandleEditorUpdate Editor.Reset -> do
     H.modify_ \st -> st { infraredValue = Nothing }
-    pure mempty
-
 
 -- |
----handleQuery :: forall i o m a. MonadAff m => Query a -> H.HalogenM State Action i o m (Maybe a)
----handleQuery = case _ of
----  HandleEditorUpdate (Editor.TextChanged hexstr) a -> do
----    { buttonNumber } <- H.get
----    let code = hexstr
----        val = Api.DatumInfraRed {button_number: buttonNumber, code: code}
----    H.modify_ \st -> st { infraredValue = Just (Right val) }
----    pure (Just a)
----
----  HandleEditorUpdate Editor.Reset a -> do
----    H.modify_ \st -> st { infraredValue = Nothing }
----    pure (Just a)
-
--- |
-getIrdb
-  :: forall m
-   . MonadAff m
-  => HasApiAccessible m
-  => Route.InfraredQueryParams
-  -> Api.RespGetIrdbManufacturers
-  -> m (Either String Api.RespGetIrdb)
+getIrdb ::
+  forall m.
+  MonadAff m =>
+  HasApiAccessible m =>
+  Route.InfraredQueryParams ->
+  Api.RespGetIrdbManufacturers ->
+  m (Either String Api.RespGetIrdb)
 getIrdb queryParams (Api.RespGetIrdbManufacturers xs) = do
   url <- getApiBaseURL
   millisec <- getApiTimeout
-  let param = { baseurl: url
-              , manufacturer: Array.index xs.manufacturers =<< queryParams.manuf
-              , product: Nothing
-              , limits: queryParams.limits
-              , page: queryParams.page
-              }
+  let
+    param =
+      { baseurl: url
+      , manufacturer: Array.index xs.manufacturers =<< queryParams.manuf
+      , product: Nothing
+      , limits: queryParams.limits
+      , page: queryParams.page
+      }
   accessToBackend millisec (Api.getApiV1Irdb param)
 
 --|
-accessToBackend
-  :: forall a m
-   . MonadAff m
-  => Milliseconds
-  -> Aff (Either String (AX.Response a))
-  -> m (Either String a)
+accessToBackend ::
+  forall a m.
+  MonadAff m =>
+  Milliseconds ->
+  Aff (Either String (AX.Response a)) ->
+  m (Either String a)
 accessToBackend millisec accessor =
   H.liftAff $ sequential
     $ parallel (response <$> accessor)
-  <|> parallel timeout
+    <|> parallel timeout
   where
-
   response :: Either String (AX.Response a) -> Either String a
   response = Bifunctor.rmap (_.body)
+
   timeout = delay millisec $> Left "サーバーからの応答がありませんでした"
 
 -- |
@@ -442,103 +427,85 @@ renderTab :: forall m. MonadAff m => State -> H.ComponentHTML Action ChildSlots 
 renderTab state =
   HH.ul
     [ HP.classes
-      [ HB.nav
-      , HB.navTabs
-      , HB.navPills
-      , HB.navJustified
-      , HB.justifyContentCenter
-      ]
+        [ HB.nav
+        , HB.navTabs
+        , HB.navPills
+        , HB.navJustified
+        , HB.justifyContentCenter
+        ]
     , style do
-      marginTop (px 12.0)
-      marginBottom (px 36.0)
-    ]
-    case toEnum =<< state.queryParams.tab of
-      Nothing ->
-        [ tabControlPanel [HB.active], tabIrdbTable [] ]
-
-      Just TabControlPanel ->
-        [ tabControlPanel [HB.active], tabIrdbTable [] ]
-
-      Just TabIrdbTable ->
-        [ tabControlPanel [], tabIrdbTable [HB.active] ]
+        marginTop (px 12.0)
+        marginBottom (px 36.0)
+    ] case toEnum =<< state.queryParams.tab of
+    Nothing -> [ tabControlPanel [ HB.active ], tabIrdbTable [] ]
+    Just TabControlPanel -> [ tabControlPanel [ HB.active ], tabIrdbTable [] ]
+    Just TabIrdbTable -> [ tabControlPanel [], tabIrdbTable [ HB.active ] ]
   where
+  tabControlPanel = item TabControlPanel "Control panel"
 
-  tabControlPanel =
-    item TabControlPanel "Control panel"
-
-  tabIrdbTable =
-    item TabIrdbTable "Infrared database"
+  tabIrdbTable = item TabIrdbTable "Infrared database"
 
   item newTab caption appendix =
-    let qp = state.queryParams { tab = Just $ fromEnum newTab }
+    let
+      qp = state.queryParams { tab = Just $ fromEnum newTab }
     in
-    HH.li
-      [ HP.class_ HB.navItem
-      ]
-      [ HH.a
-        [ HP.classes $ [HB.navLink] <> appendix
-        , HE.onClick (\_ -> Just $ NavigateTo $ Route.Infrared $ Just qp)
+      HH.li
+        [ HP.class_ HB.navItem
         ]
-        [ HH.text caption
+        [ HH.a
+            [ HP.classes $ [ HB.navLink ] <> appendix
+            , HE.onClick (\_ -> Just $ NavigateTo $ Route.Infrared $ Just qp)
+            ]
+            [ HH.text caption
+            ]
         ]
-      ]
 
 -- |
 renderControlPanel :: forall m. MonadAff m => State -> H.ComponentHTML Action ChildSlots m
 renderControlPanel state =
   HH.div_
     [ HH.div
-      [ HP.class_ HB.formInline ]
-      [ HH.div
-        [ HP.classes [ HB.formGroup ]
+        [ HP.class_ HB.formInline ]
+        [ HH.div
+            [ HP.classes [ HB.formGroup ]
+            ]
+            [ HH.label_ [ HH.text "Button Number" ]
+            , HH.select
+                [ HP.classes [ HB.m3, HB.formControl ]
+                , HE.onValueChange (Just <<< OnValueChangeButtonNumber)
+                ]
+                $ map (HH.option_ <<< Array.singleton <<< HH.text <<< Int.toStringAs Int.decimal)
+                $ 1
+                .. 10
+            ]
+        , HH.div
+            [ HP.classes [ HB.m3, HB.formGroup ] ]
+            [ irDownloadButton
+            , irUploadButton $ maybe false isRight $ state.infraredValue
+            , irTransmitButton $ maybe false isRight $ state.infraredValue
+            ]
         ]
-        [ HH.label_ [ HH.text "Button Number" ]
-        , HH.select
-          [ HP.classes [ HB.m3, HB.formControl ]
-          , HE.onValueChange (Just <<< OnValueChangeButtonNumber)
-          ]
-          $ map (HH.option_ <<< Array.singleton <<< HH.text <<< Int.toStringAs Int.decimal)
-          $ 1..10
-        ]
-      , HH.div
-        [ HP.classes [ HB.m3, HB.formGroup ] ]
-        [ irDownloadButton
-        , irUploadButton $ maybe false isRight $ state.infraredValue 
-        , irTransmitButton $ maybe false isRight $ state.infraredValue
-        ]
-      ]
     , renderInfraredRemoconCode state
     ]
 
 -- |
 renderIrdbTable :: forall s m. MonadAff m => State -> H.ComponentHTML Action s m
-renderIrdbTable state =
-  case state.irdbManufacturers of
-    Nothing ->
-      nowreading
-
-    Just (Left reason) ->
-      error reason
-
-    Just (Right manuf) ->
-      HH.div_ [dropdownManuf manuf, dropdownLimits, table state.irdb]
+renderIrdbTable state = case state.irdbManufacturers of
+  Nothing -> nowreading
+  Just (Left reason) -> error reason
+  Just (Right manuf) -> HH.div_ [ dropdownManuf manuf, dropdownLimits, table state.irdb ]
   where
-
   table = case _ of
-    Nothing ->
-      nowreading
-
-    Just (Left reason) ->
-      error reason
-
+    Nothing -> nowreading
+    Just (Left reason) -> error reason
     Just (Right irdb) ->
       HH.div_
         [ HH.h2_ [ HH.text "Infrared code database" ]
         , HH.div_
-          [ HH.div
-            [ HP.class_ HB.formGroup ]
-            [ irdbPagination irdb, irdbTable irdb ]
-          ]
+            [ HH.div
+                [ HP.class_ HB.formGroup ]
+                [ irdbPagination irdb, irdbTable irdb ]
+            ]
         ]
 
   nowreading =
@@ -556,247 +523,234 @@ renderIrdbTable state =
       [ HP.classes [ HB.formGroup, HB.row ]
       ]
       [ HH.label
-        [ HP.class_ HB.colSm2 ]
-        [ HH.text "limits" ]
+          [ HP.class_ HB.colSm2 ]
+          [ HH.text "limits" ]
       , HH.div
-        [ HP.class_ HB.colSm10
-        ]
-        [ HH.select
-          [ HP.classes [ HB.formControl ]
-          , HE.onValueChange (Just <<< OnValueChangeLimits)
+          [ HP.class_ HB.colSm10
           ]
-          [ item 10
-          , item 25
-          , item 50
-          , item 100
+          [ HH.select
+              [ HP.classes [ HB.formControl ]
+              , HE.onValueChange (Just <<< OnValueChangeLimits)
+              ]
+              [ item 10
+              , item 25
+              , item 50
+              , item 100
+              ]
           ]
-        ]
       ]
-      where
-
-      item number =
-        let str = Int.toStringAs Int.decimal number 
-        in
+    where
+    item number =
+      let
+        str = Int.toStringAs Int.decimal number
+      in
         case state.queryParams.limits of
-          Just x | x == number  -> HH.option [HP.selected true] [HH.text str]
-          _                     -> HH.option [] [HH.text str]
+          Just x
+            | x == number -> HH.option [ HP.selected true ] [ HH.text str ]
+          _ -> HH.option [] [ HH.text str ]
 
   dropdownManuf (Api.RespGetIrdbManufacturers x) =
     HH.div
       [ HP.classes [ HB.formGroup, HB.row ]
       ]
       [ HH.label
-        [ HP.class_ HB.colSm2 ]
-        [ HH.text "manufacturer" ]
+          [ HP.class_ HB.colSm2 ]
+          [ HH.text "manufacturer" ]
       , HH.div
-        [ HP.class_ HB.colSm10
-        ]
-        [ HH.select
-          [ HP.classes [ HB.formControl ]
-          , HE.onValueChange (Just <<< OnValueChangeManufacturer)
+          [ HP.class_ HB.colSm10
           ]
-          $ Array.zipWith item (0 .. Array.length x.manufacturers) x.manufacturers
-        ]
+          [ HH.select
+              [ HP.classes [ HB.formControl ]
+              , HE.onValueChange (Just <<< OnValueChangeManufacturer)
+              ]
+              $ Array.zipWith item (0 .. Array.length x.manufacturers) x.manufacturers
+          ]
       ]
-      where
-
-      item number name =
-        case state.queryParams.manuf of
-          Just manuf | manuf == number  -> HH.option [HP.selected true] [HH.text name]
-          _                             -> HH.option [] [HH.text name]
+    where
+    item number name = case state.queryParams.manuf of
+      Just manuf
+        | manuf == number -> HH.option [ HP.selected true ] [ HH.text name ]
+      _ -> HH.option [] [ HH.text name ]
 
 -- |
 infraredTimingTable :: forall p i. Baseband -> HH.HTML p i
-infraredTimingTable (Baseband pulses) =
-  HH.div [HP.class_ HB.row] $ map col pulses
+infraredTimingTable (Baseband pulses) = HH.div [ HP.class_ HB.row ] $ map col pulses
   where
-
   toText p =
-    [ HH.span [HP.class_ HB.textPrimary] [HH.text $ strMillisec p.on <> "on"]
+    [ HH.span [ HP.class_ HB.textPrimary ] [ HH.text $ strMillisec p.on <> "on" ]
     , HH.text ", "
-    , HH.span [HP.class_ HB.textSuccess] [HH.text $ strMillisec p.off <> "off"]
+    , HH.span [ HP.class_ HB.textSuccess ] [ HH.text $ strMillisec p.off <> "off" ]
     ]
 
   strMillisec :: Count -> String
   strMillisec n =
     either (const "N/A") identity
-    $ FN.formatNumber "0.00"
-    $ unwrap
-    $ toMilliseconds n
+      $ FN.formatNumber "0.00"
+      $ unwrap
+      $ toMilliseconds n
 
   col p =
     HH.div
-      [ HP.classes [HB.col6, HB.colMd2]
+      [ HP.classes [ HB.col6, HB.colMd2 ]
       ]
       [ HH.div_
-        [ HH.span
-          [ HP.class_ HB.textPrimary ]
-          [ HH.text $ strMillisec p.on <> "on" ]
-        , HH.text ("," <> String.singleton nbsp)
-        , HH.span
-          [ HP.class_ HB.textSecondary ]
-          [ HH.text $ strMillisec p.off <> "off" ]
-        ]
+          [ HH.span
+              [ HP.class_ HB.textPrimary ]
+              [ HH.text $ strMillisec p.on <> "on" ]
+          , HH.text ("," <> String.singleton nbsp)
+          , HH.span
+              [ HP.class_ HB.textSecondary ]
+              [ HH.text $ strMillisec p.off <> "off" ]
+          ]
       ]
 
   -- | nbsp - non-break spase
-  nbsp =
-    String.codePointFromChar $ fromMaybe '?' $ fromCharCode 0x00a0
+  nbsp = String.codePointFromChar $ fromMaybe '?' $ fromCharCode 0x00a0
 
 -- |
 infraredBitpatterns :: forall p i. Tuple InfraredLeader (Array Bit) -> Array (HH.HTML p i)
-infraredBitpatterns (Tuple leader vs) =
-  case leader of
-    LeaderAeha _     ->
-      [ HH.text "AEHA"
-      , HH.br_
-      , row $ toArrayArray 8 vs
-      ]
-    LeaderNec _      ->
-      [ HH.text "NEC"
-      , HH.br_
-      , row $ toArrayArray 8 vs
-      ]
-    LeaderSirc _  ->
-      let bit7 = Array.take 7 vs
-          left = Array.drop 7 vs
-      in
+infraredBitpatterns (Tuple leader vs) = case leader of
+  LeaderAeha _ ->
+    [ HH.text "AEHA"
+    , HH.br_
+    , row $ toArrayArray 8 vs
+    ]
+  LeaderNec _ ->
+    [ HH.text "NEC"
+    , HH.br_
+    , row $ toArrayArray 8 vs
+    ]
+  LeaderSirc _ ->
+    let
+      bit7 = Array.take 7 vs
+
+      left = Array.drop 7 vs
+    in
       [ HH.text "SIRC"
       , HH.br_
       , row (bit7 : toArrayArray 8 left)
       ]
-    LeaderUnknown _     ->
-      [ HH.text "Unknown"
-      , HH.br_
-      , row $ toArrayArray 8 vs
-      ]
+  LeaderUnknown _ ->
+    [ HH.text "Unknown"
+    , HH.br_
+    , row $ toArrayArray 8 vs
+    ]
   where
-
-  row xxs =
-    HH.div [HP.class_ HB.row] $ map col xxs
+  row xxs = HH.div [ HP.class_ HB.row ] $ map col xxs
 
   col xs =
     HH.div
-      [ HP.classes [HB.col6, HB.colMd2]
+      [ HP.classes [ HB.col6, HB.colMd2 ]
       ]
       $ map (HH.text <<< show) xs
 
 -- |
 infraredCodeFrame :: forall p i. State -> InfraredCodeFrame -> Array (HH.HTML p i)
-infraredCodeFrame state input =
-  case toEnum =<< state.queryParams.bitorder of
-    Nothing                 -> leastSignificantBitFirst input
-    Just LeastSignBitFirst  -> leastSignificantBitFirst input
-    Just MostSignBitFirst   -> mostSignificantBitFirst input
-    Just BothBitOrder       -> 
-      leastSignificantBitFirst input <> mostSignificantBitFirst input
+infraredCodeFrame state input = case toEnum =<< state.queryParams.bitorder of
+  Nothing -> leastSignificantBitFirst input
+  Just LeastSignBitFirst -> leastSignificantBitFirst input
+  Just MostSignBitFirst -> mostSignificantBitFirst input
+  Just BothBitOrder -> leastSignificantBitFirst input <> mostSignificantBitFirst input
   where
-
   leastSignificantBitFirst = case _ of
     FormatNEC irValue ->
       [ HH.dl_
-        [ dt [ HH.text "format" ]
-        , dd [ HH.text "NEC" ]
-        , dt [ HH.text "custom code (LSBit first)" ]
-        , dd 
-          [ showOctet <<< unwrap <<< toLsbFirst $ irValue.custom0
-          , showOctet <<< unwrap <<< toLsbFirst $ irValue.custom1
+          [ dt [ HH.text "format" ]
+          , dd [ HH.text "NEC" ]
+          , dt [ HH.text "custom code (LSBit first)" ]
+          , dd
+              [ showOctet <<< unwrap <<< toLsbFirst $ irValue.custom0
+              , showOctet <<< unwrap <<< toLsbFirst $ irValue.custom1
+              ]
+          , dt [ HH.text "octets (LSBit first)" ]
+          , dd
+              [ showOctet <<< unwrap <<< toLsbFirst $ irValue.data0
+              , showOctet <<< unwrap <<< toLsbFirst $ irValue.data1
+              ]
+          , dt [ HH.text "stop" ]
+          , dd [ HH.text $ show irValue.stop ]
           ]
-        , dt [ HH.text "octets (LSBit first)" ]
-        , dd
-          [ showOctet <<< unwrap <<< toLsbFirst $ irValue.data0
-          , showOctet <<< unwrap <<< toLsbFirst $ irValue.data1
-          ]
-        , dt [ HH.text "stop" ]
-        , dd [ HH.text $ show irValue.stop ]
-        ]
       ]
-
     FormatAEHA irValue ->
       [ HH.dl_
-        [ dt [ HH.text "format" ]
-        , dd [ HH.text "AEHA" ]
-        , dt [ HH.text "octets (LSBit first)" ]
-        , dd $ map (showOctet <<< unwrap <<< toLsbFirst) irValue.octets
-        , dt [ HH.text "stop" ]
-        , dd [ HH.text $ show irValue.stop ]
-        ]
+          [ dt [ HH.text "format" ]
+          , dd [ HH.text "AEHA" ]
+          , dt [ HH.text "octets (LSBit first)" ]
+          , dd $ map (showOctet <<< unwrap <<< toLsbFirst) irValue.octets
+          , dt [ HH.text "stop" ]
+          , dd [ HH.text $ show irValue.stop ]
+          ]
       ]
-
     FormatSIRC irValue ->
       [ HH.dl_
-        [ dt [ HH.text "format" ]
-        , dd [ HH.text "SIRC" ]
-        , dt [ HH.text "command (LSBit first)" ]
-        , dd [ HH.text $ showHex <<< unwrap $ toLsbFirst irValue.command ]
-        , dt [ HH.text "address (LSBit first)" ]
-        , dd [ HH.text $ showHex <<< unwrap $ toLsbFirst irValue.address ]
-        ]
+          [ dt [ HH.text "format" ]
+          , dd [ HH.text "SIRC" ]
+          , dt [ HH.text "command (LSBit first)" ]
+          , dd [ HH.text $ showHex <<< unwrap $ toLsbFirst irValue.command ]
+          , dt [ HH.text "address (LSBit first)" ]
+          , dd [ HH.text $ showHex <<< unwrap $ toLsbFirst irValue.address ]
+          ]
       ]
-
     FormatUnknown irValue ->
       [ HH.dl_
-        [ dt [ HH.text "unknown format" ]
-        , dd [ HH.text $ show irValue ]
-        ]
+          [ dt [ HH.text "unknown format" ]
+          , dd [ HH.text $ show irValue ]
+          ]
       ]
 
   mostSignificantBitFirst = case _ of
     FormatNEC irValue ->
       [ HH.dl_
-        [ dt [ HH.text "format" ]
-        , dd [ HH.text "NEC" ]
-        , dt [ HH.text "custom code (MSBit first)" ]
-        , dd 
-          [ showOctet <<< unwrap <<< toMsbFirst $ irValue.custom0
-          , showOctet <<< unwrap <<< toMsbFirst $ irValue.custom1
+          [ dt [ HH.text "format" ]
+          , dd [ HH.text "NEC" ]
+          , dt [ HH.text "custom code (MSBit first)" ]
+          , dd
+              [ showOctet <<< unwrap <<< toMsbFirst $ irValue.custom0
+              , showOctet <<< unwrap <<< toMsbFirst $ irValue.custom1
+              ]
+          , dt [ HH.text "octets (MSBit first)" ]
+          , dd
+              [ showOctet <<< unwrap <<< toMsbFirst $ irValue.data0
+              , showOctet <<< unwrap <<< toMsbFirst $ irValue.data1
+              ]
+          , dt [ HH.text "stop" ]
+          , dd [ HH.text $ show irValue.stop ]
           ]
-        , dt [ HH.text "octets (MSBit first)" ]
-        , dd
-          [ showOctet <<< unwrap <<< toMsbFirst $ irValue.data0
-          , showOctet <<< unwrap <<< toMsbFirst $ irValue.data1
-          ]
-        , dt [ HH.text "stop" ]
-        , dd [ HH.text $ show irValue.stop ]
-        ]
       ]
-
     FormatAEHA irValue ->
       [ HH.dl_
-        [ dt [ HH.text "format" ]
-        , dd [ HH.text "AEHA" ]
-        , dt [ HH.text "octets (MSBit first)" ]
-        , dd $ map (showOctet <<< unwrap <<< toMsbFirst) irValue.octets
-        , dt [ HH.text "stop" ]
-        , dd [ HH.text $ show irValue.stop ]
-        ]
+          [ dt [ HH.text "format" ]
+          , dd [ HH.text "AEHA" ]
+          , dt [ HH.text "octets (MSBit first)" ]
+          , dd $ map (showOctet <<< unwrap <<< toMsbFirst) irValue.octets
+          , dt [ HH.text "stop" ]
+          , dd [ HH.text $ show irValue.stop ]
+          ]
       ]
-
     FormatSIRC irValue ->
       [ HH.dl_
-        [ dt [ HH.text "format" ]
-        , dd [ HH.text "SIRC" ]
-        , dt [ HH.text "command (MSBit first)" ]
-        , dd [ HH.text $ showHex <<< unwrap $ toMsbFirst irValue.command ]
-        , dt [ HH.text "address (MSBit first)" ]
-        , dd [ HH.text $ showHex <<< unwrap $ toMsbFirst irValue.address ]
-        ]
+          [ dt [ HH.text "format" ]
+          , dd [ HH.text "SIRC" ]
+          , dt [ HH.text "command (MSBit first)" ]
+          , dd [ HH.text $ showHex <<< unwrap $ toMsbFirst irValue.command ]
+          , dt [ HH.text "address (MSBit first)" ]
+          , dd [ HH.text $ showHex <<< unwrap $ toMsbFirst irValue.address ]
+          ]
       ]
-
     FormatUnknown irValue ->
       [ HH.dl_
-        [ dt [ HH.text "unknown format" ]
-        , dd [ HH.text $ show irValue ]
-        ]
+          [ dt [ HH.text "unknown format" ]
+          , dd [ HH.text $ show irValue ]
+          ]
       ]
 
   dt = HH.dt_
 
-  dd = HH.dd [ HP.classes [HB.pl4, HB.row] ]
+  dd = HH.dd [ HP.classes [ HB.pl4, HB.row ] ]
 
   showOctet x =
     HH.span
-      [ HP.classes [HB.col6, HB.colMd2]
+      [ HP.classes [ HB.col6, HB.colMd2 ]
       ]
       [ HH.text $ showHex x, HH.text " " ]
 
@@ -806,87 +760,86 @@ infraredRemoteControlCode = case _ of
   IrRemoteUnknown formats ->
     [ HH.text "Unknown IR remote Code"
     ]
-
   IrRemotePanasonicHvac (PanasonicHvac v) ->
     [ HH.text "Panasonic HVAC"
     , HH.dl_
-      [ dt [ HH.text "Temperature" ]
-      , dd [ HH.text (show v.temperature) ]
-      , dt [ HH.text "Mode" ]
-      , dd [ HH.text (show v.mode) ]
-      , dt [ HH.text "Switch" ]
-      , dd [ HH.text (show v.switch) ]
-      , dt [ HH.text "Fan" ]
-      , dd [ HH.text (show v.fan) ]
-      , dt [ HH.text "Swing" ]
-      , dd [ HH.text (show v.swing) ]
-      , dt [ HH.text "Profile" ]
-      , dd [ HH.text (show v.profile) ]
-      , dt [ HH.text "CRC" ]
-      , dd [ HH.text (if Pa.validCrc v.crc v.original then "Checksum is valid." else "Checksum is NOT valid.")
-           , HH.text $ " " <> (show v.crc)
-           ]
-      ]
+        [ dt [ HH.text "Temperature" ]
+        , dd [ HH.text (show v.temperature) ]
+        , dt [ HH.text "Mode" ]
+        , dd [ HH.text (show v.mode) ]
+        , dt [ HH.text "Switch" ]
+        , dd [ HH.text (show v.switch) ]
+        , dt [ HH.text "Fan" ]
+        , dd [ HH.text (show v.fan) ]
+        , dt [ HH.text "Swing" ]
+        , dd [ HH.text (show v.swing) ]
+        , dt [ HH.text "Profile" ]
+        , dd [ HH.text (show v.profile) ]
+        , dt [ HH.text "CRC" ]
+        , dd
+            [ HH.text (if Pa.validCrc v.crc v.original then "Checksum is valid." else "Checksum is NOT valid.")
+            , HH.text $ " " <> (show v.crc)
+            ]
+        ]
     ]
-
   IrRemoteMitsubishiElectricHvac (MitsubishiElectricHvac v) ->
     [ HH.text "MitsubishiElectric HVAC"
     , HH.dl_
-      [ dt [ HH.text "Temperature" ]
-      , dd [ HH.text (show v.temperature) ]
-      , dt [ HH.text "Mode1" ]
-      , dd [ HH.text (show v.mode1) ]
-      , dt [ HH.text "Switch" ]
-      , dd [ HH.text (show v.switch) ]
-      , dt [ HH.text "CRC" ]
-      , dd [ HH.text (if Me.validCrc v.crc v.original then "Checksum is valid." else "Checksum is NOT valid.")
-           , HH.text $ " " <> (show v.crc)
-           ]
-      ]
+        [ dt [ HH.text "Temperature" ]
+        , dd [ HH.text (show v.temperature) ]
+        , dt [ HH.text "Mode1" ]
+        , dd [ HH.text (show v.mode1) ]
+        , dt [ HH.text "Switch" ]
+        , dd [ HH.text (show v.switch) ]
+        , dt [ HH.text "CRC" ]
+        , dd
+            [ HH.text (if Me.validCrc v.crc v.original then "Checksum is valid." else "Checksum is NOT valid.")
+            , HH.text $ " " <> (show v.crc)
+            ]
+        ]
     ]
-
   IrRemoteHitachiHvac (HitachiHvac v) ->
     [ HH.text "Hitachi HVAC"
     , HH.dl_
-      [ dt [ HH.text "Temperature" ]
-      , dd [ HH.text (show v.temperature) ]
-      , dt [ HH.text "Mode" ]
-      , dd [ HH.text (show v.mode) ]
-      , dt [ HH.text "Switch" ]
-      , dd [ HH.text (show v.switch) ]
-      , dt [ HH.text "Fan" ]
-      , dd [ HH.text (show v.fan) ]
-      ]
+        [ dt [ HH.text "Temperature" ]
+        , dd [ HH.text (show v.temperature) ]
+        , dt [ HH.text "Mode" ]
+        , dd [ HH.text (show v.mode) ]
+        , dt [ HH.text "Switch" ]
+        , dd [ HH.text (show v.switch) ]
+        , dt [ HH.text "Fan" ]
+        , dd [ HH.text (show v.fan) ]
+        ]
     ]
   where
-
   dt = HH.dt_
 
-  dd = HH.dd [ HP.classes [HB.pl4, HB.row] ]
-
+  dd = HH.dd [ HP.classes [ HB.pl4, HB.row ] ]
 
 -- |
 showHex :: Int -> String
 showHex v =
-  let str = Int.toStringAs Int.hexadecimal v
+  let
+    str = Int.toStringAs Int.hexadecimal v
   in
-  case String.length str of
-    x | x < 2     -> "0" <> str
-      | otherwise -> str
- 
+    case String.length str of
+      x
+        | x < 2 -> "0" <> str
+        | otherwise -> str
+
 -- |
 irDownloadButton :: forall s m. H.ComponentHTML Action s m
 irDownloadButton =
   HH.button
     [ HP.classes
-      [ HB.btn
-      , HB.btnOutlineSuccess
-      , HB.justifyContentCenter
-      ]
+        [ HB.btn
+        , HB.btnOutlineSuccess
+        , HB.justifyContentCenter
+        ]
     , HE.onClick (\_ -> Just OnClickIRCodeDownload)
     , style do
-      margin (px 2.0) (px 2.0) (px 2.0) (px 2.0)
-      width (rem 8.0)
+        margin (px 2.0) (px 2.0) (px 2.0) (px 2.0)
+        width (rem 8.0)
     ]
     [ HH.text "Download" ]
 
@@ -895,19 +848,18 @@ irUploadButton :: forall s m. Boolean -> H.ComponentHTML Action s m
 irUploadButton isActive =
   HH.button
     [ HP.classes
-      [ HB.btn
-      , HB.btnOutlineDanger
-      , HB.justifyContentCenter
-      ]
+        [ HB.btn
+        , HB.btnOutlineDanger
+        , HB.justifyContentCenter
+        ]
     , HE.onClick (\_ -> Just OnClickIRCodeUpload)
     , style do
-      margin (px 2.0) (px 2.0) (px 2.0) (px 2.0)
-      width (rem 8.0)
+        margin (px 2.0) (px 2.0) (px 2.0) (px 2.0)
+        width (rem 8.0)
     , appendix isActive
     ]
     [ HH.text "Upload" ]
   where
-
   appendix = case _ of
     true -> HP.attr (HC.AttrName "active") "active"
     false -> HP.attr (HC.AttrName "disabled") "disabled"
@@ -917,22 +869,21 @@ irTransmitButton :: forall s m. Boolean -> H.ComponentHTML Action s m
 irTransmitButton isActive =
   HH.button
     [ HP.classes
-      [ HB.btn
-      , HB.btnOutlinePrimary
-      , HB.justifyContentCenter
-      ]
+        [ HB.btn
+        , HB.btnOutlinePrimary
+        , HB.justifyContentCenter
+        ]
     , HE.onClick (\_ -> Just OnClickIRCodeTransmit)
     , style do
-      margin (px 2.0) (px 2.0) (px 2.0) (px 2.0)
-      width (rem 8.0)
+        margin (px 2.0) (px 2.0) (px 2.0) (px 2.0)
+        width (rem 8.0)
     , appendix isActive
     ]
     [ HH.text "Transmit" ]
   where
-  appendix true = 
-    HP.attr (HC.AttrName "active") "active"
-  appendix false = 
-    HP.attr (HC.AttrName "disabled") "disabled"
+  appendix true = HP.attr (HC.AttrName "active") "active"
+
+  appendix false = HP.attr (HC.AttrName "disabled") "disabled"
 
 -- |
 renderInfraredRemoconCode :: forall m. MonadAff m => State -> H.ComponentHTML Action ChildSlots m
@@ -940,73 +891,75 @@ renderInfraredRemoconCode state =
   HH.div
     [ HP.class_ HB.formGroup ]
     $ case state.infraredValue of
-      Nothing ->
-        [ HH.h3_ [ HH.text "Edit codes" ]
-        , HH.slot _infraredCodeEditor unit Editor.component "" (Just <<< HandleEditorUpdate)
-        ]
+        Nothing ->
+          [ HH.h3_ [ HH.text "Edit codes" ]
+          , HH.slot _infraredCodeEditor unit Editor.component Nothing (Just <<< HandleEditorUpdate)
+          ]
+        Just (Left _) ->
+          [ HH.h3_ [ HH.text "Edit codes" ]
+          , HH.slot _infraredCodeEditor unit Editor.component Nothing (Just <<< HandleEditorUpdate)
+          ]
+        Just (Right (Api.DatumInfraRed ir)) ->
+          [ HH.h3_ [ HH.text "Edit codes" ]
+          , HH.slot _infraredCodeEditor unit Editor.component (Just ir.code) (Just <<< HandleEditorUpdate)
+          , display ir
+          ]
+  where
+  display ir =
+    let
+      baseband = Bifunctor.lmap parseErrorMessage (runParser ir.code infraredCodeTextParser)
 
-      Just (Left _) ->
-        [ HH.h3_ [ HH.text "Edit codes" ]
-        , HH.slot _infraredCodeEditor unit Editor.component "" (Just <<< HandleEditorUpdate)
-        ]
+      bitPatterns = (traverse decodePhase2 <<< decodePhase1) =<< baseband
 
-      Just (Right (Api.DatumInfraRed ir)) ->
-        [ HH.h3_ [ HH.text "Edit codes" ]
-        , HH.slot _infraredCodeEditor unit Editor.component ir.code (Just <<< HandleEditorUpdate)
-        , display ir
-        ]
-    where
+      irframes = traverse decodePhase3 =<< bitPatterns
 
-    display ir =
-      let baseband      = Bifunctor.lmap parseErrorMessage (runParser ir.code infraredCodeTextParser)
-          bitPatterns   = (traverse decodePhase2 <<< decodePhase1) =<< baseband
-          irframes      = traverse decodePhase3 =<< bitPatterns
-          irRemoteCode  = Bifunctor.rmap decodePhase4 irframes
-      in
+      irRemoteCode = Bifunctor.rmap decodePhase4 irframes
+    in
       HH.p_
         [ HH.h3_ [ HH.text "Binaries" ]
         , HH.p
-          [ HP.classes [ HB.p3, HC.ClassName "overflow-auto" ]
-          , style do
-            padding (px 10.0) (px 10.0) (px 10.0) (px 10.0)
-            minHeight (em 5.0)
-          ]
-          [ case state.infraredValue of
-              Nothing -> HH.text ""
-              Just (Left x) -> HH.text x
-              Just (Right x) -> 
-                let
-                  input = (unwrap x).code
-                  bb = toBaseband input
-                in
-                either HH.text (HH.text <<< toInfraredHexString) bb
-          ]
+            [ HP.classes [ HB.p3, HC.ClassName "overflow-auto" ]
+            , style do
+                padding (px 10.0) (px 10.0) (px 10.0) (px 10.0)
+                minHeight (em 5.0)
+            ]
+            [ case state.infraredValue of
+                Nothing -> HH.text ""
+                Just (Left x) -> HH.text x
+                Just (Right x) ->
+                  let
+                    input = (unwrap x).code
+
+                    bb = toBaseband input
+                  in
+                    either HH.text (HH.text <<< toInfraredHexString) bb
+            ]
         , HH.h3_ [ HH.text "Timing table in milliseconds" ]
         , HH.p
-          [ HP.class_ HB.p3 ]
-          [ either HH.text infraredTimingTable baseband ]
+            [ HP.class_ HB.p3 ]
+            [ either HH.text infraredTimingTable baseband ]
         , HH.h3_ [ HH.text "Bit patterns" ]
         , HH.p
-          [ HP.class_ HB.p3 ]
-          $ either
-            (Array.singleton <<< HH.text)
-            (intercalate [HH.hr_] <<< map infraredBitpatterns)
-            bitPatterns
+            [ HP.class_ HB.p3 ]
+            $ either
+                (Array.singleton <<< HH.text)
+                (intercalate [ HH.hr_ ] <<< map infraredBitpatterns)
+                bitPatterns
         , HH.h3_ [ HH.text "Infrared remote control frames" ]
         , renderBitOrderTab state
         , HH.p
-          [ HP.class_ HB.p3 ]
-          $ either
-            (Array.singleton <<< HH.text)
-            (intercalate [HH.hr_] <<< map (infraredCodeFrame state))
-            irframes
+            [ HP.class_ HB.p3 ]
+            $ either
+                (Array.singleton <<< HH.text)
+                (intercalate [ HH.hr_ ] <<< map (infraredCodeFrame state))
+                irframes
         , HH.h3_ [ HH.text "Infrared remote control code" ]
         , HH.p
-          [ HP.class_ HB.p3 ]
-          $ either
-            (Array.singleton <<< HH.text)
-            infraredRemoteControlCode
-            irRemoteCode
+            [ HP.class_ HB.p3 ]
+            $ either
+                (Array.singleton <<< HH.text)
+                infraredRemoteControlCode
+                irRemoteCode
         ]
 
 -- |
@@ -1014,51 +967,40 @@ renderBitOrderTab :: forall s m. MonadAff m => State -> H.ComponentHTML Action s
 renderBitOrderTab state =
   HH.ul
     [ HP.classes
-      [ HB.nav
-      , HB.navTabs
-      , HB.navPills
-      ]
+        [ HB.nav
+        , HB.navTabs
+        , HB.navPills
+        ]
     , style do
-      marginTop (px 12.0)
-      marginBottom (px 36.0)
-    ]
-    case toEnum =<< state.queryParams.bitorder of
-      Nothing ->
-        [ tabLSBitFirst [HB.active], tabMSBitFirst [], tabBothBitOrder [] ]
-
-      Just LeastSignBitFirst ->
-        [ tabLSBitFirst [HB.active], tabMSBitFirst [], tabBothBitOrder [] ]
-
-      Just MostSignBitFirst ->
-        [ tabLSBitFirst [], tabMSBitFirst [HB.active], tabBothBitOrder [] ]
-
-      Just BothBitOrder ->
-        [ tabLSBitFirst [], tabMSBitFirst [], tabBothBitOrder [HB.active] ]
+        marginTop (px 12.0)
+        marginBottom (px 36.0)
+    ] case toEnum =<< state.queryParams.bitorder of
+    Nothing -> [ tabLSBitFirst [ HB.active ], tabMSBitFirst [], tabBothBitOrder [] ]
+    Just LeastSignBitFirst -> [ tabLSBitFirst [ HB.active ], tabMSBitFirst [], tabBothBitOrder [] ]
+    Just MostSignBitFirst -> [ tabLSBitFirst [], tabMSBitFirst [ HB.active ], tabBothBitOrder [] ]
+    Just BothBitOrder -> [ tabLSBitFirst [], tabMSBitFirst [], tabBothBitOrder [ HB.active ] ]
   where
+  tabLSBitFirst = item LeastSignBitFirst "Least Significant Bit First Order"
 
-  tabLSBitFirst =
-    item LeastSignBitFirst "Least Significant Bit First Order"
+  tabMSBitFirst = item MostSignBitFirst "Most Significant Bit First Order"
 
-  tabMSBitFirst =
-    item MostSignBitFirst "Most Significant Bit First Order"
-
-  tabBothBitOrder =
-    item BothBitOrder "Both Bit Order"
+  tabBothBitOrder = item BothBitOrder "Both Bit Order"
 
   item newTab caption appendix =
-    let qp = state.queryParams { bitorder = Just $ fromEnum newTab }
+    let
+      qp = state.queryParams { bitorder = Just $ fromEnum newTab }
     in
-    HH.li
-      [ HP.class_ HB.navItem
-      ]
-      [ HH.a
-        [ HP.classes $ [HB.navLink] <> appendix
-        , HE.onClick (\_ -> Just $ NavigateTo $ Route.Infrared $ Just qp)
+      HH.li
+        [ HP.class_ HB.navItem
         ]
-        [ HH.text caption
+        [ HH.a
+            [ HP.classes $ [ HB.navLink ] <> appendix
+            , HE.onClick (\_ -> Just $ NavigateTo $ Route.Infrared $ Just qp)
+            ]
+            [ HH.text caption
+            ]
         ]
-      ]
- 
+
 -- |
 irdbPagination :: forall s m. Api.RespGetIrdb -> H.ComponentHTML Action s m
 irdbPagination (Api.RespGetIrdb irdb) =
@@ -1066,21 +1008,20 @@ irdbPagination (Api.RespGetIrdb irdb) =
     [ HP.attr (HC.AttrName "area-label") "Pagination"
     ]
     [ HH.ul
-      [ HP.classes [HB.pagination, HB.row, HB.noGutters]
-      ]
-      $ map item (1 .. irdb.pages)
+        [ HP.classes [ HB.pagination, HB.row, HB.noGutters ]
+        ]
+        $ map item (1 .. irdb.pages)
     ]
   where
-
   item number =
     HH.li
-    [ HP.classes $ classes number ]
-    [ HH.a
-      [ HP.class_ HB.pageLink
-      , HE.onClick (\_ -> Just $ OnClickIrdbPagination number)
+      [ HP.classes $ classes number ]
+      [ HH.a
+          [ HP.class_ HB.pageLink
+          , HE.onClick (\_ -> Just $ OnClickIrdbPagination number)
+          ]
+          $ text number
       ]
-      $ text number
-    ]
 
   classes n =
     if n == irdb.page then
@@ -1091,7 +1032,7 @@ irdbPagination (Api.RespGetIrdb irdb) =
   text n =
     if n == irdb.page then
       [ HH.text $ Int.toStringAs Int.decimal n
-      , HH.span [HP.class_ HB.srOnly] [HH.text "(current)"]
+      , HH.span [ HP.class_ HB.srOnly ] [ HH.text "(current)" ]
       ]
     else
       [ HH.text $ Int.toStringAs Int.decimal n ]
@@ -1101,73 +1042,60 @@ irdbTable :: forall s m. Api.RespGetIrdb -> H.ComponentHTML Action s m
 irdbTable (Api.RespGetIrdb irdb) =
   HH.p_
     [ HH.table
-      [ HP.classes [ HB.table, HB.tableHover ]
-      ]
-      [ tableHeading
-      , tableBody irdb.data
-      ]
+        [ HP.classes [ HB.table, HB.tableHover ]
+        ]
+        [ tableHeading
+        , tableBody irdb.data
+        ]
     ]
   where
-
-  tableHeading =
-    HH.thead_ [ HH.tr_ items ]
+  tableHeading = HH.thead_ [ HH.tr_ items ]
     where
     items =
       map
         (HH.th_ <<< Array.singleton <<< HH.text)
         [ "id", "manufacturer", "product", "key", "code" ]
 
-  tableBody values =
-    HH.tbody_ $ map tableRow values
+  tableBody values = HH.tbody_ $ map tableRow values
 
   tableRow (Api.DatumIrdb val) =
-    let clk = HE.onClick (\_ -> Just $ OnClickIrdbTable val.code)
+    let
+      clk = HE.onClick (\_ -> Just $ OnClickIrdbTable val.code)
     in
-    HH.tr_
-      [ HH.th [HE.onClick (\_ -> Just $ OnClickIrdbTable val.code)] [HH.text $ Int.toStringAs Int.decimal val.id]
-      , HH.td [clk] [HH.text val.manuf]
-      , HH.td [clk] [HH.text val.prod]
-      , HH.td [clk] [HH.text val.key]
-      , HH.td_
-        [ HH.button
-          [ HP.classes [ HB.btn, HB.btnSecondary, HB.justifyContentCenter ]
-          , HP.attr (HC.AttrName "data-container") "body"
-          , HP.attr (HC.AttrName "data-toggle") "popover"
-          , HP.attr (HC.AttrName "data-placement") "left"
-          , HP.attr (HC.AttrName "data-content") $ popoverContents val.code
-          ]
-          [ HH.text $ String.take 8 val.code, HH.text "..."
-          ]
+      HH.tr_
+        [ HH.th [ HE.onClick (\_ -> Just $ OnClickIrdbTable val.code) ] [ HH.text $ Int.toStringAs Int.decimal val.id ]
+        , HH.td [ clk ] [ HH.text val.manuf ]
+        , HH.td [ clk ] [ HH.text val.prod ]
+        , HH.td [ clk ] [ HH.text val.key ]
+        , HH.td_
+            [ HH.button
+                [ HP.classes [ HB.btn, HB.btnSecondary, HB.justifyContentCenter ]
+                , HP.attr (HC.AttrName "data-container") "body"
+                , HP.attr (HC.AttrName "data-toggle") "popover"
+                , HP.attr (HC.AttrName "data-placement") "left"
+                , HP.attr (HC.AttrName "data-content") $ popoverContents val.code
+                ]
+                [ HH.text $ String.take 8 val.code, HH.text "..."
+                ]
+            ]
         ]
-      ]
 
 toBaseband :: String -> Either String Baseband
-toBaseband inp =
-  Bifunctor.lmap parseErrorMessage (runParser inp infraredCodeTextParser)
+toBaseband inp = Bifunctor.lmap parseErrorMessage (runParser inp infraredCodeTextParser)
 
 -- |
 popoverContents :: InfraredHexString -> String
-popoverContents input =
-  either identity display $ toIrCode input
+popoverContents input = either identity display $ toIrCode input
   where
-  
   toIrCode :: InfraredHexString -> Either String IrRemoteControlCode
-  toIrCode =
-    toIrRemoteControlCode <=< toBaseband
- 
+  toIrCode = toIrRemoteControlCode <=< toBaseband
+
   display :: IrRemoteControlCode -> String
   display = case _ of
-    IrRemoteUnknown formats ->
-      String.joinWith ", " $ map showFormat formats
-
-    IrRemotePanasonicHvac _ ->
-      "Panasonic HVAC"
-
-    IrRemoteMitsubishiElectricHvac _ ->
-      "Mitsubishi Electric HVAC"
-
-    IrRemoteHitachiHvac _ ->
-      "Hitachi HVAC"
+    IrRemoteUnknown formats -> String.joinWith ", " $ map showFormat formats
+    IrRemotePanasonicHvac _ -> "Panasonic HVAC"
+    IrRemoteMitsubishiElectricHvac _ -> "Mitsubishi Electric HVAC"
+    IrRemoteHitachiHvac _ -> "Hitachi HVAC"
 
   showFormat :: InfraredCodeFrame -> String
   showFormat = case _ of
@@ -1179,23 +1107,22 @@ popoverContents input =
         , showHex <<< unwrap $ toLsbFirst irValue.data0
         , showHex <<< unwrap $ toLsbFirst irValue.data1
         ]
-
     FormatAEHA irValue ->
-      String.joinWith " " $ Array.concat
-        [ Array.singleton "AEHA"
-        , map (showHex <<< unwrap <<< toLsbFirst) irValue.octets
-        ]
-
+      String.joinWith " "
+        $ Array.concat
+            [ Array.singleton "AEHA"
+            , map (showHex <<< unwrap <<< toLsbFirst) irValue.octets
+            ]
     FormatSIRC irValue ->
       String.joinWith " "
         [ "SIRC"
         , showHex <<< unwrap $ toLsbFirst irValue.command
         , showHex <<< unwrap $ toLsbFirst irValue.address
         ]
-
     FormatUnknown irValue ->
-      String.joinWith " " $ Array.concat
-        [ [ "Unkown"
-          , show irValue
-          ]
-        ]
+      String.joinWith " "
+        $ Array.concat
+            [ [ "Unkown"
+              , show irValue
+              ]
+            ]

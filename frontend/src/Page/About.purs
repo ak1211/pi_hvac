@@ -14,14 +14,12 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -}
-
 module Page.About
   ( Query
   , component
   ) where
 
 import Prelude
-
 import AppM (class Navigate, navigate)
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
@@ -34,34 +32,39 @@ import Page.Commons as Commons
 import Route (Route)
 import Route as Route
 
-type State =
-  { session :: String
-  }
+-- |
+type State
+  = { session :: String
+    }
 
+-- |
 data Query a
   = ThisIsNone a
 
+-- |
 data Action
   = Initialize
   | Finalize
   | NavigateTo Route
 
--- | child component
-component
-  :: forall m
-   . MonadAff m
-  => Navigate m
-  => H.Component HH.HTML Query Unit Void m
+-- |
+component ::
+  forall m.
+  MonadAff m =>
+  Navigate m =>
+  H.Component HH.HTML Query Unit Void m
 component =
   H.mkComponent
     { initialState: initialState
     , render
-    , eval: H.mkEval $ H.defaultEval
-      { handleAction = handleAction
-      , handleQuery = handleQuery
-      , initialize = Just Initialize
-      , finalize = Just Finalize
-      }
+    , eval:
+      H.mkEval
+        $ H.defaultEval
+            { handleAction = handleAction
+            , handleQuery = handleQuery
+            , initialize = Just Initialize
+            , finalize = Just Finalize
+            }
     }
 
 -- |
@@ -74,23 +77,23 @@ initialState _ =
 render :: forall m. State -> H.ComponentHTML Action () m
 render state =
   HH.div
-      [ HP.id_ "wrapper"
-      ]
+    [ HP.id_ "wrapper"
+    ]
     [ Commons.navbar NavigateTo Route.About
     , HH.main
-      [ HP.class_ $ HC.ClassName "container"
-      ]
-      document
+        [ HP.class_ $ HC.ClassName "container"
+        ]
+        document
     , Commons.footer
     ]
 
 -- |
-handleAction
-  :: forall output m
-   . MonadAff m
-  => Navigate m
-  => Action
-  -> H.HalogenM State Action () output m Unit
+handleAction ::
+  forall output m.
+  MonadAff m =>
+  Navigate m =>
+  Action ->
+  H.HalogenM State Action () output m Unit
 handleAction = case _ of
   Initialize -> do
     pure mempty
@@ -101,12 +104,12 @@ handleAction = case _ of
     pure mempty
 
 -- |
-handleQuery
-  :: forall action slots output m a
-   . MonadAff m
-  => Navigate m
-  => Query a
-  -> H.HalogenM State action slots output m (Maybe a)
+handleQuery ::
+  forall action slots output m a.
+  MonadAff m =>
+  Navigate m =>
+  Query a ->
+  H.HalogenM State action slots output m (Maybe a)
 handleQuery = case _ of
   ThisIsNone a -> do
     pure (Just a)
@@ -116,200 +119,202 @@ document :: forall p i. Array (HH.HTML p i)
 document =
   [ HH.h2 [ HP.class_ HB.h2 ] [ HH.text "About this application" ]
   , HH.p
-    [ HP.classes [ HB.m4 ]
-    ]
-    [ HH.text "PiHVAC <"
-    , HH.a [ HP.href repo ] [ HH.text repo ]
-    , HH.text ">"
-    , HH.br_
-    , HH.text copyright
-    ]
+      [ HP.classes [ HB.m4 ]
+      ]
+      [ HH.text "PiHVAC <"
+      , HH.a [ HP.href repo ] [ HH.text repo ]
+      , HH.text ">"
+      , HH.br_
+      , HH.text copyright
+      ]
   , HH.h2 [ HP.class_ HB.h2 ] [ HH.text "The License" ]
   , HH.pre
-    [ HP.class_ HB.m4 ]
-    [ HH.text apacheLicenseV2 ]
+      [ HP.class_ HB.m4 ]
+      [ HH.text apacheLicenseV2 ]
   , HH.h2 [ HP.class_ HB.h2 ] [ HH.text "External libraries" ]
   , HH.p
-    [ HP.class_ HB.m4 ]
-    [ HH.text "This software may contain all or part of the program specified in notice files below."
-    , HH.br_
-    , HH.strong_ [ HH.text "No NOTICE files specified." ]
-    ]
+      [ HP.class_ HB.m4 ]
+      [ HH.text "This software may contain all or part of the program specified in notice files below."
+      , HH.br_
+      , HH.strong_ [ HH.text "No NOTICE files specified." ]
+      ]
   , HH.hr_
   , HH.p
-    [ HP.class_ HB.m4 ]
-    [ HH.text "The program includes software licensed under the license terms as specified below." ]
+      [ HP.class_ HB.m4 ]
+      [ HH.text "The program includes software licensed under the license terms as specified below." ]
   , HH.ul_
-    [ HH.li_
-      [ HH.text "purescript-affjax"
-      , HH.p_
-        [ HH.text "Licensed under the Apache License, Version 2.0"
-        , HH.br_
-        , HH.a
-          [ HP.href "https://github.com/slamdata/purescript-affjax" ]
-          [ HH.text "see LICENSE file for Details." ]
-        ]
-      ]
-    , HH.li_
-      [ HH.text "purescript-assert"
-      , HH.p_
-        [ HH.text "Copyright 2018 PureScript"
-        , HH.br_
-        , HH.text "Licensed under the BSD 3-Clause License"
-        , HH.br_
-        , HH.a
-          [ HP.href "https://github.com/purescript/purescript-assert" ]
-          [ HH.text "see LICENSE file for Details." ]
-        ]
-      ]
-    , HH.li_
-      [ HH.text "purescript-canvas"
-      , HH.p_
-        [ HH.text "Copyright (c) 2014-18 Phil Freeman and other contributors"
-        , HH.br_
-        , HH.text "Licensed under the MIT license."
-        , HH.br_
-        , HH.a
-          [ HP.href "https://github.com/paf31/purescript-canvas" ]
-          [ HH.text "see LICENSE file for Details." ]
-        ]
-      ]
-    , HH.li_
-      [ HH.text "purescript-console"
-      , HH.p_
-        [ HH.text "Copyright 2018 PureScript"
-        , HH.br_
-        , HH.text "Licensed under the BSD 3-Clause License"
-        , HH.br_
-        , HH.a
-          [ HP.href "https://github.com/purescript/purescript-console" ]
-          [ HH.text "see LICENSE file for Details." ]
-        ]
-      ]
-    , HH.li_
-      [ HH.text "purescript-datetime"
-      , HH.p_
-        [ HH.text "Copyright 2018 PureScript"
-        , HH.br_
-        , HH.text "Licensed under the BSD 3-Clause License"
-        , HH.br_
-        , HH.a
-          [ HP.href "https://github.com/purescript/purescript-datetime" ]
-          [ HH.text "see LICENSE file for Details." ]
-        ]
-      ]
-    , HH.li_
-      [ HH.text "purescript-effect"
-      , HH.p_
-        [ HH.text "Copyright 2018 PureScript"
-        , HH.br_
-        , HH.text "Licensed under the BSD 3-Clause License"
-        , HH.br_
-        , HH.a
-          [ HP.href "https://github.com/purescipt/purescript-effect" ]
-          [ HH.text "see LICENSE file for Details." ]
-        ]
-      ]
-    , HH.li_
-      [ HH.text "purescript-foreign-generic"
-      , HH.p_
-        [ HH.text "Copyright (c) 2017 Phil Freeman"
-        , HH.br_
-        , HH.text "Licensed under the MIT license."
-        , HH.br_
-        , HH.a
-          [ HP.href "https://github.com/paf31/purescript-foreign-generic" ]
-          [ HH.text "see LICENSE file for Details." ]
-        ]
-      ]
-    , HH.li_
-      [ HH.text "purescript-formatters"
-      , HH.p_
-        [ HH.text "Licensed under the Apache License, Version 2.0"
-        , HH.br_
-        , HH.a
-          [ HP.href "https://github.com/slamdata/purescript-formatters" ]
-          [ HH.text "see LICENSE file for Details." ]
-        ]
-      ]
-    , HH.li_
-      [ HH.text "purescript-halogen"
-      , HH.p_
-        [ HH.text "Licensed under the Apache License, Version 2.0"
-        , HH.br_
-        , HH.a
-          [ HP.href "https://github.com/slamdata/purescript-halogen" ]
-          [ HH.text "see LICENSE file for Details." ]
-        ]
-      ]
-    , HH.li_
-      [ HH.text "purescript-halogen-bootstrap4"
-      , HH.p_
-        [ HH.text "Licensed under the Apache License, Version 2.0"
-        , HH.br_
-        , HH.a
-          [ HP.href "https://github.com/mschristiansen/purescript-halogen-bootstrap4" ]
-          [ HH.text "see LICENSE file for Details." ]
-        ]
-      ]
-    , HH.li_
-      [ HH.text "purescript-halogen-css"
-      , HH.p_
-        [ HH.text "Licensed under the Apache License, Version 2.0"
-        , HH.br_
-        , HH.a
-          [ HP.href "https://github.com/slamdata/purescript-halogen-css" ]
-          [ HH.text "see LICENSE file for Details." ]
-        ]
-      ]
-    , HH.li_
-      [ HH.text "purescript-halogen-formless"
-      , HH.p_
-        [ HH.text "Licensed under the Apache License, Version 2.0"
-        , HH.br_
-        , HH.a
-          [ HP.href "https://github.com/thomashoneyman/purescript-halogen-formless" ]
-          [ HH.text "see LICENSE file for Details." ]
-        ]
-      ]
-    , HH.li_
-      [ HH.text "purescript-js-timers"
-      , HH.p_
-        [ HH.text "Copyright (c) 2016 PureScript"
-        , HH.br_
-        , HH.text "Licensed under the MIT license."
-        , HH.br_
-        , HH.a
-          [ HP.href "https://github.com/purescript-contrib/purescript-js-timers" ]
-          [ HH.text "see LICENSE file for Details." ]
-        ]
-      ]
-    , HH.li_
-      [ HH.text "purescript-now"
-      , HH.p_
-        [ HH.text "Copyright (c) 2014 Purescript"
-        , HH.br_
-        , HH.text "Licensed under the MIT license."
-        , HH.br_
-        , HH.a
-          [ HP.href "https://github.com/purescript-contrib/purescript-now" ]
-          [ HH.text "see LICENSE file for Details." ]
-        ]
-      ]
-    , HH.li_
-      [ HH.text "purescript-numbers"
-      , HH.p_
-        [ HH.text "Licensed under the MIT license."
-        , HH.br_
-        , HH.a
-          [ HP.href "https://github.com/sharkdp/purescript-numbers" ]
-          [ HH.text "see link for Details." ]
-        ]
-      ]
-    , HH.li_
-      [ HH.text "purescript-parsing"
-      , HH.p_
-        [ HH.pre_ [ HH.text """Copyright 2014-2016 PureScript
+      [ HH.li_
+          [ HH.text "purescript-affjax"
+          , HH.p_
+              [ HH.text "Licensed under the Apache License, Version 2.0"
+              , HH.br_
+              , HH.a
+                  [ HP.href "https://github.com/slamdata/purescript-affjax" ]
+                  [ HH.text "see LICENSE file for Details." ]
+              ]
+          ]
+      , HH.li_
+          [ HH.text "purescript-assert"
+          , HH.p_
+              [ HH.text "Copyright 2018 PureScript"
+              , HH.br_
+              , HH.text "Licensed under the BSD 3-Clause License"
+              , HH.br_
+              , HH.a
+                  [ HP.href "https://github.com/purescript/purescript-assert" ]
+                  [ HH.text "see LICENSE file for Details." ]
+              ]
+          ]
+      , HH.li_
+          [ HH.text "purescript-canvas"
+          , HH.p_
+              [ HH.text "Copyright (c) 2014-18 Phil Freeman and other contributors"
+              , HH.br_
+              , HH.text "Licensed under the MIT license."
+              , HH.br_
+              , HH.a
+                  [ HP.href "https://github.com/paf31/purescript-canvas" ]
+                  [ HH.text "see LICENSE file for Details." ]
+              ]
+          ]
+      , HH.li_
+          [ HH.text "purescript-console"
+          , HH.p_
+              [ HH.text "Copyright 2018 PureScript"
+              , HH.br_
+              , HH.text "Licensed under the BSD 3-Clause License"
+              , HH.br_
+              , HH.a
+                  [ HP.href "https://github.com/purescript/purescript-console" ]
+                  [ HH.text "see LICENSE file for Details." ]
+              ]
+          ]
+      , HH.li_
+          [ HH.text "purescript-datetime"
+          , HH.p_
+              [ HH.text "Copyright 2018 PureScript"
+              , HH.br_
+              , HH.text "Licensed under the BSD 3-Clause License"
+              , HH.br_
+              , HH.a
+                  [ HP.href "https://github.com/purescript/purescript-datetime" ]
+                  [ HH.text "see LICENSE file for Details." ]
+              ]
+          ]
+      , HH.li_
+          [ HH.text "purescript-effect"
+          , HH.p_
+              [ HH.text "Copyright 2018 PureScript"
+              , HH.br_
+              , HH.text "Licensed under the BSD 3-Clause License"
+              , HH.br_
+              , HH.a
+                  [ HP.href "https://github.com/purescipt/purescript-effect" ]
+                  [ HH.text "see LICENSE file for Details." ]
+              ]
+          ]
+      , HH.li_
+          [ HH.text "purescript-foreign-generic"
+          , HH.p_
+              [ HH.text "Copyright (c) 2017 Phil Freeman"
+              , HH.br_
+              , HH.text "Licensed under the MIT license."
+              , HH.br_
+              , HH.a
+                  [ HP.href "https://github.com/paf31/purescript-foreign-generic" ]
+                  [ HH.text "see LICENSE file for Details." ]
+              ]
+          ]
+      , HH.li_
+          [ HH.text "purescript-formatters"
+          , HH.p_
+              [ HH.text "Licensed under the Apache License, Version 2.0"
+              , HH.br_
+              , HH.a
+                  [ HP.href "https://github.com/slamdata/purescript-formatters" ]
+                  [ HH.text "see LICENSE file for Details." ]
+              ]
+          ]
+      , HH.li_
+          [ HH.text "purescript-halogen"
+          , HH.p_
+              [ HH.text "Licensed under the Apache License, Version 2.0"
+              , HH.br_
+              , HH.a
+                  [ HP.href "https://github.com/slamdata/purescript-halogen" ]
+                  [ HH.text "see LICENSE file for Details." ]
+              ]
+          ]
+      , HH.li_
+          [ HH.text "purescript-halogen-bootstrap4"
+          , HH.p_
+              [ HH.text "Licensed under the Apache License, Version 2.0"
+              , HH.br_
+              , HH.a
+                  [ HP.href "https://github.com/mschristiansen/purescript-halogen-bootstrap4" ]
+                  [ HH.text "see LICENSE file for Details." ]
+              ]
+          ]
+      , HH.li_
+          [ HH.text "purescript-halogen-css"
+          , HH.p_
+              [ HH.text "Licensed under the Apache License, Version 2.0"
+              , HH.br_
+              , HH.a
+                  [ HP.href "https://github.com/slamdata/purescript-halogen-css" ]
+                  [ HH.text "see LICENSE file for Details." ]
+              ]
+          ]
+      , HH.li_
+          [ HH.text "purescript-halogen-formless"
+          , HH.p_
+              [ HH.text "Licensed under the Apache License, Version 2.0"
+              , HH.br_
+              , HH.a
+                  [ HP.href "https://github.com/thomashoneyman/purescript-halogen-formless" ]
+                  [ HH.text "see LICENSE file for Details." ]
+              ]
+          ]
+      , HH.li_
+          [ HH.text "purescript-js-timers"
+          , HH.p_
+              [ HH.text "Copyright (c) 2016 PureScript"
+              , HH.br_
+              , HH.text "Licensed under the MIT license."
+              , HH.br_
+              , HH.a
+                  [ HP.href "https://github.com/purescript-contrib/purescript-js-timers" ]
+                  [ HH.text "see LICENSE file for Details." ]
+              ]
+          ]
+      , HH.li_
+          [ HH.text "purescript-now"
+          , HH.p_
+              [ HH.text "Copyright (c) 2014 Purescript"
+              , HH.br_
+              , HH.text "Licensed under the MIT license."
+              , HH.br_
+              , HH.a
+                  [ HP.href "https://github.com/purescript-contrib/purescript-now" ]
+                  [ HH.text "see LICENSE file for Details." ]
+              ]
+          ]
+      , HH.li_
+          [ HH.text "purescript-numbers"
+          , HH.p_
+              [ HH.text "Licensed under the MIT license."
+              , HH.br_
+              , HH.a
+                  [ HP.href "https://github.com/sharkdp/purescript-numbers" ]
+                  [ HH.text "see link for Details." ]
+              ]
+          ]
+      , HH.li_
+          [ HH.text "purescript-parsing"
+          , HH.p_
+              [ HH.pre_
+                  [ HH.text
+                      """Copyright 2014-2016 PureScript
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
@@ -391,69 +396,68 @@ Their licenses are reproduced below:
   DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
   THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.""" ]
-        , HH.a
-          [ HP.href "https://github.com/purescript-contrib/purescript-parsing" ]
-          [ HH.text "see LICENSE file for Details." ]
-        ]
+  OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE."""
+                  ]
+              , HH.a
+                  [ HP.href "https://github.com/purescript-contrib/purescript-parsing" ]
+                  [ HH.text "see LICENSE file for Details." ]
+              ]
+          ]
+      , HH.li_
+          [ HH.text "purescript-prelude"
+          , HH.p_
+              [ HH.text "Copyright 2018 PureScript"
+              , HH.br_
+              , HH.text "Licensed under the BSD 3-Clause License"
+              , HH.br_
+              , HH.a
+                  [ HP.href "https://github.com/purescript/purescript-prelude" ]
+                  [ HH.text "see LICENSE file for Details." ]
+              ]
+          ]
+      , HH.li_
+          [ HH.text "purescript-routing"
+          , HH.p_
+              [ HH.text "Licensed under the Apache License, Version 2.0"
+              , HH.br_
+              , HH.a
+                  [ HP.href "https://github.com/slamdata/purescript-routing" ]
+                  [ HH.text "see LICENSE file for Details." ]
+              ]
+          ]
+      , HH.li_
+          [ HH.text "HTML Canvas Gauges v2.1"
+          , HH.p_
+              [ HH.text "Copyright (c) 2016 Mykhailo Stadnyk <mikhus@gmail.com>."
+              , HH.br_
+              , HH.text "Licensed under the MIT license."
+              , HH.br_
+              , HH.a
+                  [ HP.href "https://github.com/Mikhus/canvas-gauges" ]
+                  [ HH.text "see LICENSE file for Details." ]
+              ]
+          ]
+      , HH.li_
+          [ HH.text "Chart.js"
+          , HH.p_
+              [ HH.text "Copyright (c) 2018 Chart.js Contributors."
+              , HH.br_
+              , HH.text "Licensed under the MIT license."
+              , HH.br_
+              , HH.a
+                  [ HP.href "https://github.com/chartjs/Chart.js" ]
+                  [ HH.text "see LICENSE file for Details." ]
+              ]
+          ]
       ]
-    , HH.li_
-      [ HH.text "purescript-prelude"
-      , HH.p_
-        [ HH.text "Copyright 2018 PureScript"
-        , HH.br_
-        , HH.text "Licensed under the BSD 3-Clause License"
-        , HH.br_
-        , HH.a
-          [ HP.href "https://github.com/purescript/purescript-prelude" ]
-          [ HH.text "see LICENSE file for Details." ]
-        ]
-      ]
-    , HH.li_
-      [ HH.text "purescript-routing"
-      , HH.p_
-        [ HH.text "Licensed under the Apache License, Version 2.0"
-        , HH.br_
-        , HH.a
-          [ HP.href "https://github.com/slamdata/purescript-routing" ]
-          [ HH.text "see LICENSE file for Details." ]
-        ]
-      ]
-    , HH.li_
-      [ HH.text "HTML Canvas Gauges v2.1"
-      , HH.p_
-        [ HH.text "Copyright (c) 2016 Mykhailo Stadnyk <mikhus@gmail.com>."
-        , HH.br_
-        , HH.text "Licensed under the MIT license."
-        , HH.br_
-        , HH.a
-          [ HP.href "https://github.com/Mikhus/canvas-gauges" ]
-          [ HH.text "see LICENSE file for Details." ]
-        ]
-      ]
-    , HH.li_
-      [ HH.text "Chart.js"
-      , HH.p_
-        [ HH.text "Copyright (c) 2018 Chart.js Contributors."
-        , HH.br_
-        , HH.text "Licensed under the MIT license."
-        , HH.br_
-        , HH.a
-          [ HP.href "https://github.com/chartjs/Chart.js" ]
-          [ HH.text "see LICENSE file for Details." ]
-        ]
-      ]
-    ]
   ]
   where
+  repo = "https://github.com/ak1211/pi_hvac"
 
-  repo =
-    "https://github.com/ak1211/pi_hvac"
+  copyright = """Copyright 2019 Akihiro Yamamoto"""
 
-  copyright =
-    """Copyright 2019 Akihiro Yamamoto"""
-  
-  apacheLicenseV2 = """
+  apacheLicenseV2 =
+    """
                                  Apache License
                            Version 2.0, January 2004
                         http://www.apache.org/licenses/

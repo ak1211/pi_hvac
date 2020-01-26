@@ -14,7 +14,6 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -}
-
 module InfraredRemote.MitsubishiElectricHvac
   ( Crc(..)
   , Fan(..)
@@ -28,7 +27,6 @@ module InfraredRemote.MitsubishiElectricHvac
   ) where
 
 import Prelude
-
 import Control.MonadZero (guard)
 import Data.Array as Array
 import Data.Enum (class Enum, class BoundedEnum, toEnum)
@@ -41,51 +39,96 @@ import Data.Newtype (class Newtype, unwrap)
 import InfraredRemote.Types (BitStream, Celsius(..), InfraredCodeFrame(..), fromBinaryString, toLsbFirst)
 
 -- |
-data Mode = MAuto | MDry | MCool | MHeat
+data Mode
+  = MAuto
+  | MDry
+  | MCool
+  | MHeat
+
 derive instance genericMode :: Generic Mode _
-derive instance eqMode      :: Eq Mode
-instance showMode           :: Show Mode where
+
+derive instance eqMode :: Eq Mode
+
+instance showMode :: Show Mode where
   show = genericShow
 
 -- |
-newtype Switch = Switch Boolean
-derive instance newtypeSwitch             :: Newtype Switch _
-derive newtype instance eqSwitch          :: Eq Switch
-derive newtype instance ordSwitch         :: Ord Switch
-derive newtype instance enumSwitch        :: Enum Switch
-derive newtype instance boundedSwitch     :: Bounded Switch
+newtype Switch
+  = Switch Boolean
+
+derive instance newtypeSwitch :: Newtype Switch _
+
+derive newtype instance eqSwitch :: Eq Switch
+
+derive newtype instance ordSwitch :: Ord Switch
+
+derive newtype instance enumSwitch :: Enum Switch
+
+derive newtype instance boundedSwitch :: Bounded Switch
+
 derive newtype instance boundedEnumSwitch :: BoundedEnum Switch
+
 instance showSwitch :: Show Switch where
   show (Switch true) = "ON"
   show (Switch false) = "OFF"
 
 -- |
-data Swing = SAuto | SHorizontal | SNotch2 | SNotch3 | SNotch4 | SNotch5
-derive instance genericSwing  :: Generic Swing _
-derive instance eqSwing       :: Eq Swing
-instance showSwing            :: Show Swing where
+data Swing
+  = SAuto
+  | SHorizontal
+  | SNotch2
+  | SNotch3
+  | SNotch4
+  | SNotch5
+
+derive instance genericSwing :: Generic Swing _
+
+derive instance eqSwing :: Eq Swing
+
+instance showSwing :: Show Swing where
   show = genericShow
 
 -- |
-data Fan = FAuto | FSlowest | FNotch2 | FNotch3 | FNotch4 | FNotch5
-derive instance genericFan  :: Generic Fan _
-derive instance eqFan       :: Eq Fan
-instance showFan            :: Show Fan where
+data Fan
+  = FAuto
+  | FSlowest
+  | FNotch2
+  | FNotch3
+  | FNotch4
+  | FNotch5
+
+derive instance genericFan :: Generic Fan _
+
+derive instance eqFan :: Eq Fan
+
+instance showFan :: Show Fan where
   show = genericShow
 
 -- |
-data Profile = PNormal | PBoost | PQuiet | POther Int
-derive instance genericProfile  :: Generic Profile _
-derive instance eqProfile       :: Eq Profile
-instance showProfile            :: Show Profile where
+data Profile
+  = PNormal
+  | PBoost
+  | PQuiet
+  | POther Int
+
+derive instance genericProfile :: Generic Profile _
+
+derive instance eqProfile :: Eq Profile
+
+instance showProfile :: Show Profile where
   show = genericShow
 
 -- |
-newtype Crc = Crc Int
-derive instance genericCrc      :: Generic Crc _
-derive instance newtypeCrc      :: Newtype Crc _
-derive newtype instance eqCrc   :: Eq Crc
-instance showCrc                :: Show Crc where
+newtype Crc
+  = Crc Int
+
+derive instance genericCrc :: Generic Crc _
+
+derive instance newtypeCrc :: Newtype Crc _
+
+derive newtype instance eqCrc :: Eq Crc
+
+instance showCrc :: Show Crc where
   show = genericShow
 
 -- |
@@ -93,16 +136,17 @@ validCrc :: Crc -> Array BitStream -> Boolean
 validCrc crc original =
   let
     x = unwrap crc
+
     y = (sum values) .&. 0xff
   in
-  x == y
+    x == y
   where
   values :: Array Int
-  values =
-    map (unwrap <<< toLsbFirst) $ Array.take 17 original
+  values = map (unwrap <<< toLsbFirst) $ Array.take 17 original
 
 -- |
-newtype MitsubishiElectricHvac = MitsubishiElectricHvac
+newtype MitsubishiElectricHvac
+  = MitsubishiElectricHvac
   { original :: Array BitStream
   , temperature :: Celsius
   , mode1 :: Mode
@@ -110,10 +154,13 @@ newtype MitsubishiElectricHvac = MitsubishiElectricHvac
   , crc :: Crc
   }
 
-derive instance newtypeMitsubishiElectricHvac     :: Newtype MitsubishiElectricHvac _
-derive instance genericMitsubishiElectricHvac     :: Generic MitsubishiElectricHvac _
-derive newtype instance eqMitsubishiElectricHvac  :: Eq MitsubishiElectricHvac
-instance showMitsubishiElectricHvac               :: Show MitsubishiElectricHvac where
+derive instance newtypeMitsubishiElectricHvac :: Newtype MitsubishiElectricHvac _
+
+derive instance genericMitsubishiElectricHvac :: Generic MitsubishiElectricHvac _
+
+derive newtype instance eqMitsubishiElectricHvac :: Eq MitsubishiElectricHvac
+
+instance showMitsubishiElectricHvac :: Show MitsubishiElectricHvac where
   show = genericShow
 
 -- |
@@ -124,38 +171,54 @@ decodeMitsubishiElectricHvac = case _ of
   [ a, b ] -> decode b
   _ -> Nothing
   where
-
   decode :: InfraredCodeFrame -> Maybe MitsubishiElectricHvac
   decode = case _ of
     FormatAEHA
-      { octets: original@ [ b_0, b_1, b_2, b_3
-                          , b_4, b_5, b_6, b_7
-                          , b_8, b_9, b10, b11
-                          , b12, b13, b14, b15
-                          , b16, b17
-                          ]
-      , stop: _
-      } ->
+      { octets:
+      original@[ b_0
+    , b_1
+    , b_2
+    , b_3
+    , b_4
+    , b_5
+    , b_6
+    , b_7
+    , b_8
+    , b_9
+    , b10
+    , b11
+    , b12
+    , b13
+    , b14
+    , b15
+    , b16
+    , b17
+    ]
+    , stop: _
+    } ->
       let
-        temp  = unwrap (toLsbFirst b_7) .&. 0xf
-        mode1 = (unwrap (toLsbFirst b_6) `shr` 3) .&. 0x7
-        switch= (unwrap (toLsbFirst b_5) `shr` 5) .&. 0x1
-        crc   = unwrap (toLsbFirst b17)
-      in do
-      guard $ isValidIdentifier original
-      mode1_ <- toMode1 mode1
-      switch_ <- toEnum switch
-      pure $ MitsubishiElectricHvac
-        { original: original
-        , temperature: Celsius (16 + temp)
-        , mode1: mode1_
-        , switch: switch_
-        , crc: Crc crc
-        }
+        temp = unwrap (toLsbFirst b_7) .&. 0xf
 
-    _ ->
-      Nothing
-  
+        mode1 = (unwrap (toLsbFirst b_6) `shr` 3) .&. 0x7
+
+        switch = (unwrap (toLsbFirst b_5) `shr` 5) .&. 0x1
+
+        crc = unwrap (toLsbFirst b17)
+      in
+        do
+          guard $ isValidIdentifier original
+          mode1_ <- toMode1 mode1
+          switch_ <- toEnum switch
+          pure
+            $ MitsubishiElectricHvac
+                { original: original
+                , temperature: Celsius (16 + temp)
+                , mode1: mode1_
+                , switch: switch_
+                , crc: Crc crc
+                }
+    _ -> Nothing
+
   toMode1 = case _ of
     0x4 -> Just MAuto
     0x2 -> Just MDry
@@ -165,9 +228,8 @@ decodeMitsubishiElectricHvac = case _ of
 
   -- |
   isValidIdentifier :: Array BitStream -> Boolean
-  isValidIdentifier input =
-    (Array.take 5 input) == first5bytes
- 
+  isValidIdentifier input = (Array.take 5 input) == first5bytes
+
   -- |
   first5bytes :: Array BitStream
   first5bytes =
@@ -203,9 +265,9 @@ decodeMitsubishiElectricHvac = case _ of
     -- 5th byte "00000000"
     --
     Array.mapMaybe fromBinaryString
-      [ "11000100"  -- 23 (LSB first) | c4 (MSB first)
-      , "11010011"  -- cb (LSB first) | d3 (MSB first)
-      , "01100100"  -- 26 (LSB first) | 64 (MSB first)
-      , "10000000"  -- 01 (LSB first) | 80 (MSB first)
-      , "00000000"  -- 00 (LSB first) | 00 (MSB first)
+      [ "11000100" -- 23 (LSB first) | c4 (MSB first)
+      , "11010011" -- cb (LSB first) | d3 (MSB first)
+      , "01100100" -- 26 (LSB first) | 64 (MSB first)
+      , "10000000" -- 01 (LSB first) | 80 (MSB first)
+      , "00000000" -- 00 (LSB first) | 00 (MSB first)
       ]

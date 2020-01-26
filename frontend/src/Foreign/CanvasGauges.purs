@@ -14,7 +14,6 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -}
-
 module Foreign.CanvasGauges
   ( RadialGaugeOptions
   , GaugeJsInstance
@@ -24,29 +23,31 @@ module Foreign.CanvasGauges
   ) where
 
 import Prelude
-
 import Effect (Effect)
 import Web.HTML (HTMLElement)
 
 -- | radial gauge option
-type RadialGaugeOptions =
-  { width :: Int
-  , height :: Int
-  , units :: String
-  , title :: String
-  , value :: Number
-  , minValue :: Number
-  , maxValue :: Number
-  , majorTicks :: Array Int
-  , minorTicks :: Int
-  , animationRule :: String
-  , animationDuration :: Int
-  }
+type RadialGaugeOptions
+  = { width :: Int
+    , height :: Int
+    , units :: String
+    , title :: String
+    , value :: Number
+    , minValue :: Number
+    , maxValue :: Number
+    , majorTicks :: Array Int
+    , minorTicks :: Int
+    , animationRule :: String
+    , animationDuration :: Int
+    }
+
 -- |
 foreign import data GaugeJsInstance :: Type
 
 foreign import destroyGaugeInstance :: GaugeJsInstance -> Effect Unit
+
 foreign import createRadialGauge :: HTMLElement -> RadialGaugeOptions -> Effect GaugeJsInstance
+
 foreign import updateRadialGauge :: GaugeJsInstance -> RadialGaugeOptions -> Effect Unit
 
 --|

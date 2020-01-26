@@ -14,7 +14,6 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -}
-
 module Foreign.ChartJs
   ( ChartData
   , ChartDatasets
@@ -29,51 +28,51 @@ module Foreign.ChartJs
   ) where
 
 import Prelude
-
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Graphics.Canvas (Context2D)
 
 -- | chart data set
-type ChartDatasets =
-  { labels :: Array String
-  , datasets :: Array ChartData
-  }
+type ChartDatasets
+  = { labels :: Array String
+    , datasets :: Array ChartData
+    }
 
 -- | chart data
-type ChartData =
-  { label :: String
-  , data :: Array Number
-  , backgroundColor :: Array String
-  , borderColor :: Array String
-  , borderWidth :: Int
-  }
+type ChartData
+  = { label :: String
+    , data :: Array Number
+    , backgroundColor :: Array String
+    , borderColor :: Array String
+    , borderWidth :: Int
+    }
 
 -- | line chart options
-type LineChartOptions =
-  { xAxisID :: String
-  , yAxisID :: String
-  , responsive :: Boolean
-  , maintainAspectRatio :: Boolean
-  , scales :: LineChartOptionScales
-  }
+type LineChartOptions
+  = { xAxisID :: String
+    , yAxisID :: String
+    , responsive :: Boolean
+    , maintainAspectRatio :: Boolean
+    , scales :: LineChartOptionScales
+    }
 
-type LineChartOptionScales =
-  { xAxes :: Array LineChartOptionAxis
-  , yAxes :: Array LineChartOptionAxis
-  }
+type LineChartOptionScales
+  = { xAxes :: Array LineChartOptionAxis
+    , yAxes :: Array LineChartOptionAxis
+    }
 
-type LineChartOptionAxis =
-  { display :: Boolean
-  , autoSkip :: Boolean
-  , beginAtZero :: Boolean
-  , maxTicksLimit :: Int
-  }
+type LineChartOptionAxis
+  = { display :: Boolean
+    , autoSkip :: Boolean
+    , beginAtZero :: Boolean
+    , maxTicksLimit :: Int
+    }
 
 -- |
 foreign import data LineChartInstance :: Type
 
 foreign import destroyLineChartJs :: LineChartInstance -> Effect Unit
+
 foreign import lineChartJs :: Context2D -> ChartDatasets -> LineChartOptions -> Effect LineChartInstance
 
 --|
@@ -91,7 +90,7 @@ defLineChartOptions =
   , yAxisID: "y"
   , responsive: true
   , maintainAspectRatio: true
-  , scales: { xAxes: [ defAxes ] , yAxes: [ defAxes ] }
+  , scales: { xAxes: [ defAxes ], yAxes: [ defAxes ] }
   }
   where
   defAxes = defLineChartOptionAxes
@@ -99,7 +98,7 @@ defLineChartOptions =
 -- |
 defLineChartOptionAxes :: LineChartOptionAxis
 defLineChartOptionAxes =
-  { display: true 
+  { display: true
   , autoSkip: false
   , beginAtZero: false
   , maxTicksLimit: 1

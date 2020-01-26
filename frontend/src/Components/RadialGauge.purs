@@ -14,7 +14,6 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -}
-
 module Component.RadialGauge
   ( Query
   , Input
@@ -22,7 +21,6 @@ module Component.RadialGauge
   ) where
 
 import Prelude
-
 import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
 import Foreign.CanvasGauges (GaugeJsInstance, RadialGaugeOptions, drawRadialGauge, redrawRadialGauge)
@@ -30,11 +28,11 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 
-type State =
-  { refLabel :: H.RefLabel
-  , options :: RadialGaugeOptions
-  , gaugeInstance :: Maybe GaugeJsInstance
-  }
+type State
+  = { refLabel :: H.RefLabel
+    , options :: RadialGaugeOptions
+    , gaugeInstance :: Maybe GaugeJsInstance
+    }
 
 data Query a
 
@@ -43,10 +41,10 @@ data Action
   | HandleInput Input
 
 -- |
-type Input =
-  { refLabel :: H.RefLabel
-  , options :: RadialGaugeOptions
-  }
+type Input
+  = { refLabel :: H.RefLabel
+    , options :: RadialGaugeOptions
+    }
 
 -- | canvas gauges component
 component :: forall m. MonadAff m => H.Component HH.HTML Query Input Void m
@@ -54,11 +52,13 @@ component =
   H.mkComponent
     { initialState: initialState
     , render
-    , eval: H.mkEval $ H.defaultEval
-      { handleAction = handleAction
-      , initialize = Just Initialize
-      , receive = Just <<< HandleInput
-      }
+    , eval:
+      H.mkEval
+        $ H.defaultEval
+            { handleAction = handleAction
+            , initialize = Just Initialize
+            , receive = Just <<< HandleInput
+            }
     }
 
 -- |
@@ -71,35 +71,31 @@ initialState input =
 
 -- |
 render :: forall i m. State -> H.ComponentHTML Action i m
-render state =
-  HH.canvas [ HP.ref state.refLabel ]
- 
+render state = HH.canvas [ HP.ref state.refLabel ]
+
 -- |
-handleAction
-  :: forall i o m
-   . MonadAff m
-  => Action
-  -> H.HalogenM State Action i o m Unit
+handleAction ::
+  forall i o m.
+  MonadAff m =>
+  Action ->
+  H.HalogenM State Action i o m Unit
 handleAction = case _ of
   Initialize -> do
     state <- H.get
     maybeElem <- H.getHTMLElementRef state.refLabel
     case maybeElem of
-      Nothing ->
-        pure mempty
-
+      Nothing -> pure mempty
       Just elem -> do
         gauge <- H.liftEffect $ drawRadialGauge elem state.options
-        H.modify_ \st -> st {gaugeInstance = Just gauge}
-
+        H.modify_ \st -> st { gaugeInstance = Just gauge }
   HandleInput input -> do
-    {gaugeInstance} <- H.get
+    { gaugeInstance } <- H.get
     case gaugeInstance of
-      Nothing ->
-        pure unit 
-
+      Nothing -> pure unit
       Just gauge -> do
         H.liftEffect $ redrawRadialGauge gauge input.options
-    H.modify_ \st -> st { refLabel = input.refLabel
-                        , options = input.options
-                        }
+    H.modify_ \st ->
+      st
+        { refLabel = input.refLabel
+        , options = input.options
+        }

@@ -14,7 +14,6 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -}
-
 module AppM
   ( Env(..)
   , AppM(..)
@@ -27,7 +26,6 @@ module AppM
   ) where
 
 import Prelude
-
 import Api as Api
 import Control.Monad.Reader (ask, asks, runReaderT)
 import Control.Monad.Reader.Class (class MonadAsk)
@@ -42,42 +40,51 @@ import Route as Route
 import Routing.PushState (PushStateInterface)
 import Type.Equality (class TypeEquals, from)
 
-type Env =
-  { psInterface :: PushStateInterface
-  , apiBaseURL :: Api.BaseURL
-  , apiTimeout :: Milliseconds
-  }
+type Env
+  = { psInterface :: PushStateInterface
+    , apiBaseURL :: Api.BaseURL
+    , apiTimeout :: Milliseconds
+    }
 
 -- | ReaderT monad pattern
-newtype AppM a = AppM (ReaderT Env Aff a)
+newtype AppM a
+  = AppM (ReaderT Env Aff a)
 
-derive newtype instance functorAppM     :: Functor AppM
-derive newtype instance applyAppM       :: Apply AppM
+derive newtype instance functorAppM :: Functor AppM
+
+derive newtype instance applyAppM :: Apply AppM
+
 derive newtype instance applicativeAppM :: Applicative AppM
-derive newtype instance bindAppM        :: Bind AppM
-derive newtype instance monadAppM       :: Monad AppM
+
+derive newtype instance bindAppM :: Bind AppM
+
+derive newtype instance monadAppM :: Monad AppM
+
 derive newtype instance monadEffectAppM :: MonadEffect AppM
-derive newtype instance monadAffAppM    :: MonadAff AppM
+
+derive newtype instance monadAffAppM :: MonadAff AppM
 
 -- | ReaderT helper
 runAppM :: forall a. AppM a -> Env -> Aff a
-runAppM (AppM m) env =
-  runReaderT m env
+runAppM (AppM m) env = runReaderT m env
 
 -- | MonadAsk
 instance monadAskAppM :: TypeEquals e Env => MonadAsk e AppM where
   ask = AppM $ asks from
 
 -- | Navigate
-class Monad m <= Navigate m where
+class
+  Monad m <= Navigate m where
   navigate :: Route -> m Unit
 
 instance navigateAppM :: Navigate AppM where
   navigate newRoute = do
     psInterface <- AppM ask <#> \env -> env.psInterface
     locState <- liftEffect psInterface.locationState
-    let currentPathQuery  = locState.path <> locState.search
-        nextPathQuery     = Route.routeToPathQuery newRoute
+    let
+      currentPathQuery = locState.path <> locState.search
+
+      nextPathQuery = Route.routeToPathQuery newRoute
     when (nextPathQuery /= currentPathQuery) do
       liftEffect $ psInterface.pushState locState.state nextPathQuery
 
@@ -85,7 +92,8 @@ instance navigateHalogenM :: Navigate m => Navigate (H.HalogenM state action slo
   navigate = H.lift <<< navigate
 
 -- | HasApiAccessible
-class Monad m <= HasApiAccessible m where
+class
+  Monad m <= HasApiAccessible m where
   getApiBaseURL :: m Api.BaseURL
   getApiTimeout :: m Milliseconds
 
@@ -93,10 +101,8 @@ instance hasApiAccessibleAppM :: HasApiAccessible AppM where
   getApiBaseURL = AppM ask <#> \env -> env.apiBaseURL
   getApiTimeout = AppM ask <#> \env -> env.apiTimeout
 
-instance hasApiAccessibleHalogenM
-  :: HasApiAccessible m
-  => HasApiAccessible (H.HalogenM state action slots outout m)
-  where
-
+instance hasApiAccessibleHalogenM ::
+  HasApiAccessible m =>
+  HasApiAccessible (H.HalogenM state action slots outout m) where
   getApiBaseURL = H.lift getApiBaseURL
   getApiTimeout = H.lift getApiTimeout
