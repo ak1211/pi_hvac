@@ -14,7 +14,6 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -}
-
 module InfraredRemote.HitachiHvac
   ( Fan(..)
   , HitachiHvac(..)
@@ -24,7 +23,6 @@ module InfraredRemote.HitachiHvac
   ) where
 
 import Prelude
-
 import Data.Array ((!!))
 import Data.Array as Array
 import Data.Enum (class BoundedEnum, class Enum, toEnum)
@@ -38,17 +36,31 @@ import Data.Newtype (class Newtype, unwrap)
 import InfraredRemote.Types (BitStream, Celsius(..), InfraredCodeFrame(..), fromBinaryString, toLsbFirst)
 
 -- |
-data Mode = MCool | MDryCool | MDehumidify | MHeat | MAutomatic | MAutoDehumidifying | MQuickLaundry | MCondensationControl
+data Mode
+  = MCool
+  | MDryCool
+  | MDehumidify
+  | MHeat
+  | MAutomatic
+  | MAutoDehumidifying
+  | MQuickLaundry
+  | MCondensationControl
+
 derive instance genericMode :: Generic Mode _
-derive instance eqMode      :: Eq Mode 
-derive instance ordMode     :: Ord Mode
-instance enumMode           :: Enum Mode where
+
+derive instance eqMode :: Eq Mode
+
+derive instance ordMode :: Ord Mode
+
+instance enumMode :: Enum Mode where
   succ = genericSucc
   pred = genericPred
-instance boundedMode        :: Bounded Mode where
+
+instance boundedMode :: Bounded Mode where
   top = genericTop
   bottom = genericBottom
-instance boundedEnumMode    :: BoundedEnum Mode where
+
+instance boundedEnumMode :: BoundedEnum Mode where
   cardinality = genericCardinality
   toEnum 0x3 {- 0011 -} = Just MCool
   toEnum 0x4 {- 0100 -} = Just MDryCool
@@ -59,29 +71,41 @@ instance boundedEnumMode    :: BoundedEnum Mode where
   toEnum 0xa {- 1010 -} = Just MQuickLaundry
   toEnum 0xc {- 1100 -} = Just MCondensationControl
   toEnum _ = Nothing
-  fromEnum MCool                = 0x3
-  fromEnum MDryCool             = 0x4
-  fromEnum MDehumidify          = 0x5
-  fromEnum MHeat                = 0x6
-  fromEnum MAutomatic           = 0x7
-  fromEnum MAutoDehumidifying   = 0x9
-  fromEnum MQuickLaundry        = 0xa
+  fromEnum MCool = 0x3
+  fromEnum MDryCool = 0x4
+  fromEnum MDehumidify = 0x5
+  fromEnum MHeat = 0x6
+  fromEnum MAutomatic = 0x7
+  fromEnum MAutoDehumidifying = 0x9
+  fromEnum MQuickLaundry = 0xa
   fromEnum MCondensationControl = 0xc
-instance showMode           :: Show Mode where
+
+instance showMode :: Show Mode where
   show = genericShow
 
 -- |
-data Fan = FSilent | FLow | FMed | FHigh | FAuto
-derive instance genericFan  :: Generic Fan _
-derive instance eqFan       :: Eq Fan
-derive instance ordFan      :: Ord Fan
-instance enumFan            :: Enum Fan where
+data Fan
+  = FSilent
+  | FLow
+  | FMed
+  | FHigh
+  | FAuto
+
+derive instance genericFan :: Generic Fan _
+
+derive instance eqFan :: Eq Fan
+
+derive instance ordFan :: Ord Fan
+
+instance enumFan :: Enum Fan where
   succ = genericSucc
   pred = genericPred
-instance boundedFan         :: Bounded Fan where
+
+instance boundedFan :: Bounded Fan where
   top = genericTop
   bottom = genericBottom
-instance boundedEnumFan     :: BoundedEnum Fan where
+
+instance boundedEnumFan :: BoundedEnum Fan where
   cardinality = genericCardinality
   toEnum 0x1 {- 001 -} = Just FSilent
   toEnum 0x2 {- 010 -} = Just FLow
@@ -89,28 +113,38 @@ instance boundedEnumFan     :: BoundedEnum Fan where
   toEnum 0x4 {- 100 -} = Just FHigh
   toEnum 0x5 {- 101 -} = Just FAuto
   toEnum _ = Nothing
-  fromEnum FSilent  = 0x1
-  fromEnum FLow     = 0x2
-  fromEnum FMed     = 0x3
-  fromEnum FHigh    = 0x4
-  fromEnum FAuto    = 0x5
-instance showFan            :: Show Fan where
+  fromEnum FSilent = 0x1
+  fromEnum FLow = 0x2
+  fromEnum FMed = 0x3
+  fromEnum FHigh = 0x4
+  fromEnum FAuto = 0x5
+
+instance showFan :: Show Fan where
   show = genericShow
 
 -- |
-newtype Switch = Switch Boolean
-derive instance newtypeSwitch             :: Newtype Switch _
-derive newtype instance eqSwitch          :: Eq Switch
-derive newtype instance ordSwitch         :: Ord Switch
-derive newtype instance enumSwitch        :: Enum Switch
-derive newtype instance boundedSwitch     :: Bounded Switch
+newtype Switch
+  = Switch Boolean
+
+derive instance newtypeSwitch :: Newtype Switch _
+
+derive newtype instance eqSwitch :: Eq Switch
+
+derive newtype instance ordSwitch :: Ord Switch
+
+derive newtype instance enumSwitch :: Enum Switch
+
+derive newtype instance boundedSwitch :: Bounded Switch
+
 derive newtype instance boundedEnumSwitch :: BoundedEnum Switch
+
 instance showSwitch :: Show Switch where
   show (Switch true) = "ON"
   show (Switch false) = "OFF"
 
 -- |
-newtype HitachiHvac = HitachiHvac
+newtype HitachiHvac
+  = HitachiHvac
   { original :: Array BitStream
   , mode :: Mode
   , temperature :: Celsius
@@ -118,25 +152,23 @@ newtype HitachiHvac = HitachiHvac
   , switch :: Switch
   }
 
-derive instance newtypeHitachiHvac    :: Newtype HitachiHvac _
-derive instance genericHitachiHvac    :: Generic HitachiHvac _
+derive instance newtypeHitachiHvac :: Newtype HitachiHvac _
+
+derive instance genericHitachiHvac :: Generic HitachiHvac _
+
 derive newtype instance eqHitachiHvac :: Eq HitachiHvac
-instance showHitachiHvac              :: Show HitachiHvac where
+
+instance showHitachiHvac :: Show HitachiHvac where
   show = genericShow
 
 -- |
 -- Hitachi HVAC remote control
 --
 decodeHitachiHvac :: Array InfraredCodeFrame -> Maybe HitachiHvac
-decodeHitachiHvac inputFrames =
-  case Array.head inputFrames of
-    Just (FormatAEHA { octets: a, stop: _ }) ->
-      decode a
-
-    _ ->
-      Nothing
+decodeHitachiHvac inputFrames = case Array.head inputFrames of
+  Just (FormatAEHA { octets: a, stop: _ }) -> decode a
+  _ -> Nothing
   where
-
   decode :: Array BitStream -> Maybe HitachiHvac
   decode bitstreams
     | isValidIdentifier bitstreams = do
@@ -146,21 +178,20 @@ decodeHitachiHvac inputFrames =
       mode :: Mode <- toEnum (b25 .&. 0xf)
       fan :: Fan <- toEnum ((b25 `shr` 4) .&. 0xf)
       sw :: Switch <- toEnum ((b27 `shr` 4) .&. 0x1)
-      pure $ HitachiHvac
-        { original: bitstreams
-        , mode: mode
-        , temperature: Celsius ((b13 `shr` 2) .&. 0x1f)
-        , fan: fan
-        , switch: sw
-        }
-
+      pure
+        $ HitachiHvac
+            { original: bitstreams
+            , mode: mode
+            , temperature: Celsius ((b13 `shr` 2) .&. 0x1f)
+            , fan: fan
+            , switch: sw
+            }
     | otherwise = Nothing
 
   -- |
   isValidIdentifier :: Array BitStream -> Boolean
-  isValidIdentifier input =
-    (Array.take 9 input) == first9bytes
- 
+  isValidIdentifier input = (Array.take 9 input) == first9bytes
+
   -- |
   first9bytes :: Array BitStream
   first9bytes =
@@ -212,13 +243,13 @@ decodeHitachiHvac inputFrames =
     -- 1   1   0   0   1   1   0   0 == 33h             --   1   1   0   0   1   1   0   0 == cch
     --
     Array.mapMaybe fromBinaryString
-      [ "10000000"  -- 01 (LSB first) | 80 (MSB first)
-      , "00001000"  -- 10 (LSB first) | 08 (MSB first)
-      , "00000000"  -- 00 (LSB first) | 00 (MSB first)
-      , "00000010"  -- 40 (LSB first) | 02 (MSB first)
-      , "11111101"  -- bf (LSB first) | fd (MSB first)
-      , "11111111"  -- ff (LSB first) | ff (MSB first)
-      , "00000000"  -- 00 (LSB first) | 00 (MSB first)
-      , "00110011"  -- cc (LSB first) | 33 (MSB first)
-      , "11001100"  -- 33 (LSB first) | cc (MSB first)
+      [ "10000000" -- 01 (LSB first) | 80 (MSB first)
+      , "00001000" -- 10 (LSB first) | 08 (MSB first)
+      , "00000000" -- 00 (LSB first) | 00 (MSB first)
+      , "00000010" -- 40 (LSB first) | 02 (MSB first)
+      , "11111101" -- bf (LSB first) | fd (MSB first)
+      , "11111111" -- ff (LSB first) | ff (MSB first)
+      , "00000000" -- 00 (LSB first) | 00 (MSB first)
+      , "00110011" -- cc (LSB first) | 33 (MSB first)
+      , "11001100" -- 33 (LSB first) | cc (MSB first)
       ]

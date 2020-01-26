@@ -14,7 +14,6 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -}
-
 module Page.Commons
   ( disablePopover
   , disposePopover
@@ -30,7 +29,6 @@ module Page.Commons
   ) where
 
 import Prelude
-
 import CSS (marginLeft, px)
 import Data.Array as Array
 import Data.Maybe (Maybe(..), maybe)
@@ -47,8 +45,11 @@ import Route as Route
 
 -- |
 foreign import showToastJs :: Effect Unit
+
 foreign import enablePopoverJs :: Effect Unit
+
 foreign import disablePopoverJs :: Effect Unit
+
 foreign import disposePopoverJs :: Effect Unit
 
 -- |
@@ -72,70 +73,73 @@ navbar :: forall p f. (Route -> f) -> Route -> HH.HTML p f
 navbar navigateAction current =
   HH.nav
     [ HP.classes
-      [ HB.navbar
-      , HB.navbarExpandSm
-      , HB.fixedTop
-      , HB.navbarDark
-      , HB.bgDark
-      ]
+        [ HB.navbar
+        , HB.navbarExpandSm
+        , HB.fixedTop
+        , HB.navbarDark
+        , HB.bgDark
+        ]
     ]
     -- navbar brand
     [ HH.div [ HP.class_ HB.navbarBrand ] [ HH.text "PiHVAC" ]
     -- navbar toggler
     , HH.button
-      [ HP.class_ HB.navbarToggler
-      , HP.type_ HP.ButtonButton
-      , HP.attr (HC.AttrName "data-toggle") "collapse"
-      , HP.attr (HC.AttrName "data-target") "#navbarNav"
-      , HP.attr (HC.AttrName "aria-controls") "navbarNav"
-      , HP.attr (HC.AttrName "aria-expanded") "false"
-      , HP.attr (HC.AttrName "aria-label") "Toggle navigation"
-      ]
-      [ HH.span [ HP.class_ HB.navbarTogglerIcon ] []
-      ]
+        [ HP.class_ HB.navbarToggler
+        , HP.type_ HP.ButtonButton
+        , HP.attr (HC.AttrName "data-toggle") "collapse"
+        , HP.attr (HC.AttrName "data-target") "#navbarNav"
+        , HP.attr (HC.AttrName "aria-controls") "navbarNav"
+        , HP.attr (HC.AttrName "aria-expanded") "false"
+        , HP.attr (HC.AttrName "aria-label") "Toggle navigation"
+        ]
+        [ HH.span [ HP.class_ HB.navbarTogglerIcon ] []
+        ]
     -- navbar item
     , HH.div
-      [ HP.classes
-        [ HB.collapse
-        , HB.navbarCollapse
+        [ HP.classes
+            [ HB.collapse
+            , HB.navbarCollapse
+            ]
+        , HP.id_ "navbarNav"
         ]
-      , HP.id_ "navbarNav"
-      ]
-      [ HH.ul
-        [ HP.class_ HB.navbarNav
+        [ HH.ul
+            [ HP.class_ HB.navbarNav
+            ]
+            [ navItem Route.Home
+            , navItem (Route.Plotdata Nothing)
+            , navItem (Route.Infrared Nothing)
+            , navItem Route.Settings
+            , navItem Route.About
+            ]
         ]
-        [ navItem Route.Home
-        , navItem (Route.Plotdata Nothing)
-        , navItem (Route.Infrared Nothing)
-        , navItem Route.Settings
-        , navItem Route.About
-        ] 
-      ]
     ]
   where
-
-    navItem route =
-      let clss =  if route == current
-                  then [ HB.navItem, HB.active ]
-                  else [ HB.navItem ]
-      in
+  navItem route =
+    let
+      clss =
+        if route == current then
+          [ HB.navItem, HB.active ]
+        else
+          [ HB.navItem ]
+    in
       HH.li
-        [ HP.classes $ Array.concat
-          [ [HB.navItem]
-          , if route == current then [HB.active] else []
-          ]
+        [ HP.classes
+            $ Array.concat
+                [ [ HB.navItem ]
+                , if route == current then [ HB.active ] else []
+                ]
         ]
         [ HH.button
-          (if route == current then
-            [ HP.classes [ HB.btn, HB.navLink ]
+            ( if route == current then
+                [ HP.classes [ HB.btn, HB.navLink ]
+                ]
+              else
+                [ HP.classes [ HB.btn, HB.navLink ]
+                , HE.onClick (\_ -> Just $ navigateAction route)
+                ]
+            )
+            [ HH.text $ Route.routeToString route
             ]
-            else
-            [ HP.classes [ HB.btn, HB.navLink ]
-            , HE.onClick (\_ -> Just $ navigateAction route)
-            ]
-          )
-          [ HH.text $ Route.routeToString route
-          ]
         ]
 
 -- | icon font
@@ -152,14 +156,14 @@ footer =
     [ HP.classes [ HB.bgLight, HB.py2 ]
     ]
     [ HH.div
-      [ HP.classes [ HB.textCenter, HB.bgLight, HB.textDark ]
-      ]
-      [ HH.span
-        [ HP.classes [ HB.small, HB.textMuted ]
+        [ HP.classes [ HB.textCenter, HB.bgLight, HB.textDark ]
         ]
-        [ HH.text "PiHVAC ©2019 Akihiro Yamamoto."
+        [ HH.span
+            [ HP.classes [ HB.small, HB.textMuted ]
+            ]
+            [ HH.text "PiHVAC ©2019 Akihiro Yamamoto."
+            ]
         ]
-      ]
     ]
 
 -- |
@@ -168,8 +172,8 @@ getContext2dById id_ = do
   maybeElem <- Canvas.getCanvasElementById id_
   maybe (pure Nothing) (\x -> pure =<< maybeC2d x) maybeElem
   where
-    maybeC2d :: Canvas.CanvasElement -> Effect (Maybe Canvas.Context2D)
-    maybeC2d elem = Just <$> Canvas.getContext2D elem
+  maybeC2d :: Canvas.CanvasElement -> Effect (Maybe Canvas.Context2D)
+  maybeC2d elem = Just <$> Canvas.getContext2D elem
 
 -- |
 toast :: forall p i. Array (HH.HTML p i) -> HH.HTML p i
@@ -190,23 +194,24 @@ toastItem head subhead text =
     , HP.attr (HC.AttrName "aria-atomic") "true"
     ]
     [ HH.div
-      [ HP.class_ $ HC.ClassName "toast-header" ]
-      [ HH.strong [ HP.class_ $ HB.mrAuto ] [ HH.text head ]
-      , HH.small
-        [ style $ do
-          marginLeft $ px 40.0
+        [ HP.class_ $ HC.ClassName "toast-header" ]
+        [ HH.strong [ HP.class_ $ HB.mrAuto ] [ HH.text head ]
+        , HH.small
+            [ style
+                $ do
+                    marginLeft $ px 40.0
+            ]
+            [ HH.text subhead
+            ]
+        , HH.button
+            [ HP.type_ HP.ButtonButton
+            , HP.classes [ HB.ml2, HB.mb1, HB.close ]
+            , HP.attr (HC.AttrName "data-dismiss") "toast"
+            , HP.attr (HC.AttrName "area-label") "Close"
+            ]
+            [ HH.span [ HP.attr (HC.AttrName "aria-hidden") "true" ] [ icon "fas fa-times-circle" ]
+            ]
         ]
-        [ HH.text subhead
-        ]
-      , HH.button
-        [ HP.type_ HP.ButtonButton
-        , HP.classes [ HB.ml2, HB.mb1, HB.close ]
-        , HP.attr (HC.AttrName "data-dismiss") "toast"
-        , HP.attr (HC.AttrName "area-label") "Close"
-        ]
-        [ HH.span [ HP.attr (HC.AttrName "aria-hidden") "true" ] [ icon "fas fa-times-circle" ]
-        ]
-      ]
     , HH.div [ HP.classes [ HC.ClassName "toast-body", HB.textWhite ] ] [ HH.text text ]
     ]
 
@@ -220,6 +225,6 @@ snackbarItem text =
     , HP.attr (HC.AttrName "aria-atomic") "true"
     ]
     [ HH.div
-      [ HP.classes [ HC.ClassName "toast-body", HB.textCenter ] ]
-      [ HH.span [ HP.class_ HB.textWhite ] [ HH.text text ] ]
+        [ HP.classes [ HC.ClassName "toast-body", HB.textCenter ] ]
+        [ HH.span [ HP.class_ HB.textWhite ] [ HH.text text ] ]
     ]

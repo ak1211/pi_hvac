@@ -14,19 +14,18 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -}
-
 module Components.InfraredCodeEditor
   ( Action(..)
+  , Input
   , Output(..)
   , Query(..)
   , component
   ) where
 
 import Prelude
-
 import Components.InfraredCodeEditor.Form as Form
 import Data.Const (Const)
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
 import Effect.Aff.Class (class MonadAff)
 import Formless as Formless
 import Halogen as H
@@ -37,48 +36,55 @@ data Query a
 
 -- |
 data Action
-  = HandleInput String
+  = HandleInput Input
   | HandleEditingForm Form.Output
+
+-- |
+type Input
+  = Maybe String
 
 -- |
 data Output
   = TextChanged String
   | Reset
 
-type ChildSlot =
-  ( formless :: Formless.Slot Form.IRCodeEditForm (Const Void) () Form.Output Unit )
+type ChildSlot
+  = ( formless :: Formless.Slot Form.IRCodeEditForm (Const Void) () Form.Output Unit )
 
-type State = String
+type State
+  = String
 
 -- |
-component :: forall m. MonadAff m => H.Component HH.HTML Query String Output m
+component :: forall m. MonadAff m => H.Component HH.HTML Query Input Output m
 component =
   H.mkComponent
-    { initialState: identity
+    { initialState: initialState
     , render: render
-    , eval: H.mkEval $ H.defaultEval
-      { handleAction = handleAction
-      , receive = Just <<< HandleInput  
-      }
+    , eval:
+      H.mkEval
+        $ H.defaultEval
+            { handleAction = handleAction
+            , receive = Just <<< HandleInput
+            }
     }
 
 -- |
-render :: forall m. MonadAff m => State -> H.ComponentHTML Action ChildSlot m
-render state =
-  HH.slot Formless._formless unit Form.component state (Just <<< HandleEditingForm)
+initialState :: Input -> State
+initialState i = fromMaybe "" i
 
 -- |
-handleAction
-  :: forall i m
-   . MonadAff m
-  => Action
-  -> H.HalogenM State Action i Output m Unit
+render :: forall m. MonadAff m => State -> H.ComponentHTML Action ChildSlot m
+render state = HH.slot Formless._formless unit Form.component state (Just <<< HandleEditingForm)
+
+-- |
+handleAction ::
+  forall i m.
+  MonadAff m =>
+  Action ->
+  H.HalogenM State Action i Output m Unit
 handleAction = case _ of
-  HandleInput inputText ->
-    H.put inputText
-
-  HandleEditingForm (Form.Text t) ->
-    H.raise $ TextChanged t.infraredCodeText
-
-  HandleEditingForm Form.Reset ->
+  HandleInput inputText -> H.put $ initialState inputText
+  HandleEditingForm (Form.Text t) -> H.raise $ TextChanged t.infraredCodeText
+  HandleEditingForm Form.Reset -> do
+    H.put $ initialState Nothing
     H.raise Reset

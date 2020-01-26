@@ -14,7 +14,6 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -}
-
 module Route
   ( InfraredQueryParams
   , PlotdataQueryParams
@@ -29,7 +28,6 @@ module Route
   ) where
 
 import Prelude
-
 import Data.Array as Array
 import Data.Foldable (oneOf)
 import Data.Generic.Rep (class Generic)
@@ -50,53 +48,56 @@ data Route
   | Infrared (Maybe InfraredQueryParams)
   | Settings
   | About
+
 derive instance genericRoute :: Generic Route _
+
 derive instance eqRoute :: Eq Route
+
 instance showRoute :: Show Route where
   show = genericShow
 
 -- |
-type PlotdataQueryParams =
-  { limits :: Maybe Int
-  }
+type PlotdataQueryParams
+  = { limits :: Maybe Int
+    }
 
 -- |
-type InfraredQueryParams =
-  { tab       :: Maybe Int
-  , bitorder  :: Maybe Int
-  , manuf     :: Maybe Int
-  , limits    :: Maybe Int
-  , page      :: Maybe Int
-  }
+type InfraredQueryParams
+  = { tab :: Maybe Int
+    , bitorder :: Maybe Int
+    , manuf :: Maybe Int
+    , limits :: Maybe Int
+    , page :: Maybe Int
+    }
 
 -- | 
 routing :: Match Route
-routing = oneOf
-  [ Home <$ (root *> end) 
-  , Plotdata <<< toPlotdataParams <$ (root *> lit "plotdata") <*> param "limits"
-  , Plotdata Nothing <$ (root *> lit "plotdata" *> end)
-  , Infrared <<< toIrParams <$ (root *> lit "infra-red") <*> params
-  , Infrared Nothing <$ (root *> lit "infra-red" *> end)
-  , Settings <$ (root *> lit "settings" *> end)
-  , About <$ (root *> lit "about" *> end)
-  ]
+routing =
+  oneOf
+    [ Home <$ (root *> end)
+    , Plotdata <<< toPlotdataParams <$ (root *> lit "plotdata") <*> param "limits"
+    , Plotdata Nothing <$ (root *> lit "plotdata" *> end)
+    , Infrared <<< toIrParams <$ (root *> lit "infra-red") <*> params
+    , Infrared Nothing <$ (root *> lit "infra-red" *> end)
+    , Settings <$ (root *> lit "settings" *> end)
+    , About <$ (root *> lit "about" *> end)
+    ]
   where
-
   toPlotdataParams :: String -> Maybe PlotdataQueryParams
   toPlotdataParams str =
     Just
-    { limits: Int.fromString str
-    }
+      { limits: Int.fromString str
+      }
 
   toIrParams :: M.Map String String -> Maybe InfraredQueryParams
   toIrParams kvsets =
     Just
-    { tab:      Int.fromString =<< M.lookup "tab" kvsets
-    , bitorder: Int.fromString =<< M.lookup "bitorder" kvsets
-    , manuf:    Int.fromString =<< M.lookup "manuf" kvsets
-    , limits:   Int.fromString =<< M.lookup "limits" kvsets
-    , page:     Int.fromString =<< M.lookup "page" kvsets
-    }
+      { tab: Int.fromString =<< M.lookup "tab" kvsets
+      , bitorder: Int.fromString =<< M.lookup "bitorder" kvsets
+      , manuf: Int.fromString =<< M.lookup "manuf" kvsets
+      , limits: Int.fromString =<< M.lookup "limits" kvsets
+      , page: Int.fromString =<< M.lookup "page" kvsets
+      }
 
 -- | navbarに表示するページ名
 routeToString :: Route -> String
@@ -110,61 +111,60 @@ routeToString = case _ of
 -- |
 routeToPathQuery :: Route -> String
 routeToPathQuery route =
-  "/" <> case route of
-    Home -> ""
-    Plotdata Nothing -> "plotdata"
-    Plotdata (Just qryparam) ->
-      "plotdata" <> (
-        [ ("limits=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.limits
-        ]
-        # Array.catMaybes
-        # Array.intercalate "&"
-        # case _ of
-          "" -> ""
-          str -> "?" <> str
-      )
-    Infrared Nothing -> "infra-red"
-    Infrared (Just qryparam) -> 
-      "infra-red" <> (
-        [ ("tab=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.tab
-        , ("bitorder=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.bitorder
-        , ("manuf=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.manuf
-        , ("limits=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.limits
-        , ("page=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.page
-        ]
-        # Array.catMaybes
-        # Array.intercalate "&"
-        # case _ of
-          "" -> ""
-          str -> "?" <> str
-      )
-    Settings -> "settings"
-    About -> "about"
+  "/"
+    <> case route of
+        Home -> ""
+        Plotdata Nothing -> "plotdata"
+        Plotdata (Just qryparam) ->
+          "plotdata"
+            <> ( [ ("limits=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.limits
+                ]
+                  # Array.catMaybes
+                  # Array.intercalate "&"
+                  # case _ of
+                      "" -> ""
+                      str -> "?" <> str
+              )
+        Infrared Nothing -> "infra-red"
+        Infrared (Just qryparam) ->
+          "infra-red"
+            <> ( [ ("tab=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.tab
+                , ("bitorder=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.bitorder
+                , ("manuf=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.manuf
+                , ("limits=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.limits
+                , ("page=" <> _) <<< Int.toStringAs Int.decimal <$> qryparam.page
+                ]
+                  # Array.catMaybes
+                  # Array.intercalate "&"
+                  # case _ of
+                      "" -> ""
+                      str -> "?" <> str
+              )
+        Settings -> "settings"
+        About -> "about"
 
 -- PUBLIC HELPERS
-
-href :: forall r i. Route -> HP.IProp (href :: String | r) i
-href targetRoute =
-  HP.href (routeToPathQuery targetRoute)
+href :: forall r i. Route -> HP.IProp ( href :: String | r ) i
+href targetRoute = HP.href (routeToPathQuery targetRoute)
 
 locationReplace :: Route -> Effect Unit
 locationReplace route =
   DOM.window
-  >>= Window.location
-  >>= WHL.replace (routeToPathQuery route)
+    >>= Window.location
+    >>= WHL.replace (routeToPathQuery route)
 
 redirectTo :: Route -> Effect Unit
 redirectTo route =
   DOM.window
-  >>= Window.location
-  >>= \loc -> do
-      org <- WHL.origin loc
-      WHL.setHref (org <> routeToPathQuery route) loc
+    >>= Window.location
+    >>= \loc -> do
+        org <- WHL.origin loc
+        WHL.setHref (org <> routeToPathQuery route) loc
 
 redirectToRoot :: Effect Unit
 redirectToRoot =
   DOM.window
-  >>= Window.location
-  >>= \loc -> do
-      org <- WHL.origin loc
-      WHL.setHref (org <> "/") loc
+    >>= Window.location
+    >>= \loc -> do
+        org <- WHL.origin loc
+        WHL.setHref (org <> "/") loc

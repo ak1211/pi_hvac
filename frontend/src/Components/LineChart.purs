@@ -14,7 +14,6 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -}
-
 module Component.LineChart
   ( Query
   , Input
@@ -22,7 +21,6 @@ module Component.LineChart
   ) where
 
 import Prelude
-
 import Data.Maybe (Maybe(..), maybe)
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
@@ -34,12 +32,12 @@ import Halogen.HTML as HH
 import Halogen.HTML.Properties as HP
 import Page.Commons as Commons
 
-type State =
-  { canvasId :: String
-  , maybeLineChart :: Maybe LineChartInstance
-  , datasets :: ChartDatasets
-  , options :: LineChartOptions
-  }
+type State
+  = { canvasId :: String
+    , maybeLineChart :: Maybe LineChartInstance
+    , datasets :: ChartDatasets
+    , options :: LineChartOptions
+    }
 
 data Query a
 
@@ -49,11 +47,11 @@ data Action
   | HandleInput Input
 
 -- |
-type Input =
-  { canvasId :: String
-  , datasets :: ChartDatasets
-  , options :: LineChartOptions
-  }
+type Input
+  = { canvasId :: String
+    , datasets :: ChartDatasets
+    , options :: LineChartOptions
+    }
 
 -- | chartjs component
 component :: forall m. MonadAff m => H.Component HH.HTML Query Input Void m
@@ -61,12 +59,14 @@ component =
   H.mkComponent
     { initialState: initialState
     , render
-    , eval: H.mkEval $ H.defaultEval
-      { handleAction = handleAction
-      , initialize = Just Initialize
-      , finalize = Just Finalize
-      , receive = Just <<< HandleInput
-      }
+    , eval:
+      H.mkEval
+        $ H.defaultEval
+            { handleAction = handleAction
+            , initialize = Just Initialize
+            , finalize = Just Finalize
+            , receive = Just <<< HandleInput
+            }
     }
 
 -- |
@@ -80,40 +80,39 @@ initialState input =
 
 -- |
 render :: forall i m. State -> H.ComponentHTML Action i m
-render state =
-  HH.canvas [ HP.id_ state.canvasId ]
+render state = HH.canvas [ HP.id_ state.canvasId ]
 
 -- |
-handleAction
-  :: forall i o m
-   . MonadAff m
-  => Action
-  -> H.HalogenM State Action i o m Unit
+handleAction ::
+  forall i o m.
+  MonadAff m =>
+  Action ->
+  H.HalogenM State Action i o m Unit
 handleAction = case _ of
   Initialize -> do
     state <- H.get
     maybeChart <- H.liftEffect $ newChart state.canvasId state.datasets state.options
     H.put $ state { maybeLineChart = maybeChart }
-
   Finalize -> do
-    {maybeLineChart} <- H.get
+    { maybeLineChart } <- H.get
     H.liftEffect $ maybe (pure unit) ChartJs.destroyLineChart maybeLineChart
-
   HandleInput input -> do
     state <- H.get
     H.liftEffect $ maybe (pure unit) ChartJs.destroyLineChart state.maybeLineChart
     maybeChart <- H.liftEffect $ newChart input.canvasId input.datasets input.options
-    let newState = state  { canvasId = input.canvasId
-                          , datasets = input.datasets
-                          , options = input.options
-                          , maybeLineChart = maybeChart
-                          } 
+    let
+      newState =
+        state
+          { canvasId = input.canvasId
+          , datasets = input.datasets
+          , options = input.options
+          , maybeLineChart = maybeChart
+          }
     H.put newState
 
 -- |
 newChart :: String -> ChartDatasets -> LineChartOptions -> Effect (Maybe LineChartInstance)
-newChart canvasId datasets options =
-  maybe (pure Nothing) draw =<< Commons.getContext2dById canvasId
+newChart canvasId datasets options = maybe (pure Nothing) draw =<< Commons.getContext2dById canvasId
   where
   draw :: Context2D -> Effect (Maybe LineChartInstance)
   draw ctx = ChartJs.drawLineChart ctx datasets options
