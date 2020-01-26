@@ -25,7 +25,7 @@ module Components.InfraredCodeEditor
 import Prelude
 import Components.InfraredCodeEditor.Form as Form
 import Data.Const (Const)
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..))
 import Effect.Aff.Class (class MonadAff)
 import Formless as Formless
 import Halogen as H
@@ -48,17 +48,19 @@ data Output
   = TextChanged String
   | Reset
 
+-- |
 type ChildSlot
   = ( formless :: Formless.Slot Form.IRCodeEditForm (Const Void) () Form.Output Unit )
 
+-- |
 type State
-  = String
+  = Maybe String
 
 -- |
 component :: forall m. MonadAff m => H.Component HH.HTML Query Input Output m
 component =
   H.mkComponent
-    { initialState: initialState
+    { initialState: identity
     , render: render
     , eval:
       H.mkEval
@@ -67,10 +69,6 @@ component =
             , receive = Just <<< HandleInput
             }
     }
-
--- |
-initialState :: Input -> State
-initialState i = fromMaybe "" i
 
 -- |
 render :: forall m. MonadAff m => State -> H.ComponentHTML Action ChildSlot m
@@ -83,8 +81,8 @@ handleAction ::
   Action ->
   H.HalogenM State Action i Output m Unit
 handleAction = case _ of
-  HandleInput inputText -> H.put $ initialState inputText
+  HandleInput i -> H.put i
   HandleEditingForm (Form.Text t) -> H.raise $ TextChanged t.infraredCodeText
   HandleEditingForm Form.Reset -> do
-    H.put $ initialState Nothing
+    H.put Nothing
     H.raise Reset

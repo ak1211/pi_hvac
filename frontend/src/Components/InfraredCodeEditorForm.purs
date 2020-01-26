@@ -20,6 +20,7 @@ module Components.InfraredCodeEditor.Form
   , IRCodeEditForm
   , IRCodeEditFormRow
   , InfraredCodeText
+  , Input
   , Output(..)
   , component
   ) where
@@ -28,7 +29,7 @@ import Prelude
 import Data.Bifunctor as Bifunctor
 import Data.Const (Const)
 import Data.Int as Int
-import Data.Maybe (Maybe(..))
+import Data.Maybe (Maybe(..), fromMaybe)
 import Data.Newtype (class Newtype)
 import Data.String as String
 import Data.Symbol (SProxy(..))
@@ -50,27 +51,35 @@ import Utils as Utils
 data Action
   = OnClickReset
   | OnClickSeparate32bits (Formless.PublicState IRCodeEditForm ())
-  | HandleInput String
+  | HandleInput Input
+
+-- |
+type Input
+  = Maybe String
 
 -- |
 data Output
   = Text InfraredCodeText
   | Reset
 
+-- |
 type InfraredCodeText
   = { | IRCodeEditFormRow Formless.OutputType }
 
+-- |
 newtype IRCodeEditForm r f
   = IRCodeEditForm (r (IRCodeEditFormRow f))
 
 derive instance newtypeIRCodeEditForm' :: Newtype (IRCodeEditForm r f) _
 
+-- |
 type IRCodeEditFormRow f
   = ( infraredCodeText :: f FieldError String String
     )
 
 _infraredCodeText = SProxy :: SProxy "infraredCodeText"
 
+-- |
 data FieldError
   = EmptyField
   | InvalidInfraredCodeText ParseError
@@ -90,7 +99,7 @@ validateInfraredCode = Formless.hoistFnE_ go
       Bifunctor.bimap InvalidInfraredCodeText ok $ runParser input infraredCodeTextParser
 
 -- |
-component :: forall m. MonadAff m => Formless.Component IRCodeEditForm (Const Void) () String Output m
+component :: forall m. MonadAff m => Formless.Component IRCodeEditForm (Const Void) () Input Output m
 component =
   Formless.component
     initialState
@@ -103,9 +112,12 @@ component =
   where
   -- |
   initialState i =
-    { validators: validators
-    , initialInputs: Just $ Formless.wrapInputFields { infraredCodeText: i }
-    }
+    let
+      ini = fromMaybe "" i
+    in
+      { validators: validators
+      , initialInputs: Just $ Formless.wrapInputFields { infraredCodeText: ini }
+      }
 
   -- |
   renderFormless state =
@@ -185,7 +197,8 @@ component =
         new = formatTo32bits txt
       in
         eval $ Formless.setValidate _infraredCodeText new
-    HandleInput new -> eval $ Formless.setValidate _infraredCodeText new
+    HandleInput (Just new) -> eval $ Formless.setValidate _infraredCodeText new
+    HandleInput Nothing -> eval Formless.resetAll
     where
     eval act = Formless.handleAction handleAction handleEvent act
 
