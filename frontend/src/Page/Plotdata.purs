@@ -93,6 +93,7 @@ component =
     , eval: H.mkEval $ H.defaultEval
       { handleAction = handleAction
       , initialize = Just Initialize
+      , receive = Just <<< ChangedRoute
       }
     }
 
@@ -177,15 +178,13 @@ handleAction
   => Action
   -> H.HalogenM State Action i o m Unit
 handleAction = case _ of
-  NavigateTo route -> do
+  NavigateTo route ->
     navigate route
-    pure mempty
 
   Initialize -> do
     {queryParams} <- H.get
     let newRoute = Route.Plotdata (Just queryParams)
-    void $ handleAction (ChangedRoute newRoute)
-    pure mempty
+    handleAction (ChangedRoute newRoute)
 
   ChangedRoute route -> do
     curState <- H.get
@@ -209,7 +208,6 @@ handleAction = case _ of
 
       Right result ->
         H.put state { measValues = result.body }
-    pure mempty
 
   OnInputRecordsLimit strLimits -> do
     let newLimits = Int.fromString strLimits
@@ -217,7 +215,6 @@ handleAction = case _ of
     let newQueryParams = queryParams { limits = newLimits }
     H.modify_ _ { queryParams = newQueryParams }
     navigate $ Route.Plotdata (Just newQueryParams)
-    pure mempty
 
 -- |
 card :: forall p i. String -> Array HC.ClassName -> String -> Array (HH.HTML p i) -> HH.HTML p i

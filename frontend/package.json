@@ -18,7 +18,7 @@
   "devDependencies": {},
   "scripts": {
     "dev": "spago build --watch & parcel index.html",
-    "build": "spago build & parcel build output/app.js -d ../priv/static/js/",
+    "build": "rm -f output/app.js ../priv/static/js/app.js* && spago bundle-app --to output/app.js && parcel build output/app.js -d ../priv/static/js/",
     "test": "spago test"
   },
   "repository": {

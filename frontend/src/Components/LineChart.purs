@@ -26,7 +26,8 @@ import Prelude
 import Data.Maybe (Maybe(..), maybe)
 import Effect (Effect)
 import Effect.Aff.Class (class MonadAff)
-import Foreign.ChartJs (LineChartInstance, ChartDatasets, LineChartOptions, drawLineChart, destroyLineChart)
+import Foreign.ChartJs (LineChartInstance, ChartDatasets, LineChartOptions)
+import Foreign.ChartJs as ChartJs
 import Graphics.Canvas (Context2D)
 import Halogen as H
 import Halogen.HTML as HH
@@ -44,6 +45,7 @@ data Query a
 
 data Action
   = Initialize
+  | Finalize
   | HandleInput Input
 
 -- |
@@ -62,6 +64,7 @@ component =
     , eval: H.mkEval $ H.defaultEval
       { handleAction = handleAction
       , initialize = Just Initialize
+      , finalize = Just Finalize
       , receive = Just <<< HandleInput
       }
     }
@@ -92,9 +95,13 @@ handleAction = case _ of
     maybeChart <- H.liftEffect $ newChart state.canvasId state.datasets state.options
     H.put $ state { maybeLineChart = maybeChart }
 
+  Finalize -> do
+    {maybeLineChart} <- H.get
+    H.liftEffect $ maybe (pure unit) ChartJs.destroyLineChart maybeLineChart
+
   HandleInput input -> do
     state <- H.get
-    H.liftEffect $ maybe (pure unit) destroyLineChart state.maybeLineChart
+    H.liftEffect $ maybe (pure unit) ChartJs.destroyLineChart state.maybeLineChart
     maybeChart <- H.liftEffect $ newChart input.canvasId input.datasets input.options
     let newState = state  { canvasId = input.canvasId
                           , datasets = input.datasets
@@ -106,8 +113,7 @@ handleAction = case _ of
 -- |
 newChart :: String -> ChartDatasets -> LineChartOptions -> Effect (Maybe LineChartInstance)
 newChart canvasId datasets options =
-  f =<< Commons.getContext2dById canvasId
+  maybe (pure Nothing) draw =<< Commons.getContext2dById canvasId
   where
-  f :: Maybe Context2D -> Effect (Maybe LineChartInstance)
-  f Nothing = pure Nothing
-  f (Just x)= Just <$> drawLineChart x datasets options
+  draw :: Context2D -> Effect (Maybe LineChartInstance)
+  draw ctx = ChartJs.drawLineChart ctx datasets options

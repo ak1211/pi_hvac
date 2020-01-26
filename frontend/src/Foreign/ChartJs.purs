@@ -30,6 +30,7 @@ module Foreign.ChartJs
 
 import Prelude
 
+import Data.Maybe (Maybe(..))
 import Effect (Effect)
 import Graphics.Canvas (Context2D)
 
@@ -80,8 +81,8 @@ destroyLineChart :: LineChartInstance -> Effect Unit
 destroyLineChart = destroyLineChartJs
 
 --|
-drawLineChart :: Context2D -> ChartDatasets -> LineChartOptions -> Effect LineChartInstance
-drawLineChart = lineChartJs
+drawLineChart :: Context2D -> ChartDatasets -> LineChartOptions -> Effect (Maybe LineChartInstance)
+drawLineChart a b c = Just <$> lineChartJs a b c
 
 --|
 defLineChartOptions :: LineChartOptions
