@@ -29,7 +29,7 @@ import Prelude
 import Data.Bifunctor as Bifunctor
 import Data.Const (Const)
 import Data.Int as Int
-import Data.Maybe (Maybe(..), fromMaybe)
+import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
 import Data.String as String
 import Data.Symbol (SProxy(..))
