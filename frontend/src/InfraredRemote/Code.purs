@@ -44,7 +44,6 @@ import Data.Array (catMaybes, (..))
 import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NEA
-import Data.Bifunctor (rmap)
 import Data.Bifunctor as Bifunctor
 import Data.Either (Either(..))
 import Data.Foldable (oneOf)
