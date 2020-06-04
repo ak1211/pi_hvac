@@ -17,20 +17,16 @@
 module InfraredRemote.Types
   ( Bit(..)
   , BitStream
+  , BitOrder(..)
   , Celsius(..)
   , InfraredCodeFrame(..)
-  , LsbFirst(..)
-  , MsbFirst(..)
   , fromBinaryString
+  , unBitOrder
   , fromBoolean
   , showBit
   , toBoolean
   , toLsbFirst
   , toMsbFirst
-  , toStringLsbFirst
-  , toStringLsbFirstWithHex
-  , toStringMsbFirst
-  , toStringMsbFirstWithHex
   ) where
 
 import Prelude
@@ -41,9 +37,8 @@ import Data.Array.NonEmpty as NEA
 import Data.Foldable (all)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Data.Int as Int
 import Data.Maybe (Maybe(..), isJust)
-import Data.Newtype (class Newtype, unwrap)
+import Data.Newtype (class Newtype)
 import Data.String.CodeUnits (toCharArray)
 
 -- |
@@ -96,71 +91,38 @@ fromBinaryString input =
   f _ = Nothing
 
 -- |
-newtype LsbFirst
+data BitOrder
   = LsbFirst Int
-
-derive instance newtypeLsbFirst :: Newtype LsbFirst _
-
-derive newtype instance eqLsbFirst :: Eq LsbFirst
-
-derive newtype instance ordLsbFirst :: Ord LsbFirst
-
-instance showLsbFirst :: Show LsbFirst where
-  show (LsbFirst x) = "0x" <> Int.toStringAs Int.hexadecimal x <> "(LSBFirst)"
+  | MsbFirst Int
 
 -- |
-toStringLsbFirst :: LsbFirst -> String
-toStringLsbFirst = Int.toStringAs Int.decimal <<< unwrap
+unBitOrder :: BitOrder -> Int
+unBitOrder = case _ of
+  (LsbFirst x) -> x
+  (MsbFirst x) -> x
 
 -- |
-toStringLsbFirstWithHex :: LsbFirst -> String
-toStringLsbFirstWithHex = Int.toStringAs Int.hexadecimal <<< unwrap
+shiftRegister :: Int -> Bit -> Int
+shiftRegister register input = case input of
+  Assert -> register * 2 + 1
+  Negate -> register * 2 + 0
 
 -- |
-toLsbFirst :: BitStream -> LsbFirst
-toLsbFirst bits = LsbFirst (Array.foldl f 0 $ NEA.reverse bits)
-  where
-  f :: Int -> Bit -> Int
-  f acc Assert = acc * 2 + 1
-
-  f acc Negate = acc * 2 + 0
+toLsbFirst :: BitStream -> BitOrder
+toLsbFirst bits = LsbFirst (Array.foldl shiftRegister 0 $ NEA.reverse bits)
 
 -- |
-newtype MsbFirst
-  = MsbFirst Int
-
-derive instance newtypeMsbFirst :: Newtype MsbFirst _
-
-derive newtype instance eqMsbFirst :: Eq MsbFirst
-
-derive newtype instance ordMsbFirst :: Ord MsbFirst
-
-instance showMsbFirst :: Show MsbFirst where
-  show (MsbFirst v) = "0x" <> Int.toStringAs Int.hexadecimal v <> "(MSBFirst)"
-
--- |
-toStringMsbFirst :: MsbFirst -> String
-toStringMsbFirst = Int.toStringAs Int.decimal <<< unwrap
-
--- |
-toStringMsbFirstWithHex :: MsbFirst -> String
-toStringMsbFirstWithHex = Int.toStringAs Int.hexadecimal <<< unwrap
-
--- |
-toMsbFirst :: BitStream -> MsbFirst
-toMsbFirst bits = MsbFirst (Array.foldl f 0 bits)
-  where
-  f :: Int -> Bit -> Int
-  f acc Assert = acc * 2 + 1
-
-  f acc Negate = acc * 2 + 0
+toMsbFirst :: BitStream -> BitOrder
+toMsbFirst bits = MsbFirst (Array.foldl shiftRegister 0 bits)
 
 -- |
 data InfraredCodeFrame
   = FormatUnknown (Array Bit)
   | FormatAEHA { octets :: Array BitStream, stop :: Bit }
   | FormatNEC { custom0 :: BitStream, custom1 :: BitStream, data0 :: BitStream, data1 :: BitStream, stop :: Bit }
-  | FormatSIRC { command :: BitStream, address :: BitStream }
+  | FormatSIRC12 { command :: BitStream, address :: BitStream }
+  | FormatSIRC15 { command :: BitStream, address :: BitStream }
+  | FormatSIRC20 { command :: BitStream, address :: BitStream, extended :: BitStream }
 
 derive instance genericInfraredCodeFrame :: Generic InfraredCodeFrame _
 

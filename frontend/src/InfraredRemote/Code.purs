@@ -35,7 +35,6 @@ module InfraredRemote.Code
   , module InfraredRemote.Types
   ) where
 
-import Prelude hiding (between)
 import Control.Alt ((<|>))
 import Control.Monad.Except (ExceptT, runExceptT, throwError)
 import Control.Monad.State (State, evalState)
@@ -45,8 +44,10 @@ import Data.Array (catMaybes, (..))
 import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NEA
+import Data.Bifunctor (rmap)
 import Data.Bifunctor as Bifunctor
 import Data.Either (Either(..))
+import Data.Foldable (oneOf)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Int as Int
@@ -61,8 +62,10 @@ import Data.Unfoldable (unfoldr1)
 import InfraredRemote.HitachiHvac (HitachiHvac, decodeHitachiHvac)
 import InfraredRemote.MitsubishiElectricHvac (MitsubishiElectricHvac, decodeMitsubishiElectricHvac)
 import InfraredRemote.PanasonicHvac (PanasonicHvac, decodePanasonicHvac)
-import InfraredRemote.Types (Bit(..), BitStream, Celsius(..), InfraredCodeFrame(..), LsbFirst(..), MsbFirst(..), fromBinaryString, fromBoolean, showBit, toBoolean, toLsbFirst, toMsbFirst, toStringLsbFirst, toStringLsbFirstWithHex, toStringMsbFirst, toStringMsbFirstWithHex)
+import InfraredRemote.SIRC (SIRC, decodeSirc)
+import InfraredRemote.Types (Bit(..), BitStream, BitOrder(..), Celsius(..), InfraredCodeFrame(..), fromBinaryString, fromBoolean, showBit, toBoolean, toLsbFirst, toMsbFirst)
 import Partial.Unsafe (unsafePartial)
+import Prelude hiding (between)
 import Text.Parsing.Parser (Parser, fail)
 import Text.Parsing.Parser.Combinators (between, try, (<?>))
 import Text.Parsing.Parser.String (char, eof, noneOf, skipSpaces, string)
@@ -389,14 +392,15 @@ decodePhase3 (Tuple leader bitarray) = evalState (runExceptT decoder) bitarray
   where
   decoder :: DecodeMonad ProcessError InfraredCodeFrame
   decoder = case leader of
-    LeaderAeha _ -> decodeAeha
-    LeaderNec _ -> decodeNec
-    LeaderSirc _ -> decodeSirc
-    LeaderUnknown _ -> decodeUnknown
+    LeaderAeha _ -> decodeAehaFormat
+    LeaderNec _ -> decodeNecFormat
+    LeaderSirc _ -> decodeSircFormat
+    LeaderUnknown _ -> decodeUnknownFormat
 
 -- |
 data IrRemoteControlCode
   = IrRemoteUnknown (Array InfraredCodeFrame)
+  | IrRemoteSIRC SIRC
   | IrRemotePanasonicHvac PanasonicHvac
   | IrRemoteMitsubishiElectricHvac MitsubishiElectricHvac
   | IrRemoteHitachiHvac HitachiHvac
@@ -409,23 +413,34 @@ instance showIrRemoteControlCode :: Show IrRemoteControlCode where
   show = genericShow
 
 -- |
-toIrRemoteControlCode :: Baseband -> Either ProcessError IrRemoteControlCode
+toIrRemoteControlCode :: Baseband -> Either ProcessError (NonEmptyArray IrRemoteControlCode)
 toIrRemoteControlCode = Bifunctor.rmap decodePhase4 <<< toIrCodeFrames
 
 -- | 各機種の赤外線信号にする
-decodePhase4 :: Array InfraredCodeFrame -> IrRemoteControlCode
-decodePhase4 x =
-  fromMaybe (IrRemoteUnknown x)
-    ( pana x
-        <|> melco x
-        <|> hitachi x
-    )
+decodePhase4 :: Array InfraredCodeFrame -> NonEmptyArray IrRemoteControlCode
+decodePhase4 frames =
+  fromMaybe (unknown frames)
+    $ oneOf
+        [ sirc frames
+        , pana frames
+        , melco frames
+        , hitachi frames
+        ]
   where
-  pana = liftA1 IrRemotePanasonicHvac <<< decodePanasonicHvac
+  unknown :: Array InfraredCodeFrame -> NonEmptyArray IrRemoteControlCode
+  unknown = NEA.singleton <<< IrRemoteUnknown
 
-  melco = liftA1 IrRemoteMitsubishiElectricHvac <<< decodeMitsubishiElectricHvac
+  sirc :: Array InfraredCodeFrame -> Maybe (NonEmptyArray IrRemoteControlCode)
+  sirc = liftA1 (map IrRemoteSIRC) <<< decodeSirc
 
-  hitachi = liftA1 IrRemoteHitachiHvac <<< decodeHitachiHvac
+  pana :: Array InfraredCodeFrame -> Maybe (NonEmptyArray IrRemoteControlCode)
+  pana = liftA1 (map IrRemotePanasonicHvac) <<< decodePanasonicHvac
+
+  melco :: Array InfraredCodeFrame -> Maybe (NonEmptyArray IrRemoteControlCode)
+  melco = liftA1 (map IrRemoteMitsubishiElectricHvac) <<< decodeMitsubishiElectricHvac
+
+  hitachi :: Array InfraredCodeFrame -> Maybe (NonEmptyArray IrRemoteControlCode)
+  hitachi = liftA1 (map IrRemoteHitachiHvac) <<< decodeHitachiHvac
 
 -- |
 type DecodeMonad e a
@@ -462,8 +477,8 @@ takeEnd errmsg = do
   maybe (throwError errmsg) pure $ NEA.fromArray array
 
 -- |
-decodeAeha :: DecodeMonad ProcessError InfraredCodeFrame
-decodeAeha = do
+decodeAehaFormat :: DecodeMonad ProcessError InfraredCodeFrame
+decodeAehaFormat = do
   data_N <- takeEnd "fail to read: data (AEHA)"
   let
     init = NEA.init data_N
@@ -474,8 +489,8 @@ decodeAeha = do
   pure $ FormatAEHA { octets: octets, stop: last }
 
 -- |
-decodeNec :: DecodeMonad ProcessError InfraredCodeFrame
-decodeNec = do
+decodeNecFormat :: DecodeMonad ProcessError InfraredCodeFrame
+decodeNecFormat = do
   custom0 <- takeBits 8 "fail to read: custom code0 (NEC)"
   custom1 <- takeBits 8 "fail to read: custom code1 (NEC)"
   data0 <- takeBits 8 "fail to read: data0 (NEC)"
@@ -491,19 +506,28 @@ decodeNec = do
         }
 
 -- |
-decodeSirc :: DecodeMonad ProcessError InfraredCodeFrame
-decodeSirc = do
+decodeSircFormat :: DecodeMonad ProcessError InfraredCodeFrame
+decodeSircFormat = do
   comm <- takeBits 7 "fail to read: command code (SIRC)"
   addr <- takeEnd "fail to read: address (SIRC)"
-  pure
-    $ FormatSIRC
-        { command: comm
-        , address: addr
-        }
+  let
+    width = 7 + NEA.length addr
+  case width of
+    12 -> pure $ FormatSIRC12 { command: comm, address: addr }
+    15 -> pure $ FormatSIRC15 { command: comm, address: addr }
+    20 ->
+      let
+        -- 20bits - 7bits = 13 bits あるのでここでは空配列にならないのでfromJustでよい
+        first5bits = unsafePartial $ fromJust $ NEA.fromArray $ NEA.take 5 addr
+
+        after5bits = unsafePartial $ fromJust $ NEA.fromArray $ NEA.drop 5 addr
+      in
+        pure $ FormatSIRC20 { command: comm, address: first5bits, extended: after5bits }
+    _ -> throwError ("fail to read: Width " <> show width <> " is not allowed (SIRC)")
 
 -- |
-decodeUnknown :: DecodeMonad ProcessError InfraredCodeFrame
-decodeUnknown = do
+decodeUnknownFormat :: DecodeMonad ProcessError InfraredCodeFrame
+decodeUnknownFormat = do
   array <- State.get
   State.put []
   pure $ FormatUnknown array

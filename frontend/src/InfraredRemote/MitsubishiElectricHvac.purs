@@ -26,9 +26,10 @@ module InfraredRemote.MitsubishiElectricHvac
   , validCrc
   ) where
 
-import Prelude
 import Control.MonadZero (guard)
 import Data.Array as Array
+import Data.Array.NonEmpty (NonEmptyArray)
+import Data.Array.NonEmpty as NEA
 import Data.Enum (class Enum, class BoundedEnum, toEnum)
 import Data.Foldable (sum)
 import Data.Generic.Rep (class Generic)
@@ -36,7 +37,8 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.Int.Bits ((.&.), shr)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
-import InfraredRemote.Types (BitStream, Celsius(..), InfraredCodeFrame(..), fromBinaryString, toLsbFirst)
+import InfraredRemote.Types (BitStream, Celsius(..), InfraredCodeFrame(..), unBitOrder, fromBinaryString, toLsbFirst)
+import Prelude
 
 -- |
 data Mode
@@ -142,7 +144,7 @@ validCrc crc original =
     x == y
   where
   values :: Array Int
-  values = map (unwrap <<< toLsbFirst) $ Array.take 17 original
+  values = map (unBitOrder <<< toLsbFirst) $ Array.take 17 original
 
 -- |
 newtype MitsubishiElectricHvac
@@ -166,44 +168,44 @@ instance showMitsubishiElectricHvac :: Show MitsubishiElectricHvac where
 -- |
 -- Mitsubishi Electric HVAC remote control
 --
-decodeMitsubishiElectricHvac :: Array InfraredCodeFrame -> Maybe MitsubishiElectricHvac
+decodeMitsubishiElectricHvac :: Array InfraredCodeFrame -> Maybe (NonEmptyArray MitsubishiElectricHvac)
 decodeMitsubishiElectricHvac = case _ of
-  [ a, b ] -> decode b
-  _ -> Nothing
+  [] -> Nothing
+  xs -> NEA.fromArray $ Array.mapMaybe decode xs
   where
   decode :: InfraredCodeFrame -> Maybe MitsubishiElectricHvac
   decode = case _ of
     FormatAEHA
       { octets:
-      original@[ b_0
-    , b_1
-    , b_2
-    , b_3
-    , b_4
-    , b_5
-    , b_6
-    , b_7
-    , b_8
-    , b_9
-    , b10
-    , b11
-    , b12
-    , b13
-    , b14
-    , b15
-    , b16
-    , b17
-    ]
+        original@[ b_0
+        , b_1
+        , b_2
+        , b_3
+        , b_4
+        , b_5
+        , b_6
+        , b_7
+        , b_8
+        , b_9
+        , b10
+        , b11
+        , b12
+        , b13
+        , b14
+        , b15
+        , b16
+        , b17
+        ]
     , stop: _
     } ->
       let
-        temp = unwrap (toLsbFirst b_7) .&. 0xf
+        temp = unBitOrder (toLsbFirst b_7) .&. 0xf
 
-        mode1 = (unwrap (toLsbFirst b_6) `shr` 3) .&. 0x7
+        mode1 = (unBitOrder (toLsbFirst b_6) `shr` 3) .&. 0x7
 
-        switch = (unwrap (toLsbFirst b_5) `shr` 5) .&. 0x1
+        switch = (unBitOrder (toLsbFirst b_5) `shr` 5) .&. 0x1
 
-        crc = unwrap (toLsbFirst b17)
+        crc = unBitOrder (toLsbFirst b17)
       in
         do
           guard $ isValidIdentifier original
