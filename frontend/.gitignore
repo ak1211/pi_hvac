@@ -1,6 +1,8 @@
 /bower_components/
 /node_modules/
 /.pulp-cache/
+/.cache/
+/dist/
 /output/
 /dist/
 /generated-docs/

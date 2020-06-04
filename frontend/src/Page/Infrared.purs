@@ -19,7 +19,6 @@ module Page.Infrared
   , component
   ) where
 
-import Prelude
 import Affjax as AX
 import Api as Api
 import AppM (class HasApiAccessible, class Navigate, getApiBaseURL, getApiTimeout, navigate)
@@ -28,6 +27,8 @@ import Components.InfraredCodeEditor as Editor
 import Control.Alt ((<|>))
 import Data.Array ((:), (..))
 import Data.Array as Array
+import Data.Array.NonEmpty (NonEmptyArray)
+import Data.Array.NonEmpty as NEA
 import Data.Bifunctor as Bifunctor
 import Data.Char (fromCharCode)
 import Data.Either (Either(..), either, isRight)
@@ -60,7 +61,10 @@ import InfraredRemote.MitsubishiElectricHvac (MitsubishiElectricHvac(..))
 import InfraredRemote.MitsubishiElectricHvac as Me
 import InfraredRemote.PanasonicHvac (PanasonicHvac(..))
 import InfraredRemote.PanasonicHvac as Pa
+import InfraredRemote.SIRC (SIRC(..))
+import InfraredRemote.Types (BitOrder, unBitOrder)
 import Page.Commons as Commons
+import Prelude
 import Route (Route)
 import Route as Route
 import Text.Parsing.Parser (parseErrorMessage, runParser)
@@ -165,12 +169,12 @@ component =
     { initialState: initialState
     , render
     , eval:
-      H.mkEval
-        $ H.defaultEval
-            { handleAction = handleAction
-            , initialize = Just Initialize
-            , receive = Just <<< HandleInput
-            }
+        H.mkEval
+          $ H.defaultEval
+              { handleAction = handleAction
+              , initialize = Just Initialize
+              , receive = Just <<< HandleInput
+              }
     }
 
 -- |
@@ -659,13 +663,13 @@ infraredCodeFrame state input = case toEnum =<< state.queryParams.bitorder of
           , dd [ HH.text "NEC" ]
           , dt [ HH.text "custom code (LSBit first)" ]
           , dd
-              [ showOctet <<< unwrap <<< toLsbFirst $ irValue.custom0
-              , showOctet <<< unwrap <<< toLsbFirst $ irValue.custom1
+              [ cell $ formatWithHex $ toLsbFirst irValue.custom0
+              , cell $ formatWithHex $ toLsbFirst irValue.custom1
               ]
           , dt [ HH.text "octets (LSBit first)" ]
           , dd
-              [ showOctet <<< unwrap <<< toLsbFirst $ irValue.data0
-              , showOctet <<< unwrap <<< toLsbFirst $ irValue.data1
+              [ cell $ formatWithHex $ toLsbFirst irValue.data0
+              , cell $ formatWithHex $ toLsbFirst irValue.data1
               ]
           , dt [ HH.text "stop" ]
           , dd [ HH.text $ show irValue.stop ]
@@ -676,19 +680,41 @@ infraredCodeFrame state input = case toEnum =<< state.queryParams.bitorder of
           [ dt [ HH.text "format" ]
           , dd [ HH.text "AEHA" ]
           , dt [ HH.text "octets (LSBit first)" ]
-          , dd $ map (showOctet <<< unwrap <<< toLsbFirst) irValue.octets
+          , dd $ map (cell <<< formatWithHex <<< toLsbFirst) irValue.octets
           , dt [ HH.text "stop" ]
           , dd [ HH.text $ show irValue.stop ]
           ]
       ]
-    FormatSIRC irValue ->
+    FormatSIRC12 irValue ->
       [ HH.dl_
           [ dt [ HH.text "format" ]
-          , dd [ HH.text "SIRC" ]
+          , dd [ HH.text "SIRC12" ]
           , dt [ HH.text "command (LSBit first)" ]
-          , dd [ HH.text $ showHex <<< unwrap $ toLsbFirst irValue.command ]
+          , dd [ HH.text $ formatWithHex $ toLsbFirst irValue.command ]
           , dt [ HH.text "address (LSBit first)" ]
-          , dd [ HH.text $ showHex <<< unwrap $ toLsbFirst irValue.address ]
+          , dd [ HH.text $ formatWithHex $ toLsbFirst irValue.address ]
+          ]
+      ]
+    FormatSIRC15 irValue ->
+      [ HH.dl_
+          [ dt [ HH.text "format" ]
+          , dd [ HH.text "SIRC15" ]
+          , dt [ HH.text "command (LSBit first)" ]
+          , dd [ HH.text $ formatWithHex $ toLsbFirst irValue.command ]
+          , dt [ HH.text "address (LSBit first)" ]
+          , dd [ HH.text $ formatWithHex $ toLsbFirst irValue.address ]
+          ]
+      ]
+    FormatSIRC20 irValue ->
+      [ HH.dl_
+          [ dt [ HH.text "format" ]
+          , dd [ HH.text "SIRC20" ]
+          , dt [ HH.text "command (LSBit first)" ]
+          , dd [ HH.text $ formatWithHex $ toLsbFirst irValue.command ]
+          , dt [ HH.text "address (LSBit first)" ]
+          , dd [ HH.text $ formatWithHex $ toLsbFirst irValue.address ]
+          , dt [ HH.text "extended (LSBit first)" ]
+          , dd [ HH.text $ formatWithHex $ toLsbFirst irValue.extended ]
           ]
       ]
     FormatUnknown irValue ->
@@ -705,13 +731,13 @@ infraredCodeFrame state input = case toEnum =<< state.queryParams.bitorder of
           , dd [ HH.text "NEC" ]
           , dt [ HH.text "custom code (MSBit first)" ]
           , dd
-              [ showOctet <<< unwrap <<< toMsbFirst $ irValue.custom0
-              , showOctet <<< unwrap <<< toMsbFirst $ irValue.custom1
+              [ cell $ formatWithHex $ toMsbFirst irValue.custom0
+              , cell $ formatWithHex $ toMsbFirst irValue.custom1
               ]
           , dt [ HH.text "octets (MSBit first)" ]
           , dd
-              [ showOctet <<< unwrap <<< toMsbFirst $ irValue.data0
-              , showOctet <<< unwrap <<< toMsbFirst $ irValue.data1
+              [ cell $ formatWithHex $ toMsbFirst irValue.data0
+              , cell $ formatWithHex $ toMsbFirst irValue.data1
               ]
           , dt [ HH.text "stop" ]
           , dd [ HH.text $ show irValue.stop ]
@@ -722,19 +748,41 @@ infraredCodeFrame state input = case toEnum =<< state.queryParams.bitorder of
           [ dt [ HH.text "format" ]
           , dd [ HH.text "AEHA" ]
           , dt [ HH.text "octets (MSBit first)" ]
-          , dd $ map (showOctet <<< unwrap <<< toMsbFirst) irValue.octets
+          , dd $ map (cell <<< formatWithHex <<< toMsbFirst) irValue.octets
           , dt [ HH.text "stop" ]
           , dd [ HH.text $ show irValue.stop ]
           ]
       ]
-    FormatSIRC irValue ->
+    FormatSIRC12 irValue ->
       [ HH.dl_
           [ dt [ HH.text "format" ]
-          , dd [ HH.text "SIRC" ]
+          , dd [ HH.text "SIRC12" ]
           , dt [ HH.text "command (MSBit first)" ]
-          , dd [ HH.text $ showHex <<< unwrap $ toMsbFirst irValue.command ]
+          , dd [ HH.text $ formatWithHex $ toMsbFirst irValue.command ]
           , dt [ HH.text "address (MSBit first)" ]
-          , dd [ HH.text $ showHex <<< unwrap $ toMsbFirst irValue.address ]
+          , dd [ HH.text $ formatWithHex $ toMsbFirst irValue.address ]
+          ]
+      ]
+    FormatSIRC15 irValue ->
+      [ HH.dl_
+          [ dt [ HH.text "format" ]
+          , dd [ HH.text "SIRC15" ]
+          , dt [ HH.text "command (MSBit first)" ]
+          , dd [ HH.text $ formatWithHex $ toMsbFirst irValue.command ]
+          , dt [ HH.text "address (MSBit first)" ]
+          , dd [ HH.text $ formatWithHex $ toMsbFirst irValue.address ]
+          ]
+      ]
+    FormatSIRC20 irValue ->
+      [ HH.dl_
+          [ dt [ HH.text "format" ]
+          , dd [ HH.text "SIRC20" ]
+          , dt [ HH.text "command (MSBit first)" ]
+          , dd [ HH.text $ formatWithHex $ toMsbFirst irValue.command ]
+          , dt [ HH.text "address (MSBit first)" ]
+          , dd [ HH.text $ formatWithHex $ toMsbFirst irValue.address ]
+          , dt [ HH.text "extended (MSBit first)" ]
+          , dd [ HH.text $ formatWithHex $ toMsbFirst irValue.extended ]
           ]
       ]
     FormatUnknown irValue ->
@@ -748,17 +796,26 @@ infraredCodeFrame state input = case toEnum =<< state.queryParams.bitorder of
 
   dd = HH.dd [ HP.classes [ HB.pl4, HB.row ] ]
 
-  showOctet x =
+  cell str =
     HH.span
       [ HP.classes [ HB.col6, HB.colMd2 ]
       ]
-      [ HH.text $ showHex x, HH.text " " ]
+      [ HH.text str, HH.text " " ]
 
 -- |
 infraredRemoteControlCode :: forall p i. IrRemoteControlCode -> Array (HH.HTML p i)
 infraredRemoteControlCode = case _ of
   IrRemoteUnknown formats ->
     [ HH.text "Unknown IR remote Code"
+    ]
+  IrRemoteSIRC (SIRC v) ->
+    [ HH.text "SIRC"
+    , HH.dl_
+        [ dt [ HH.text "Device" ]
+        , dd [ HH.text (show v.device) ]
+        , dt [ HH.text "Command" ]
+        , dd [ HH.text (show v.command) ]
+        ]
     ]
   IrRemotePanasonicHvac (PanasonicHvac v) ->
     [ HH.text "Panasonic HVAC"
@@ -817,15 +874,16 @@ infraredRemoteControlCode = case _ of
   dd = HH.dd [ HP.classes [ HB.pl4, HB.row ] ]
 
 -- |
-showHex :: Int -> String
-showHex v =
+formatWithHex :: BitOrder -> String
+formatWithHex bits =
   let
-    str = Int.toStringAs Int.hexadecimal v
+    str = Int.toStringAs Int.hexadecimal $ unBitOrder bits
   in
-    case String.length str of
-      x
-        | x < 2 -> "0" <> str
-        | otherwise -> str
+    "0x"
+      <> case String.length str of
+          len
+            | len < 2 -> "0" <> str
+            | otherwise -> str
 
 -- |
 irDownloadButton :: forall s m. H.ComponentHTML Action s m
@@ -913,7 +971,7 @@ renderInfraredRemoconCode state =
 
       irframes = traverse decodePhase3 =<< bitPatterns
 
-      irRemoteCode = Bifunctor.rmap decodePhase4 irframes
+      irRemoteCodes = Bifunctor.rmap decodePhase4 irframes
     in
       HH.p_
         [ HH.h3_ [ HH.text "Binaries" ]
@@ -958,8 +1016,8 @@ renderInfraredRemoconCode state =
             [ HP.class_ HB.p3 ]
             $ either
                 (Array.singleton <<< HH.text)
-                infraredRemoteControlCode
-                irRemoteCode
+                (intercalate [ HH.hr_ ] <<< map infraredRemoteControlCode)
+                irRemoteCodes
         ]
 
 -- |
@@ -980,11 +1038,11 @@ renderBitOrderTab state =
     Just MostSignBitFirst -> [ tabLSBitFirst [], tabMSBitFirst [ HB.active ], tabBothBitOrder [] ]
     Just BothBitOrder -> [ tabLSBitFirst [], tabMSBitFirst [], tabBothBitOrder [ HB.active ] ]
   where
-  tabLSBitFirst = item LeastSignBitFirst "Least Significant Bit First Order"
+  tabLSBitFirst = item LeastSignBitFirst "Least Significant Bit (LSB) First Order"
 
-  tabMSBitFirst = item MostSignBitFirst "Most Significant Bit First Order"
+  tabMSBitFirst = item MostSignBitFirst "Most Significant Bit (MSB) First Order"
 
-  tabBothBitOrder = item BothBitOrder "Both Bit Order"
+  tabBothBitOrder = item BothBitOrder "LSB & MSB First Order"
 
   item newTab caption appendix =
     let
@@ -1085,14 +1143,18 @@ toBaseband inp = Bifunctor.lmap parseErrorMessage (runParser inp infraredCodeTex
 
 -- |
 popoverContents :: InfraredHexString -> String
-popoverContents input = either identity display $ toIrCode input
+popoverContents input = either identity displayCodes $ toIrCodes input
   where
-  toIrCode :: InfraredHexString -> Either String IrRemoteControlCode
-  toIrCode = toIrRemoteControlCode <=< toBaseband
+  toIrCodes :: InfraredHexString -> Either String (NonEmptyArray IrRemoteControlCode)
+  toIrCodes = toIrRemoteControlCode <=< toBaseband
+
+  displayCodes :: NonEmptyArray IrRemoteControlCode -> String
+  displayCodes = String.joinWith " " <<< map display <<< NEA.toArray
 
   display :: IrRemoteControlCode -> String
   display = case _ of
     IrRemoteUnknown formats -> String.joinWith ", " $ map showFormat formats
+    IrRemoteSIRC _ -> "SIRC"
     IrRemotePanasonicHvac _ -> "Panasonic HVAC"
     IrRemoteMitsubishiElectricHvac _ -> "Mitsubishi Electric HVAC"
     IrRemoteHitachiHvac _ -> "Hitachi HVAC"
@@ -1102,27 +1164,40 @@ popoverContents input = either identity display $ toIrCode input
     FormatNEC irValue ->
       String.joinWith " "
         [ "NEC"
-        , showHex <<< unwrap $ toLsbFirst irValue.custom0
-        , showHex <<< unwrap $ toLsbFirst irValue.custom1
-        , showHex <<< unwrap $ toLsbFirst irValue.data0
-        , showHex <<< unwrap $ toLsbFirst irValue.data1
+        , formatWithHex $ toLsbFirst irValue.custom0
+        , formatWithHex $ toLsbFirst irValue.custom1
+        , formatWithHex $ toLsbFirst irValue.data0
+        , formatWithHex $ toLsbFirst irValue.data1
         ]
     FormatAEHA irValue ->
       String.joinWith " "
         $ Array.concat
             [ Array.singleton "AEHA"
-            , map (showHex <<< unwrap <<< toLsbFirst) irValue.octets
+            , map (formatWithHex <<< toLsbFirst) irValue.octets
             ]
-    FormatSIRC irValue ->
+    FormatSIRC12 irValue ->
       String.joinWith " "
-        [ "SIRC"
-        , showHex <<< unwrap $ toLsbFirst irValue.command
-        , showHex <<< unwrap $ toLsbFirst irValue.address
+        [ "SIRC12"
+        , formatWithHex $ toLsbFirst irValue.command
+        , formatWithHex $ toLsbFirst irValue.address
+        ]
+    FormatSIRC15 irValue ->
+      String.joinWith " "
+        [ "SIRC15"
+        , formatWithHex $ toLsbFirst irValue.command
+        , formatWithHex $ toLsbFirst irValue.address
+        ]
+    FormatSIRC20 irValue ->
+      String.joinWith " "
+        [ "SIRC20"
+        , formatWithHex $ toLsbFirst irValue.command
+        , formatWithHex $ toLsbFirst irValue.address
+        , formatWithHex $ toLsbFirst irValue.extended
         ]
     FormatUnknown irValue ->
       String.joinWith " "
         $ Array.concat
-            [ [ "Unkown"
+            [ [ "Unknown"
               , show irValue
               ]
             ]

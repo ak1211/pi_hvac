@@ -22,9 +22,10 @@ module InfraredRemote.HitachiHvac
   , decodeHitachiHvac
   ) where
 
-import Prelude
 import Data.Array ((!!))
 import Data.Array as Array
+import Data.Array.NonEmpty (NonEmptyArray)
+import Data.Array.NonEmpty as NEA
 import Data.Enum (class BoundedEnum, class Enum, toEnum)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Bounded (genericBottom, genericTop)
@@ -32,8 +33,9 @@ import Data.Generic.Rep.Enum (genericCardinality, genericPred, genericSucc)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Int.Bits ((.&.), shr)
 import Data.Maybe (Maybe(..))
-import Data.Newtype (class Newtype, unwrap)
-import InfraredRemote.Types (BitStream, Celsius(..), InfraredCodeFrame(..), fromBinaryString, toLsbFirst)
+import Data.Newtype (class Newtype)
+import InfraredRemote.Types (BitStream, Celsius(..), InfraredCodeFrame(..), unBitOrder, fromBinaryString, toLsbFirst)
+import Prelude
 
 -- |
 data Mode
@@ -164,17 +166,17 @@ instance showHitachiHvac :: Show HitachiHvac where
 -- |
 -- Hitachi HVAC remote control
 --
-decodeHitachiHvac :: Array InfraredCodeFrame -> Maybe HitachiHvac
+decodeHitachiHvac :: Array InfraredCodeFrame -> Maybe (NonEmptyArray HitachiHvac)
 decodeHitachiHvac inputFrames = case Array.head inputFrames of
-  Just (FormatAEHA { octets: a, stop: _ }) -> decode a
+  Just (FormatAEHA { octets: a, stop: _ }) -> NEA.fromArray $ Array.mapMaybe decode [ a ]
   _ -> Nothing
   where
   decode :: Array BitStream -> Maybe HitachiHvac
   decode bitstreams
     | isValidIdentifier bitstreams = do
-      b13 <- (unwrap <<< toLsbFirst) <$> bitstreams !! 13
-      b25 <- (unwrap <<< toLsbFirst) <$> bitstreams !! 25
-      b27 <- (unwrap <<< toLsbFirst) <$> bitstreams !! 27
+      b13 <- (unBitOrder <<< toLsbFirst) <$> bitstreams !! 13
+      b25 <- (unBitOrder <<< toLsbFirst) <$> bitstreams !! 25
+      b27 <- (unBitOrder <<< toLsbFirst) <$> bitstreams !! 27
       mode :: Mode <- toEnum (b25 .&. 0xf)
       fan :: Fan <- toEnum ((b25 `shr` 4) .&. 0xf)
       sw :: Switch <- toEnum ((b27 `shr` 4) .&. 0x1)
