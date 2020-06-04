@@ -14,25 +14,33 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -}
-module InfraredRemote.Code
+module InfraredRemoteCode.Internal
   ( Baseband(..)
+  , Bit(..)
+  , BitOrder(..)
+  , BitStream
+  , Celsius(..)
   , Count(..)
+  , InfraredCodeFrame(..)
   , InfraredHexString
   , InfraredLeader(..)
-  , IrRemoteControlCode(..)
   , ProcessError
   , Pulse
   , decodePhase1
   , decodePhase2
   , decodePhase3
-  , decodePhase4
+  , fromBinaryString
+  , fromBoolean
   , fromMilliseconds
   , infraredCodeTextParser
+  , showBit
+  , toBoolean
   , toInfraredHexString
   , toIrCodeFrames
-  , toIrRemoteControlCode
+  , toLsbFirst
   , toMilliseconds
-  , module InfraredRemote.Types
+  , toMsbFirst
+  , unBitOrder
   ) where
 
 import Control.Alt ((<|>))
@@ -44,25 +52,20 @@ import Data.Array (catMaybes, (..))
 import Data.Array as Array
 import Data.Array.NonEmpty (NonEmptyArray)
 import Data.Array.NonEmpty as NEA
-import Data.Bifunctor as Bifunctor
 import Data.Either (Either(..))
-import Data.Foldable (oneOf)
+import Data.Foldable (all)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Int as Int
 import Data.Int.Bits ((.&.), shr)
-import Data.Maybe (Maybe(..), fromJust, fromMaybe, maybe)
+import Data.Maybe (Maybe(..), fromJust, isJust, maybe)
+import Data.Newtype (class Newtype)
 import Data.String as String
-import Data.String.CodeUnits (fromCharArray)
+import Data.String.CodeUnits (fromCharArray, toCharArray)
 import Data.Time.Duration (Milliseconds(..))
 import Data.Traversable (traverse)
 import Data.Tuple (Tuple(..))
 import Data.Unfoldable (unfoldr1)
-import InfraredRemote.HitachiHvac (HitachiHvac, decodeHitachiHvac)
-import InfraredRemote.MitsubishiElectricHvac (MitsubishiElectricHvac, decodeMitsubishiElectricHvac)
-import InfraredRemote.PanasonicHvac (PanasonicHvac, decodePanasonicHvac)
-import InfraredRemote.SIRC (SIRC, decodeSirc)
-import InfraredRemote.Types (Bit(..), BitStream, BitOrder(..), Celsius(..), InfraredCodeFrame(..), fromBinaryString, fromBoolean, showBit, toBoolean, toLsbFirst, toMsbFirst)
 import Partial.Unsafe (unsafePartial)
 import Prelude hiding (between)
 import Text.Parsing.Parser (Parser, fail)
@@ -70,6 +73,108 @@ import Text.Parsing.Parser.Combinators (between, try, (<?>))
 import Text.Parsing.Parser.String (char, eof, noneOf, skipSpaces, string)
 import Text.Parsing.Parser.Token (digit, hexDigit)
 import Utils (toArrayArray, toArrayNonEmptyArray)
+
+-- |
+data Bit
+  = Negate
+  | Assert
+
+derive instance eqBit :: Eq Bit
+
+instance showBit' :: Show Bit where
+  show = showBit
+
+--|
+showBit :: Bit -> String
+showBit Negate = "0"
+
+showBit Assert = "1"
+
+---|
+fromBoolean :: Boolean -> Bit
+fromBoolean false = Negate
+
+fromBoolean true = Assert
+
+--|
+toBoolean :: Bit -> Boolean
+toBoolean Negate = false
+
+toBoolean Assert = true
+
+-- |
+type BitStream
+  = NonEmptyArray Bit
+
+-- |
+fromBinaryString :: String -> Maybe BitStream
+fromBinaryString input =
+  let
+    xs = map f $ toCharArray input
+  in
+    do
+      guard $ all isJust xs
+      NEA.fromArray $ Array.catMaybes xs
+  where
+  f :: Char -> Maybe Bit
+  f '0' = Just Negate
+
+  f '1' = Just Assert
+
+  f _ = Nothing
+
+-- |
+data BitOrder
+  = LsbFirst Int
+  | MsbFirst Int
+
+-- |
+unBitOrder :: BitOrder -> Int
+unBitOrder = case _ of
+  (LsbFirst x) -> x
+  (MsbFirst x) -> x
+
+-- |
+shiftRegister :: Int -> Bit -> Int
+shiftRegister register input = case input of
+  Assert -> register * 2 + 1
+  Negate -> register * 2 + 0
+
+-- |
+toLsbFirst :: BitStream -> BitOrder
+toLsbFirst bits = LsbFirst (Array.foldl shiftRegister 0 $ NEA.reverse bits)
+
+-- |
+toMsbFirst :: BitStream -> BitOrder
+toMsbFirst bits = MsbFirst (Array.foldl shiftRegister 0 bits)
+
+-- |
+data InfraredCodeFrame
+  = FormatUnknown (Array Bit)
+  | FormatAEHA { octets :: Array BitStream, stop :: Bit }
+  | FormatNEC { custom0 :: BitStream, custom1 :: BitStream, data0 :: BitStream, data1 :: BitStream, stop :: Bit }
+  | FormatSIRC12 { command :: BitStream, address :: BitStream }
+  | FormatSIRC15 { command :: BitStream, address :: BitStream }
+  | FormatSIRC20 { command :: BitStream, address :: BitStream, extended :: BitStream }
+
+derive instance genericInfraredCodeFrame :: Generic InfraredCodeFrame _
+
+derive instance eqInfraredCodeFrame :: Eq InfraredCodeFrame
+
+instance showInfraredCodeFrame :: Show InfraredCodeFrame where
+  show = genericShow
+
+-- |
+newtype Celsius
+  = Celsius Int
+
+derive instance newtypeCelsius :: Newtype Celsius _
+
+derive newtype instance eqCelsius :: Eq Celsius
+
+derive newtype instance ordCelsius :: Ord Celsius
+
+derive newtype instance showCelsius :: Show Celsius
 
 -- | input infrared hexadecimal code
 type InfraredHexString
@@ -395,51 +500,6 @@ decodePhase3 (Tuple leader bitarray) = evalState (runExceptT decoder) bitarray
     LeaderNec _ -> decodeNecFormat
     LeaderSirc _ -> decodeSircFormat
     LeaderUnknown _ -> decodeUnknownFormat
-
--- |
-data IrRemoteControlCode
-  = IrRemoteUnknown (Array InfraredCodeFrame)
-  | IrRemoteSIRC SIRC
-  | IrRemotePanasonicHvac PanasonicHvac
-  | IrRemoteMitsubishiElectricHvac MitsubishiElectricHvac
-  | IrRemoteHitachiHvac HitachiHvac
-
-derive instance genericIrRemoteControlCode :: Generic IrRemoteControlCode _
-
-derive instance eqIrRemoteControlCode :: Eq IrRemoteControlCode
-
-instance showIrRemoteControlCode :: Show IrRemoteControlCode where
-  show = genericShow
-
--- |
-toIrRemoteControlCode :: Baseband -> Either ProcessError (NonEmptyArray IrRemoteControlCode)
-toIrRemoteControlCode = Bifunctor.rmap decodePhase4 <<< toIrCodeFrames
-
--- | 各機種の赤外線信号にする
-decodePhase4 :: Array InfraredCodeFrame -> NonEmptyArray IrRemoteControlCode
-decodePhase4 frames =
-  fromMaybe (unknown frames)
-    $ oneOf
-        [ sirc frames
-        , pana frames
-        , melco frames
-        , hitachi frames
-        ]
-  where
-  unknown :: Array InfraredCodeFrame -> NonEmptyArray IrRemoteControlCode
-  unknown = NEA.singleton <<< IrRemoteUnknown
-
-  sirc :: Array InfraredCodeFrame -> Maybe (NonEmptyArray IrRemoteControlCode)
-  sirc = liftA1 (map IrRemoteSIRC) <<< decodeSirc
-
-  pana :: Array InfraredCodeFrame -> Maybe (NonEmptyArray IrRemoteControlCode)
-  pana = liftA1 (map IrRemotePanasonicHvac) <<< decodePanasonicHvac
-
-  melco :: Array InfraredCodeFrame -> Maybe (NonEmptyArray IrRemoteControlCode)
-  melco = liftA1 (map IrRemoteMitsubishiElectricHvac) <<< decodeMitsubishiElectricHvac
-
-  hitachi :: Array InfraredCodeFrame -> Maybe (NonEmptyArray IrRemoteControlCode)
-  hitachi = liftA1 (map IrRemoteHitachiHvac) <<< decodeHitachiHvac
 
 -- |
 type DecodeMonad e a

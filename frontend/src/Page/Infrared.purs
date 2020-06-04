@@ -55,14 +55,13 @@ import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Themes.Bootstrap4 as HB
-import InfraredRemote.Code (Baseband(..), Bit, Count, InfraredCodeFrame(..), InfraredHexString, InfraredLeader(..), IrRemoteControlCode(..), decodePhase1, decodePhase2, decodePhase3, decodePhase4, infraredCodeTextParser, toInfraredHexString, toIrRemoteControlCode, toLsbFirst, toMilliseconds, toMsbFirst)
-import InfraredRemote.HitachiHvac (HitachiHvac(..))
-import InfraredRemote.MitsubishiElectricHvac (MitsubishiElectricHvac(..))
-import InfraredRemote.MitsubishiElectricHvac as Me
-import InfraredRemote.PanasonicHvac (PanasonicHvac(..))
-import InfraredRemote.PanasonicHvac as Pa
-import InfraredRemote.SIRC (SIRC(..))
-import InfraredRemote.Types (BitOrder, unBitOrder)
+import InfraredRemoteCode (BitOrder, unBitOrder, Baseband(..), Bit, Count, InfraredCodeFrame(..), InfraredHexString, InfraredLeader(..), IrRemoteControlCode(..), decodePhase1, decodePhase2, decodePhase3, decodePhase4, infraredCodeTextParser, toInfraredHexString, toIrRemoteControlCode, toLsbFirst, toMilliseconds, toMsbFirst)
+import InfraredRemoteCode.Devices.HitachiHvac (HitachiHvac(..))
+import InfraredRemoteCode.Devices.MitsubishiElectricHvac (MitsubishiElectricHvac(..))
+import InfraredRemoteCode.Devices.MitsubishiElectricHvac as Me
+import InfraredRemoteCode.Devices.PanasonicHvac (PanasonicHvac(..))
+import InfraredRemoteCode.Devices.PanasonicHvac as Pa
+import InfraredRemoteCode.Devices.SIRC (SIRC(..))
 import Page.Commons as Commons
 import Prelude
 import Route (Route)

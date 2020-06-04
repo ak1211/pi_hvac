@@ -14,7 +14,7 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -}
-module InfraredRemote.SIRC
+module InfraredRemoteCode.Devices.SIRC
   ( Device(..)
   , Command(..)
   , SIRC(..)
@@ -31,7 +31,7 @@ import Data.Generic.Rep.Enum (genericCardinality, genericPred, genericSucc)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
-import InfraredRemote.Types (BitStream, InfraredCodeFrame(..), toLsbFirst, unBitOrder)
+import InfraredRemoteCode.Internal (BitStream, InfraredCodeFrame(..), toLsbFirst, unBitOrder)
 import Prelude
 
 -- |

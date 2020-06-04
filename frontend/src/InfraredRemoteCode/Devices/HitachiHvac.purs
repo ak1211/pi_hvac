@@ -14,7 +14,7 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -}
-module InfraredRemote.HitachiHvac
+module InfraredRemoteCode.Devices.HitachiHvac
   ( Fan(..)
   , HitachiHvac(..)
   , Mode(..)
@@ -34,7 +34,7 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.Int.Bits ((.&.), shr)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype)
-import InfraredRemote.Types (BitStream, Celsius(..), InfraredCodeFrame(..), unBitOrder, fromBinaryString, toLsbFirst)
+import InfraredRemoteCode.Internal (BitStream, Celsius(..), InfraredCodeFrame(..), unBitOrder, fromBinaryString, toLsbFirst)
 import Prelude
 
 -- |

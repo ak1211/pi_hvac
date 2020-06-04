@@ -42,7 +42,7 @@ import Halogen.HTML.Core as HC
 import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Themes.Bootstrap4 as HB
-import InfraredRemote.Code (infraredCodeTextParser)
+import InfraredRemoteCode (infraredCodeTextParser)
 import Text.Parsing.Parser (ParseError, parseErrorMessage, parseErrorPosition, runParser)
 import Text.Parsing.Parser.Pos (Position(..))
 import Utils as Utils

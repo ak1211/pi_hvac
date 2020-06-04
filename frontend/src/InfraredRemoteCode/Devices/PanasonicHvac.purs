@@ -14,7 +14,7 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -}
-module InfraredRemote.PanasonicHvac
+module InfraredRemoteCode.Devices.PanasonicHvac
   ( Crc(..)
   , Fan(..)
   , Mode(..)
@@ -38,7 +38,7 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.Int.Bits ((.&.), shr)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
-import InfraredRemote.Types (Bit(..), BitStream, Celsius(..), InfraredCodeFrame(..), unBitOrder, fromBinaryString, toLsbFirst)
+import InfraredRemoteCode.Internal (Bit(..), BitStream, Celsius(..), InfraredCodeFrame(..), unBitOrder, fromBinaryString, toLsbFirst)
 import Prelude
 
 -- |

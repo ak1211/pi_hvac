@@ -14,7 +14,7 @@
  See the License for the specific language governing permissions and
  limitations under the License.
 -}
-module InfraredRemote.MitsubishiElectricHvac
+module InfraredRemoteCode.Devices.MitsubishiElectricHvac
   ( Crc(..)
   , Fan(..)
   , MitsubishiElectricHvac(..)
@@ -37,7 +37,7 @@ import Data.Generic.Rep.Show (genericShow)
 import Data.Int.Bits ((.&.), shr)
 import Data.Maybe (Maybe(..))
 import Data.Newtype (class Newtype, unwrap)
-import InfraredRemote.Types (BitStream, Celsius(..), InfraredCodeFrame(..), unBitOrder, fromBinaryString, toLsbFirst)
+import InfraredRemoteCode.Internal (BitStream, Celsius(..), InfraredCodeFrame(..), unBitOrder, fromBinaryString, toLsbFirst)
 import Prelude
 
 -- |
