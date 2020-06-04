@@ -274,8 +274,7 @@ decodePanasonicHvac frames = do
 
   -- |
   firstFrame :: InfraredCodeFrame
-  firstFrame =  -- -- Panasonic HVAC first frame value is -- LSB first                                    -- MSB first -- 0x02 20 e0 04 00 00 00 06                    -- 0x40 04 07 20 00 00 00 60 --
-    -- first byte "01000000"
+  firstFrame =  -- -- Panasonic HVAC first frame value is -- LSB first                                    -- MSB first -- 0x02 20 e0 04 00 00 00 06                    -- 0x40 04 07 20 00 00 00 60 -- -- first byte "01000000"
     -- LSB first                                    -- MSB first
     -- 1   2   4   8  16  32  64 128                -- 128  64  32  16   8   4   2   1
     -- |   |   |   |   |   |   |   |                --   |   |   |   |   |   |   |   |

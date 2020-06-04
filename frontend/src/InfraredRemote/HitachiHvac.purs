@@ -167,10 +167,13 @@ instance showHitachiHvac :: Show HitachiHvac where
 -- Hitachi HVAC remote control
 --
 decodeHitachiHvac :: Array InfraredCodeFrame -> Maybe (NonEmptyArray HitachiHvac)
-decodeHitachiHvac inputFrames = case Array.head inputFrames of
-  Just (FormatAEHA { octets: a, stop: _ }) -> NEA.fromArray $ Array.mapMaybe decode [ a ]
-  _ -> Nothing
+decodeHitachiHvac frames = NEA.fromArray $ Array.mapMaybe go frames
   where
+  go :: InfraredCodeFrame -> Maybe HitachiHvac
+  go = case _ of
+    FormatAEHA { octets: a, stop: _ } -> decode a
+    _ -> Nothing
+
   decode :: Array BitStream -> Maybe HitachiHvac
   decode bitstreams
     | isValidIdentifier bitstreams = do
