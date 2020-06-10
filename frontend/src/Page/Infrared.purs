@@ -56,6 +56,8 @@ import Halogen.HTML.Events as HE
 import Halogen.HTML.Properties as HP
 import Halogen.Themes.Bootstrap4 as HB
 import InfraredRemoteCode (BitOrder, unBitOrder, Baseband(..), Bit, Count, InfraredCodeFrame(..), InfraredHexString, InfraredLeader(..), IrRemoteControlCode(..), decodePhase1, decodePhase2, decodePhase3, decodePhase4, infraredCodeTextParser, toInfraredHexString, toIrRemoteControlCode, toLsbFirst, toMilliseconds, toMsbFirst)
+import InfraredRemoteCode.Devices.DaikinHvac (DaikinHvac(..))
+import InfraredRemoteCode.Devices.DaikinHvac as Da
 import InfraredRemoteCode.Devices.HitachiHvac (HitachiHvac(..))
 import InfraredRemoteCode.Devices.MitsubishiElectricHvac (MitsubishiElectricHvac(..))
 import InfraredRemoteCode.Devices.MitsubishiElectricHvac as Me
@@ -816,6 +818,34 @@ infraredRemoteControlCode = case _ of
         , dd [ HH.text (show v.command) ]
         ]
     ]
+  IrRemoteDaikinHvac (DaikinHvac v) ->
+    [ HH.text "Daikin HVAC"
+    , HH.dl_
+        [ dt [ HH.text "Temperature" ]
+        , dd [ HH.text (show v.temperature) ]
+        , dt [ HH.text "Mode" ]
+        , dd [ HH.text (show v.mode) ]
+        , dt [ HH.text "Switch" ]
+        , dd [ HH.text (show v.switch) ]
+        , dt [ HH.text "Fan" ]
+        , dd [ HH.text (show v.fan) ]
+        , dt [ HH.text "Swing" ]
+        , dd [ HH.text (show v.swing) ]
+        , dt [ HH.text "OnTimer" ]
+        , dd [ HH.text (show v.onTimer) ]
+        , dt [ HH.text "OnTimerDulationHour" ]
+        , dd [ HH.text (show v.onTimerDulationHour) ]
+        , dt [ HH.text "OffTimer" ]
+        , dd [ HH.text (show v.offTimer) ]
+        , dt [ HH.text "OffTimerDulationHour" ]
+        , dd [ HH.text (show v.offTimerDulationHour) ]
+        , dt [ HH.text "Checksum" ]
+        , dd
+            [ HH.text (if Da.validChecksum v.checksum v.original then "Checksum is valid." else "Checksum is NOT valid.")
+            , HH.text $ " " <> (show v.checksum)
+            ]
+        ]
+    ]
   IrRemotePanasonicHvac (PanasonicHvac v) ->
     [ HH.text "Panasonic HVAC"
     , HH.dl_
@@ -1154,6 +1184,7 @@ popoverContents input = either identity displayCodes $ toIrCodes input
   display = case _ of
     IrRemoteUnknown formats -> String.joinWith ", " $ map showFormat formats
     IrRemoteSIRC _ -> "SIRC"
+    IrRemoteDaikinHvac _ -> "Daikin HVAC"
     IrRemotePanasonicHvac _ -> "Panasonic HVAC"
     IrRemoteMitsubishiElectricHvac _ -> "Mitsubishi Electric HVAC"
     IrRemoteHitachiHvac _ -> "Hitachi HVAC"

@@ -274,7 +274,14 @@ decodePanasonicHvac frames = do
 
   -- |
   firstFrame :: InfraredCodeFrame
-  firstFrame =  -- -- Panasonic HVAC first frame value is -- LSB first                                    -- MSB first -- 0x02 20 e0 04 00 00 00 06                    -- 0x40 04 07 20 00 00 00 60 -- -- first byte "01000000" -- LSB first                                    -- MSB first
+  firstFrame = FormatAEHA { octets: octets, stop: Assert }
+    --
+    -- Panasonic HVAC first frame value is
+    -- LSB first                                    -- MSB first
+    -- 0x02 20 e0 04 00 00 00 06                    -- 0x40 04 07 20 00 00 00 60
+    --
+    -- first byte "01000000"
+    -- LSB first                                    -- MSB first
     -- 1   2   4   8  16  32  64 128                -- 128  64  32  16   8   4   2   1
     -- |   |   |   |   |   |   |   |                --   |   |   |   |   |   |   |   |
     -- 0   1   0   0   0   0   0   0 == 02h         --   0   1   0   0   0   0   0   0 == 40h
@@ -307,7 +314,6 @@ decodePanasonicHvac frames = do
     -- |   |   |   |   |   |   |   | 2+4=6          --   |   |   |   |   |   |   |   | 32+64=96
     -- 0   1   1   0   0   0   0   0 == 06h         --   0   1   1   0   0   0   0   0 == 60h
     --
-    FormatAEHA { octets: octets, stop: Assert }
     where
     octets :: Array BitStream
     octets =

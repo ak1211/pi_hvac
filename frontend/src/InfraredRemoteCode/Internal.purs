@@ -128,6 +128,8 @@ data BitOrder
   = LsbFirst Int
   | MsbFirst Int
 
+derive instance eqBitOrder :: Eq BitOrder
+
 -- |
 unBitOrder :: BitOrder -> Int
 unBitOrder = case _ of

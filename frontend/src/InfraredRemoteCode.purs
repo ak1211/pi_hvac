@@ -28,21 +28,23 @@ import Data.Either (Either)
 import Data.Foldable (oneOf)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
-import Data.Maybe (Maybe, fromMaybe)
+import Data.Maybe (fromMaybe)
+import InfraredRemoteCode.Devices.DaikinHvac (DaikinHvac, decodeDaikinHvac)
 import InfraredRemoteCode.Devices.HitachiHvac (HitachiHvac, decodeHitachiHvac)
 import InfraredRemoteCode.Devices.MitsubishiElectricHvac (MitsubishiElectricHvac, decodeMitsubishiElectricHvac)
 import InfraredRemoteCode.Devices.PanasonicHvac (PanasonicHvac, decodePanasonicHvac)
 import InfraredRemoteCode.Devices.SIRC (SIRC, decodeSirc)
 import InfraredRemoteCode.Internal (Baseband(..), Bit(..), BitOrder(..), BitStream, Celsius(..), Count(..), InfraredCodeFrame(..), InfraredHexString, InfraredLeader(..), ProcessError, Pulse, decodePhase1, decodePhase2, decodePhase3, fromBinaryString, fromBoolean, fromMilliseconds, infraredCodeTextParser, showBit, toBoolean, toInfraredHexString, toIrCodeFrames, toLsbFirst, toMilliseconds, toMsbFirst, unBitOrder)
-import Prelude (class Eq, class Show, liftA1, map, ($), (<<<))
+import Prelude (class Eq, class Show, map, ($), (<$>), (<<<))
 
 -- |
 data IrRemoteControlCode
-  = IrRemoteUnknown (Array InfraredCodeFrame)
-  | IrRemoteSIRC SIRC
-  | IrRemotePanasonicHvac PanasonicHvac
-  | IrRemoteMitsubishiElectricHvac MitsubishiElectricHvac
+  = IrRemoteDaikinHvac DaikinHvac
   | IrRemoteHitachiHvac HitachiHvac
+  | IrRemoteMitsubishiElectricHvac MitsubishiElectricHvac
+  | IrRemotePanasonicHvac PanasonicHvac
+  | IrRemoteSIRC SIRC
+  | IrRemoteUnknown (Array InfraredCodeFrame)
 
 derive instance genericIrRemoteControlCode :: Generic IrRemoteControlCode _
 
@@ -61,22 +63,20 @@ decodePhase4 frames =
   fromMaybe (unknown frames)
     $ oneOf
         [ sirc frames
-        , pana frames
-        , melco frames
+        , daikin frames
         , hitachi frames
+        , melco frames
+        , pana frames
         ]
   where
-  unknown :: Array InfraredCodeFrame -> NonEmptyArray IrRemoteControlCode
-  unknown = NEA.singleton <<< IrRemoteUnknown
+  daikin x = map IrRemoteDaikinHvac <$> decodeDaikinHvac x
 
-  sirc :: Array InfraredCodeFrame -> Maybe (NonEmptyArray IrRemoteControlCode)
-  sirc = liftA1 (map IrRemoteSIRC) <<< decodeSirc
+  hitachi x = map IrRemoteHitachiHvac <$> decodeHitachiHvac x
 
-  pana :: Array InfraredCodeFrame -> Maybe (NonEmptyArray IrRemoteControlCode)
-  pana = liftA1 (map IrRemotePanasonicHvac) <<< decodePanasonicHvac
+  melco x = map IrRemoteMitsubishiElectricHvac <$> decodeMitsubishiElectricHvac x
 
-  melco :: Array InfraredCodeFrame -> Maybe (NonEmptyArray IrRemoteControlCode)
-  melco = liftA1 (map IrRemoteMitsubishiElectricHvac) <<< decodeMitsubishiElectricHvac
+  pana x = map IrRemotePanasonicHvac <$> decodePanasonicHvac x
 
-  hitachi :: Array InfraredCodeFrame -> Maybe (NonEmptyArray IrRemoteControlCode)
-  hitachi = liftA1 (map IrRemoteHitachiHvac) <<< decodeHitachiHvac
+  sirc x = map IrRemoteSIRC <$> decodeSirc x
+
+  unknown x = NEA.singleton $ IrRemoteUnknown x
